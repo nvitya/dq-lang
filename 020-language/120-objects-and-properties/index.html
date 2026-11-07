@@ -1,0 +1,3313 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Documentation for the DQ programming language, libraries and tools" name="description"/>
+<link href="../110-pointers/" rel="prev"/>
+<link href="../130-memory-management-and-ownership/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>2.14. Objects and Properties - DQ-lang Project</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../pdf/dq-lang-book.pdf" rel="alternate" title="PDF" type="application/pdf"/></head>
+<body dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#objects-and-properties">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="DQ-lang Project" class="md-header__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            DQ-lang Project
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              2.14. Objects and Properties
+            
+          </span>
+</div>
+</div>
+</div>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<a class="md-header-nav__button md-icon" href="../../pdf/dq-lang-book.pdf" title="PDF">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<path d="M128,0c-17.6,0-32,14.4-32,32v448c0,17.6,14.4,32,32,32h320c17.6,0,32-14.4,32-32V128L352,0H128z" fill="#E2E5E7"></path>
+<path d="m384 128h96l-128-128v96c0 17.6 14.4 32 32 32z" fill="#B0B7BD"></path>
+<polygon fill="#CAD1D8" points="480 224 384 128 480 128"></polygon>
+<path d="M416,416c0,8.8-7.2,16-16,16H48c-8.8,0-16-7.2-16-16V256c0-8.8,7.2-16,16-16h352c8.8,0,16,7.2,16,16  V416z" fill="#F15642"></path>
+<g fill="#fff">
+<path d="m101.74 303.15c0-4.224 3.328-8.832 8.688-8.832h29.552c16.64 0 31.616 11.136 31.616 32.48 0 20.224-14.976 31.488-31.616 31.488h-21.36v16.896c0 5.632-3.584 8.816-8.192 8.816-4.224 0-8.688-3.184-8.688-8.816v-72.032zm16.88 7.28v31.872h21.36c8.576 0 15.36-7.568 15.36-15.504 0-8.944-6.784-16.368-15.36-16.368h-21.36z"></path>
+<path d="m196.66 384c-4.224 0-8.832-2.304-8.832-7.92v-72.672c0-4.592 4.608-7.936 8.832-7.936h29.296c58.464 0 57.184 88.528 1.152 88.528h-30.448zm8.064-72.912v57.312h21.232c34.544 0 36.08-57.312 0-57.312h-21.232z"></path>
+<path d="m303.87 312.11v20.336h32.624c4.608 0 9.216 4.608 9.216 9.072 0 4.224-4.608 7.68-9.216 7.68h-32.624v26.864c0 4.48-3.184 7.92-7.664 7.92-5.632 0-9.072-3.44-9.072-7.92v-72.672c0-4.592 3.456-7.936 9.072-7.936h44.912c5.632 0 8.96 3.344 8.96 7.936 0 4.096-3.328 8.704-8.96 8.704h-37.248v0.016z"></path>
+</g>
+<path d="m400 432h-304v16h304c8.8 0 16-7.2 16-16v-16c0 8.8-7.2 16-16 16z" fill="#CAD1D8"></path>
+</svg>
+</a></nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="DQ-lang Project" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    DQ-lang Project
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../010-project/">
+<span class="md-ellipsis">
+    
+  
+    1. DQ-lang Project
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    1. DQ-lang Project
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    1.1. DQ-lang Project Introduction
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/020-features-and-goals/">
+<span class="md-ellipsis">
+    
+  
+    1.2. Features and Design Goals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/030-getting-started/">
+<span class="md-ellipsis">
+    
+  
+    1.3. Getting Started
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    2. DQ Programming Language
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    2. DQ Programming Language
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../010-basic-syntax/">
+<span class="md-ellipsis">
+    
+  
+    2.1. Basic Syntax
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../020-basic-types-and-conversions/">
+<span class="md-ellipsis">
+    
+  
+    2.2. Basic Types and Conversions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../030-variables-constants-references-and-scope/">
+<span class="md-ellipsis">
+    
+  
+    2.3. Variables, Constants, References, and Scope
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../040-expressions-and-operators/">
+<span class="md-ellipsis">
+    
+  
+    2.4. Expressions and Operators
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../050-statements-and-control-flow/">
+<span class="md-ellipsis">
+    
+  
+    2.5. Statements and Control Flow
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../060-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.6. Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../070-strings-and-characters/">
+<span class="md-ellipsis">
+    
+  
+    2.7. Character and String Types
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../075-string-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.8. String Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../077-text-formatting/">
+<span class="md-ellipsis">
+    
+  
+    2.9. Text Formatting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../080-arrays-and-slices/">
+<span class="md-ellipsis">
+    
+  
+    2.10. Arrays and Slices
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../090-enumerations/">
+<span class="md-ellipsis">
+    
+  
+    2.11. Enumerations
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../100-structures-and-unions/">
+<span class="md-ellipsis">
+    
+  
+    2.12. Structures and Unions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../110-pointers/">
+<span class="md-ellipsis">
+    
+  
+    2.13. Pointers
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    2.14. Objects and Properties
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    2.14. Objects and Properties
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fields-and-methods">
+<span class="md-ellipsis">
+      
+        2.14.1 Fields and Methods
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#object-references">
+<span class="md-ellipsis">
+      
+        2.14.2 Object References
+      
+    </span>
+</a>
+<nav aria-label="2.14.2 Object References" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#the-nil-reference">
+<span class="md-ellipsis">
+      
+        2.14.2.1 The nil Reference
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#creating-and-destroying-objects">
+<span class="md-ellipsis">
+      
+        2.14.3 Creating and Destroying Objects
+      
+    </span>
+</a>
+<nav aria-label="2.14.3 Creating and Destroying Objects" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#embedded-objects-">
+<span class="md-ellipsis">
+      
+        2.14.3.1 Embedded Objects (&lt;-)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#constructors-and-destructors">
+<span class="md-ellipsis">
+      
+        2.14.3.2 Constructors and Destructors
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#heap-objects-and-autofree-variables-new-and-autofree">
+<span class="md-ellipsis">
+      
+        2.14.3.3 Heap Objects and Autofree Variables (new and autofree)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#automatic-field-initialization-and-cleanup">
+<span class="md-ellipsis">
+      
+        2.14.3.4 Automatic Field Initialization and Cleanup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#overloaded-constructors">
+<span class="md-ellipsis">
+      
+        2.14.3.5 Overloaded Constructors
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#embedding-objects-in-fields">
+<span class="md-ellipsis">
+      
+        2.14.3.6 Embedding Objects in Fields
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#member-visibility">
+<span class="md-ellipsis">
+      
+        2.14.4 Member Visibility
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#properties">
+<span class="md-ellipsis">
+      
+        2.14.5 Properties
+      
+    </span>
+</a>
+<nav aria-label="2.14.5 Properties" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#field-backed-properties">
+<span class="md-ellipsis">
+      
+        2.14.5.1 Field-Backed Properties
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#computed-properties">
+<span class="md-ellipsis">
+      
+        2.14.5.2 Computed Properties
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#checking-new-values-with-setters">
+<span class="md-ellipsis">
+      
+        2.14.5.3 Checking New Values with Setters
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#property-accessor-rules">
+<span class="md-ellipsis">
+      
+        2.14.5.4 Property Accessor Rules
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#indexed-and-default-properties">
+<span class="md-ellipsis">
+      
+        2.14.5.5 Indexed and Default Properties
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#property-restrictions">
+<span class="md-ellipsis">
+      
+        2.14.5.6 Property Restrictions
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#inheritance">
+<span class="md-ellipsis">
+      
+        2.14.6 Inheritance
+      
+    </span>
+</a>
+<nav aria-label="2.14.6 Inheritance" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#constructors-and-inheritance">
+<span class="md-ellipsis">
+      
+        2.14.6.1 Constructors and Inheritance
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#virtual-methods">
+<span class="md-ellipsis">
+      
+        2.14.6.2 Virtual Methods
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#calling-the-base-implementation">
+<span class="md-ellipsis">
+      
+        2.14.6.3 Calling the Base Implementation
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#abstract-and-final-methods">
+<span class="md-ellipsis">
+      
+        2.14.6.4 Abstract and Final Methods
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#runtime-types">
+<span class="md-ellipsis">
+      
+        2.14.7 Runtime Types
+      
+    </span>
+</a>
+<nav aria-label="2.14.7 Runtime Types" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#runtime-type-tests-and-casts">
+<span class="md-ellipsis">
+      
+        2.14.7.1 Runtime Type Tests and Casts
+      
+    </span>
+</a>
+<nav aria-label="2.14.7.1 Runtime Type Tests and Casts" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#testing-types-with-is">
+<span class="md-ellipsis">
+      
+        2.14.7.1.1 Testing Types with is
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#converting-references-with-trycast">
+<span class="md-ellipsis">
+      
+        2.14.7.1.2 Converting References with TryCast()
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#object-type-variables-and-type-names">
+<span class="md-ellipsis">
+      
+        2.14.7.2 Object Type Variables and Type Names
+      
+    </span>
+</a>
+<nav aria-label="2.14.7.2 Object Type Variables and Type Names" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#querying-type-names">
+<span class="md-ellipsis">
+      
+        2.14.7.2.1 Querying Type Names
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#object-method-references">
+<span class="md-ellipsis">
+      
+        2.14.8 Object Method References
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#organizing-object-code">
+<span class="md-ellipsis">
+      
+        2.14.9 Organizing Object Code
+      
+    </span>
+</a>
+<nav aria-label="2.14.9 Organizing Object Code" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#declaring-methods-separately">
+<span class="md-ellipsis">
+      
+        2.14.9.1 Declaring Methods Separately
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#forward-declarations">
+<span class="md-ellipsis">
+      
+        2.14.9.2 Forward Declarations
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#accessing-variables-and-functions-outside-of-the-object">
+<span class="md-ellipsis">
+      
+        2.14.9.3 Accessing Variables and Functions Outside of the Object
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#method-local-use">
+<span class="md-ellipsis">
+      
+        2.14.9.4 Method-Local Use
+      
+    </span>
+</a>
+<nav aria-label="2.14.9.4 Method-Local Use" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#forms-of-method-local-use">
+<span class="md-ellipsis">
+      
+        2.14.9.4.1 Forms of Method-Local use
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#scope-and-rules">
+<span class="md-ellipsis">
+      
+        2.14.9.4.2 Scope and Rules
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#object-examples">
+<span class="md-ellipsis">
+      
+        2.14.10 Object Examples
+      
+    </span>
+</a>
+<nav aria-label="2.14.10 Object Examples" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#a-short-object-demo">
+<span class="md-ellipsis">
+      
+        2.14.10.1 A Short Object Demo
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#a-temperature-log-with-properties">
+<span class="md-ellipsis">
+      
+        2.14.10.2 A Temperature Log with Properties
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#shapes-in-an-array-with-autofree-elements">
+<span class="md-ellipsis">
+      
+        2.14.10.3 Shapes in an Array with Autofree Elements
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#lifetime-of-composed-objects">
+<span class="md-ellipsis">
+      
+        2.14.10.4 Lifetime of Composed Objects
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../130-memory-management-and-ownership/">
+<span class="md-ellipsis">
+    
+  
+    2.15. Memory Management and Autofree
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../140-exceptions-and-error-handling/">
+<span class="md-ellipsis">
+    
+  
+    2.16. Exceptions and Error Handling
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../150-anyvalue/">
+<span class="md-ellipsis">
+    
+  
+    2.17. anyvalue
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../170-modules-and-packages/">
+<span class="md-ellipsis">
+    
+  
+    2.18. Modules and Packages
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../180-attributes/">
+<span class="md-ellipsis">
+    
+  
+    2.19. Attributes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../190-compiler-directives/">
+<span class="md-ellipsis">
+    
+  
+    2.20. Compiler Directives
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../200-c-interoperability/">
+<span class="md-ellipsis">
+    
+  
+    2.21. C Interoperability
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../210-assembly-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.22. Assembly Functions
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../030-compiler/">
+<span class="md-ellipsis">
+    
+  
+    3. DQ Compiler and Tools
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    3. DQ Compiler and Tools
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/010-compiler-and-tool-overview/">
+<span class="md-ellipsis">
+    
+  
+    3.1. Compiler and Tool Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/015-runtime-and-program-execution/">
+<span class="md-ellipsis">
+    
+  
+    3.2. Runtime and Program Execution
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/020-linux-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.3. Linux Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/030-windows-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.4. Windows Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/040-compiler-usage-and-options/">
+<span class="md-ellipsis">
+    
+  
+    3.5. Compiler Usage and Options
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/050-project-files/">
+<span class="md-ellipsis">
+    
+  
+    3.6. Project Files
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/060-build-process-and-module-artifacts/">
+<span class="md-ellipsis">
+    
+  
+    3.7. Build Process and Module Artifacts
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/070-targets-and-cross-compilation/">
+<span class="md-ellipsis">
+    
+  
+    3.8. Targets and Cross-Compilation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/080-vscode-setup-and-debugging/">
+<span class="md-ellipsis">
+    
+  
+    3.9. VSCode Setup and Debugging
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../040-packages/">
+<span class="md-ellipsis">
+    
+  
+    4. Standard Packages
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    4. Standard Packages
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/010-library-overview-and-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.1. Library Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/015-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.2. sys
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/020-print/">
+<span class="md-ellipsis">
+    
+  
+    4.3. print
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/040-file/">
+<span class="md-ellipsis">
+    
+  
+    4.4. file
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/050-json/">
+<span class="md-ellipsis">
+    
+  
+    4.5. json
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/060-threads/">
+<span class="md-ellipsis">
+    
+  
+    4.6. threads
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/065-time/">
+<span class="md-ellipsis">
+    
+  
+    4.7. time
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/070-nanonet/">
+<span class="md-ellipsis">
+    
+  
+    4.8. nanonet
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/075-shell/">
+<span class="md-ellipsis">
+    
+  
+    4.9. shell
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/080-additional-standard-packages/">
+<span class="md-ellipsis">
+    
+  
+    4.10. Additional Standard Packages
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    5. Appendices
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    5. Appendices
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/010-example-programs/">
+<span class="md-ellipsis">
+    
+  
+    5.1. Example Programs
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/020-building-the-compiler-from-source/">
+<span class="md-ellipsis">
+    
+  
+    5.2. Building the Compiler from Source
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/030-contributor-and-implementation-notes/">
+<span class="md-ellipsis">
+    
+  
+    5.3. Contributor and Implementation Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/031-module-and-interface-internals/">
+<span class="md-ellipsis">
+    
+  
+    5.4. Module and Interface Internals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/032-exceptions-and-backtraces/">
+<span class="md-ellipsis">
+    
+  
+    5.5. Exceptions and Backtraces
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/033-release-and-cross-builds/">
+<span class="md-ellipsis">
+    
+  
+    5.6. Release and Cross-Build Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/040-glossary-and-index/">
+<span class="md-ellipsis">
+    
+  
+    5.7. Glossary and Index
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/050-documentation-coverage/">
+<span class="md-ellipsis">
+    
+  
+    5.8. Documentation Coverage
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fields-and-methods">
+<span class="md-ellipsis">
+      
+        2.14.1 Fields and Methods
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#object-references">
+<span class="md-ellipsis">
+      
+        2.14.2 Object References
+      
+    </span>
+</a>
+<nav aria-label="2.14.2 Object References" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#the-nil-reference">
+<span class="md-ellipsis">
+      
+        2.14.2.1 The nil Reference
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#creating-and-destroying-objects">
+<span class="md-ellipsis">
+      
+        2.14.3 Creating and Destroying Objects
+      
+    </span>
+</a>
+<nav aria-label="2.14.3 Creating and Destroying Objects" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#embedded-objects-">
+<span class="md-ellipsis">
+      
+        2.14.3.1 Embedded Objects (&lt;-)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#constructors-and-destructors">
+<span class="md-ellipsis">
+      
+        2.14.3.2 Constructors and Destructors
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#heap-objects-and-autofree-variables-new-and-autofree">
+<span class="md-ellipsis">
+      
+        2.14.3.3 Heap Objects and Autofree Variables (new and autofree)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#automatic-field-initialization-and-cleanup">
+<span class="md-ellipsis">
+      
+        2.14.3.4 Automatic Field Initialization and Cleanup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#overloaded-constructors">
+<span class="md-ellipsis">
+      
+        2.14.3.5 Overloaded Constructors
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#embedding-objects-in-fields">
+<span class="md-ellipsis">
+      
+        2.14.3.6 Embedding Objects in Fields
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#member-visibility">
+<span class="md-ellipsis">
+      
+        2.14.4 Member Visibility
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#properties">
+<span class="md-ellipsis">
+      
+        2.14.5 Properties
+      
+    </span>
+</a>
+<nav aria-label="2.14.5 Properties" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#field-backed-properties">
+<span class="md-ellipsis">
+      
+        2.14.5.1 Field-Backed Properties
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#computed-properties">
+<span class="md-ellipsis">
+      
+        2.14.5.2 Computed Properties
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#checking-new-values-with-setters">
+<span class="md-ellipsis">
+      
+        2.14.5.3 Checking New Values with Setters
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#property-accessor-rules">
+<span class="md-ellipsis">
+      
+        2.14.5.4 Property Accessor Rules
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#indexed-and-default-properties">
+<span class="md-ellipsis">
+      
+        2.14.5.5 Indexed and Default Properties
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#property-restrictions">
+<span class="md-ellipsis">
+      
+        2.14.5.6 Property Restrictions
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#inheritance">
+<span class="md-ellipsis">
+      
+        2.14.6 Inheritance
+      
+    </span>
+</a>
+<nav aria-label="2.14.6 Inheritance" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#constructors-and-inheritance">
+<span class="md-ellipsis">
+      
+        2.14.6.1 Constructors and Inheritance
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#virtual-methods">
+<span class="md-ellipsis">
+      
+        2.14.6.2 Virtual Methods
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#calling-the-base-implementation">
+<span class="md-ellipsis">
+      
+        2.14.6.3 Calling the Base Implementation
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#abstract-and-final-methods">
+<span class="md-ellipsis">
+      
+        2.14.6.4 Abstract and Final Methods
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#runtime-types">
+<span class="md-ellipsis">
+      
+        2.14.7 Runtime Types
+      
+    </span>
+</a>
+<nav aria-label="2.14.7 Runtime Types" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#runtime-type-tests-and-casts">
+<span class="md-ellipsis">
+      
+        2.14.7.1 Runtime Type Tests and Casts
+      
+    </span>
+</a>
+<nav aria-label="2.14.7.1 Runtime Type Tests and Casts" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#testing-types-with-is">
+<span class="md-ellipsis">
+      
+        2.14.7.1.1 Testing Types with is
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#converting-references-with-trycast">
+<span class="md-ellipsis">
+      
+        2.14.7.1.2 Converting References with TryCast()
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#object-type-variables-and-type-names">
+<span class="md-ellipsis">
+      
+        2.14.7.2 Object Type Variables and Type Names
+      
+    </span>
+</a>
+<nav aria-label="2.14.7.2 Object Type Variables and Type Names" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#querying-type-names">
+<span class="md-ellipsis">
+      
+        2.14.7.2.1 Querying Type Names
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#object-method-references">
+<span class="md-ellipsis">
+      
+        2.14.8 Object Method References
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#organizing-object-code">
+<span class="md-ellipsis">
+      
+        2.14.9 Organizing Object Code
+      
+    </span>
+</a>
+<nav aria-label="2.14.9 Organizing Object Code" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#declaring-methods-separately">
+<span class="md-ellipsis">
+      
+        2.14.9.1 Declaring Methods Separately
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#forward-declarations">
+<span class="md-ellipsis">
+      
+        2.14.9.2 Forward Declarations
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#accessing-variables-and-functions-outside-of-the-object">
+<span class="md-ellipsis">
+      
+        2.14.9.3 Accessing Variables and Functions Outside of the Object
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#method-local-use">
+<span class="md-ellipsis">
+      
+        2.14.9.4 Method-Local Use
+      
+    </span>
+</a>
+<nav aria-label="2.14.9.4 Method-Local Use" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#forms-of-method-local-use">
+<span class="md-ellipsis">
+      
+        2.14.9.4.1 Forms of Method-Local use
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#scope-and-rules">
+<span class="md-ellipsis">
+      
+        2.14.9.4.2 Scope and Rules
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#object-examples">
+<span class="md-ellipsis">
+      
+        2.14.10 Object Examples
+      
+    </span>
+</a>
+<nav aria-label="2.14.10 Object Examples" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#a-short-object-demo">
+<span class="md-ellipsis">
+      
+        2.14.10.1 A Short Object Demo
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#a-temperature-log-with-properties">
+<span class="md-ellipsis">
+      
+        2.14.10.2 A Temperature Log with Properties
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#shapes-in-an-array-with-autofree-elements">
+<span class="md-ellipsis">
+      
+        2.14.10.3 Shapes in an Array with Autofree Elements
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#lifetime-of-composed-objects">
+<span class="md-ellipsis">
+      
+        2.14.10.4 Lifetime of Composed Objects
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="objects-and-properties">2.14. Objects and Properties</h1>
+<p>An <strong>object</strong> keeps data and the functions that work on it together. Its data
+is stored in <strong>fields</strong> (variables that belong to the object), and its functions
+are called <strong>methods</strong>. Use objects for things that have their own state and
+behavior, such as a counter, a document, a sensor, or a network connection.</p>
+<p>Object type names conventionally start with a capital <code>O</code>, as in <code>OCounter</code>.</p>
+<pre><code class="language-dq">use print
+
+object OCounter:
+    value : int = 0
+
+    func Increment():
+        value += 1
+    endfunc
+endobject
+
+func *Main():
+    var counter &lt;- OCounter()
+    counter.Increment()
+    counter.Increment()
+    PrintLn("{}", [counter.value])
+endfunc
+</code></pre>
+<p>This prints <code>2</code>. The arrow <code>&lt;-</code> creates an <strong>embedded object</strong> named <code>counter</code> (an
+object allocated directly in the local function rather than separately on the
+heap), and <code>OCounter()</code> creates and initializes it. When <code>Main</code> finishes, the
+object is cleaned up automatically.</p>
+<p>Objects differ from <a href="../100-structures-and-unions/">structures</a> in several
+important ways:</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Structure</th>
+<th>Object</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Assignment</td>
+<td>Copies the fields</td>
+<td>Copies the reference; both variables point to the same object</td>
+</tr>
+<tr>
+<td>Allowed fields</td>
+<td>Plain data only</td>
+<td>Any type, including <code>str</code>, <code>[*]T</code>, and other objects</td>
+</tr>
+<tr>
+<td>Setup and cleanup</td>
+<td>None</td>
+<td>Constructor (<code>*Create</code>), destructor (<code>*Destroy</code>), automatic field cleanup</td>
+</tr>
+<tr>
+<td>Methods</td>
+<td>Plain methods</td>
+<td>Supports virtual methods and properties</td>
+</tr>
+<tr>
+<td>Type testing</td>
+<td>No</td>
+<td>Can test the actual type at runtime with <code>is</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="fields-and-methods">2.14.1 Fields and Methods</h2>
+<p>An object declaration defines two things between <code>object Name:</code> and
+<code>endobject</code>:
+- <strong>Fields:</strong> variables that belong to the object and hold its data.
+- <strong>Methods:</strong> functions that belong to the object and can read or update its
+  fields.</p>
+<p>A field can have an initial value (such as <code>lives : int = 3</code>), which is given
+to every newly created object. Fields without an initializer start with their
+zero or empty value: numeric fields start at zero, strings and dynamic arrays
+start empty, and object references start as <code>nil</code> (referring to no object).</p>
+<pre><code class="language-dq">struct SPoint:
+    x : int
+    y : int
+endstruct
+
+object OPlayer:
+    name     : str        // starts empty
+    scores   : [*]int     // dynamic array, starts empty
+    position : SPoint     // all fields zero
+    lives    : int = 3
+    rival    : OPlayer    // object reference, starts nil
+
+    func AddScore(points : int):
+        scores.Append(points)
+    endfunc
+
+    func Total() -&gt; int:
+        result = 0
+        for points : int in scores:
+            result += points
+        endfor
+    endfunc
+endobject
+</code></pre>
+<p>Use a dot (<code>.</code>) to access a field or call a method:</p>
+<pre><code class="language-dq">var player &lt;- OPlayer()
+player.name = "Lin"
+player.AddScore(10)
+player.AddScore(25)
+var total : int = player.Total() // 35
+</code></pre>
+<p>Inside a method, the object's own fields and methods can be used directly by
+name—no special prefix is needed.</p>
+<p>If an object needs to refer to itself—for example, to pass itself as an argument
+to another function—it uses the special name <code>self</code>, as in <code>engine.Create(self)</code>.</p>
+<p>DQ checks code from top to bottom. This means a method must be declared before
+other methods in the same object can call it. If method <code>A</code> calls method <code>B</code>,
+write <code>B</code> above <code>A</code>, or <a href="#declaring-methods-separately">declare the method first and define its body
+later</a>.</p>
+<p>To call a function outside the object from inside a method, use a module
+prefix: <code>@.PrintLn(...)</code> reaches <code>PrintLn</code> imported into the current module,
+while <code>@print.PrintLn(...)</code> names the <code>print</code> module explicitly. Compiler
+built-ins such as <code>SizeOf()</code> need no prefix. The full lookup rules and
+method-local <code>use</code> are covered under
+<a href="#organizing-object-code">Organizing Object Code</a>.</p>
+<h2 id="object-references">2.14.2 Object References</h2>
+<p>An object variable holds a <strong>reference</strong> (a handle pointing to the object in
+memory), rather than containing a separate copy of the fields. Assigning an
+object variable to another variable makes both refer to the same object:</p>
+<pre><code class="language-dq">var counter &lt;- OCounter()
+var alias : OCounter = counter
+alias.Increment()
+// counter.value is now 1: counter and alias refer to the exact same object
+</code></pre>
+<p>This is different from structures: copying a structure copies all of its data,
+so changing one copy leaves the other unchanged.</p>
+<p>The same applies when passing objects to functions. An ordinary object
+parameter receives a reference to the caller's object, so the function can read
+and modify the object directly without needing a <code>ref</code> parameter:</p>
+<pre><code class="language-dq">func GiveBonus(player : OPlayer):
+    player.AddScore(5) // modifies the caller's player object
+endfunc
+</code></pre>
+<p>An ordinary reference such as <code>alias</code> or <code>player</code> only <strong>borrows</strong> the object:
+it can use the object, but it does not own it and is not responsible for
+destroying it.</p>
+<h3 id="the-nil-reference">2.14.2.1 The <code>nil</code> Reference</h3>
+<p>An object reference can be <code>nil</code>, meaning it currently points to no object at
+all. Like any other local variable in DQ, an object variable must be initialized
+before it is read (for example, initialized to <code>nil</code>).</p>
+<p>Always check whether a reference might be <code>nil</code> before using it:</p>
+<pre><code class="language-dq">var selected : OPlayer = nil
+// ...
+if selected &lt;&gt; nil:
+    selected.AddScore(1)
+endif
+</code></pre>
+<p>Accessing a field or calling a method through a <code>nil</code> reference is invalid and
+stops the program with an error (a segmentation fault).</p>
+<h2 id="creating-and-destroying-objects">2.14.3 Creating and Destroying Objects</h2>
+<p>Every object needs memory to hold its fields. DQ provides three ways to store
+and manage an object, depending on how long it needs to exist:</p>
+<table>
+<thead>
+<tr>
+<th>Form</th>
+<th>How it works</th>
+<th>When to use it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>counter &lt;- OCounter()</code></td>
+<td><strong>Embedded object:</strong> stored directly in a function's local storage, the global data segment, or a containing object.</td>
+<td>Use for local objects, global objects, or fields without a separate heap allocation. Local objects and fields are destroyed automatically; globals are not.</td>
+</tr>
+<tr>
+<td><code>var counter = new autofree OCounter()</code></td>
+<td><strong>Auto-free object:</strong> lives in dynamic memory (the heap). The variable owns it and releases it automatically.</td>
+<td>The object needs to outlive a single function, but you still want automatic cleanup without calling <code>delete</code>.</td>
+</tr>
+<tr>
+<td><code>var counter = new OCounter()</code></td>
+<td><strong>Manually managed heap object:</strong> lives on the heap. You must destroy it yourself with <code>delete</code>.</td>
+<td>You want full manual control over when the object is destroyed.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="embedded-objects-">2.14.3.1 Embedded Objects (<code>&lt;-</code>)</h3>
+<p>An <strong>embedded object</strong> declared with <code>&lt;-</code> has its storage directly in the
+context where it is declared:</p>
+<ul>
+<li>Inside a function, it lives in local storage (the stack) and is destroyed
+  automatically when its scope ends, including on an early <code>return</code> or when an
+  exception leaves the scope.</li>
+<li>At module scope, it lives in the global data segment. Global embedded objects
+  are not destroyed automatically when the program finishes.</li>
+<li>As a field of another object, it lives inside the containing object and is
+  destroyed with it.</li>
+</ul>
+<p>An embedded object cannot be redirected to point to another object, and it
+cannot be passed to <code>delete</code>.</p>
+<p>For an embedded field, the constructor call can be delayed: write
+<code>field &lt;- OType ..</code>, without <code>()</code>, and call <code>field.Create(...)</code> explicitly from
+the containing object's constructor. See
+<a href="#embedding-objects-in-fields">Embedding Objects in Fields</a> for an example.</p>
+<h3 id="constructors-and-destructors">2.14.3.2 Constructors and Destructors</h3>
+<p>A <strong>constructor</strong> is a special method named <code>*Create</code>. It runs automatically
+when a new object is being created, allowing you to initialize fields and accept
+arguments from the caller.</p>
+<p>A <strong>destructor</strong> is a special method named <code>*Destroy</code>. It runs automatically
+when the object is being destroyed, allowing you to perform any final cleanup
+(such as closing a file or releasing an external system resource).</p>
+<p>The asterisk <code>*</code> marks them as <a href="../060-functions/#special-functions">special functions</a>. When calling
+them explicitly or referring to them, write their names without <code>*</code>.</p>
+<pre><code class="language-dq">use print
+
+object OConnection:
+    host : str
+
+    func *Create(ahost : strslice):
+        host = ahost
+        @.PrintLn("Connected to {}", [host])
+    endfunc
+
+    func Send(message : strslice):
+        @.PrintLn("{} &lt;- {}", [host, message])
+    endfunc
+
+    func *Destroy():
+        @.PrintLn("Disconnected from {}", [host])
+    endfunc
+endobject
+
+func *Main():
+    var connection &lt;- OConnection("example.com")
+    connection.Send("hello")
+endfunc
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">Connected to example.com
+example.com &lt;- hello
+Disconnected from example.com
+</code></pre>
+<p>In <code>OConnection("example.com")</code>, the argument <code>"example.com"</code> is passed to
+<code>*Create</code>. If an object does not declare a constructor, you create it with empty
+parentheses: <code>OType()</code>.</p>
+<h3 id="heap-objects-and-autofree-variables-new-and-autofree">2.14.3.3 Heap Objects and Autofree Variables (<code>new</code> and <code>autofree</code>)</h3>
+<p>The <strong>heap</strong> is general memory where values can live independently of any
+single function call. Using <code>new</code> allocates memory for the object on the heap.</p>
+<p>Adding <code>autofree</code> gives the variable an <strong>autofree type</strong>. An <strong>autofree
+variable</strong> destroys its heap object automatically when the variable goes out of
+scope, when it is set to <code>nil</code>, or when a new object is assigned to it. The
+variable is responsible for releasing the object, so it is also called its
+<strong>owner</strong>:</p>
+<pre><code class="language-dq">var counter = new autofree OCounter()
+counter.Increment()
+counter = new OCounter() // destroys the first counter before taking the new one
+counter = nil            // destroys the second counter
+</code></pre>
+<p>Without <code>autofree</code>, you must manually pair <code>new</code> with <code>delete</code>:</p>
+<pre><code class="language-dq">var counter = new OCounter()
+counter.Increment()
+delete counter = nil // destroys the object, releases its storage, and clears the variable
+</code></pre>
+<p>Forgetting to call <code>delete</code> leaves the object stranded in memory (a <strong>memory
+leak</strong>). On the other hand, calling <code>delete</code> while other variables still point
+to the object leaves those variables pointing to invalid memory, which is
+dangerous (see <a href="../110-pointers/#dangling-pointers">dangling pointers</a>).</p>
+<p>Global objects are not destroyed automatically when the program finishes. See
+<a href="../130-memory-management-and-ownership/">Memory Management and Autofree</a> for
+details on transferring ownership, autofree array elements, and <code>ref autofree</code>
+parameters.</p>
+<h3 id="automatic-field-initialization-and-cleanup">2.14.3.4 Automatic Field Initialization and Cleanup</h3>
+<p>Fields are initialized before the constructor body runs, so the constructor can
+safely use them immediately.</p>
+<p>When an object is destroyed, the destructor body runs first. After that, DQ
+automatically cleans up the object's fields in reverse declaration order:
+- Managed strings (<code>str</code>) and dynamic arrays release their allocated storage.
+- Embedded objects are destroyed.
+- Autofree fields destroy the heap objects they hold.</p>
+<p>Because of this automatic cleanup, you only need to write a <code>*Destroy</code> method
+when you have custom cleanup work to do, such as closing external handles or
+logging a message. Ordinary object references in fields are just borrows, so the
+objects they point to are not destroyed.</p>
+<p>If an error or exception occurs inside a constructor, the object creation fails.
+Any fields and base parts that were already set up are cleaned up in reverse
+order, so half-constructed objects are never left behind. See
+<a href="../140-exceptions-and-error-handling/">Exceptions and Error Handling</a>.</p>
+<h3 id="overloaded-constructors">2.14.3.5 Overloaded Constructors</h3>
+<p>You can provide more than one constructor by adding the <code>[[overload]]</code>
+attribute to each. This gives callers different ways to create the object. One
+constructor can also call another constructor to reuse setup code:</p>
+<pre><code class="language-dq">object OColor:
+    red   : byte
+    green : byte
+    blue  : byte
+
+    func *Create(ared : byte, agreen : byte, ablue : byte) [[overload]]:
+        red = ared
+        green = agreen
+        blue = ablue
+    endfunc
+
+    func *Create(gray : byte) [[overload]]:
+        Create(gray, gray, gray) // calls the three-argument constructor
+    endfunc
+endobject
+
+var orange &lt;- OColor(255, 165, 0)
+var gray &lt;- OColor(128) // red, green, and blue are all 128
+</code></pre>
+<h3 id="embedding-objects-in-fields">2.14.3.6 Embedding Objects in Fields</h3>
+<p>Just as a structure can contain another structure, an object can contain
+another object as one of its fields. Declare the embedded object with <code>&lt;-</code>
+to construct it as part of the containing object and destroy it with that object:</p>
+<pre><code class="language-dq">object OEngine:
+    power : int
+
+    func *Create(apower : int):
+        power = apower
+    endfunc
+endobject
+
+object OCar:
+    engine &lt;- OEngine(120) // created with every OCar, destroyed with it
+endobject
+</code></pre>
+<p>Sometimes the embedded object needs arguments that are only available when the
+outer object's constructor runs. In that case, omit the parentheses and write
+<code>..</code> after the type name (<code>engine &lt;- OEngine ..</code>). This reserves the storage
+without calling the constructor. Call <code>Create</code> explicitly inside the outer
+constructor:</p>
+<pre><code class="language-dq">object OCar:
+    engine &lt;- OEngine .. // reserves storage; constructed in OCar.Create
+
+    func *Create(apower : int):
+        engine.Create(apower)
+    endfunc
+endobject
+</code></pre>
+<p>An embedded object must be constructed before code attempts to use it. Its
+storage belongs entirely to the containing object, so never pass an embedded
+object to <code>delete</code>. The <a href="#lifetime-of-composed-objects">composed objects example</a>
+shows how to use this pattern to give an embedded object a reference back to its
+container.</p>
+<h2 id="member-visibility">2.14.4 Member Visibility</h2>
+<p>By default, all members of an object (its fields, methods, and properties) are
+<strong>public</strong>, meaning any code that uses the object can access them.</p>
+<p>You can restrict access using visibility labels:</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Who can access the members that follow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>public</code></td>
+<td>Any code. This is the default.</td>
+</tr>
+<tr>
+<td><code>protected</code></td>
+<td>Only methods of this object and of objects derived from it.</td>
+</tr>
+<tr>
+<td><code>private</code></td>
+<td>Only methods of this specific object.</td>
+</tr>
+</tbody>
+</table>
+<p>Visibility labels act like section headers inside the object: all members
+declared below a label share that visibility until another label appears.</p>
+<p>Use visibility labels to protect an object's internal data from unauthorized or
+accidental changes. In the following example, callers can inspect the balance,
+but can only change it through <code>Deposit</code>, which ensures invalid amounts are
+rejected:</p>
+<pre><code class="language-dq">object OAccount:
+private
+    balance : int = 0
+public
+    func GetBalance() -&gt; int:
+        return balance
+    endfunc
+
+    func Deposit(amount : int) -&gt; bool:
+        if amount &lt;= 0:
+            return false
+        endif
+        balance += amount
+        return true
+    endfunc
+endobject
+</code></pre>
+<p>Code using an <code>OAccount</code> can call <code>account.GetBalance()</code>, but cannot touch
+<code>balance</code> directly. The next section introduces properties, which let callers
+read a value with field syntax while keeping the underlying field private.</p>
+<h2 id="properties">2.14.5 Properties</h2>
+<p>A <strong>property</strong> looks and acts like a regular field to anyone using the object,
+but behind the scenes it can use methods to read or write the value.</p>
+<p>Properties give you the best of both worlds: clean, natural syntax (such as
+<code>volume.value = 80</code>) combined with the ability to validate input, compute
+values on demand, or expose read-only data while keeping internal fields private.</p>
+<h3 id="field-backed-properties">2.14.5.1 Field-Backed Properties</h3>
+<p>The simplest property reads from or writes to a private field directly.
+Omitting <code>write</code> makes it a <strong>read-only property</strong>:</p>
+<pre><code class="language-dq">object OTimer:
+private
+    elapsed : int = 0
+public
+    property seconds : int read elapsed // read-only for outside callers
+
+    func Tick():
+        elapsed += 1
+    endfunc
+endobject
+</code></pre>
+<p>Outside callers can read <code>timer.seconds</code>, but attempting to assign to it
+(<code>timer.seconds = 0</code>) is caught at compile time with an error.</p>
+<h3 id="computed-properties">2.14.5.2 Computed Properties</h3>
+<p>A <strong>getter</strong> method computes the value each time the property is read, without
+needing to store it in a separate field:</p>
+<pre><code class="language-dq">object OTemperature:
+public
+    celsius : float = 20
+private
+    func GetFahrenheit() -&gt; float:
+        return celsius * 9 / 5 + 32
+    endfunc
+public
+    property fahrenheit : float read GetFahrenheit
+endobject
+
+var temp &lt;- OTemperature()
+temp.celsius = 25
+var f : float = temp.fahrenheit // computes 77 dynamically
+</code></pre>
+<p>No <code>fahrenheit</code> field is stored in memory; it always calculates the temperature
+from the current <code>celsius</code> value.</p>
+<h3 id="checking-new-values-with-setters">2.14.5.3 Checking New Values with Setters</h3>
+<p>A <strong>setter</strong> method receives the new value and checks or adjusts it before
+storing it:</p>
+<pre><code class="language-dq">use print
+
+object OVolume:
+private
+    level : int = 50
+
+    func SetLevel(value : int):
+        if value &lt; 0:
+            level = 0
+        elif value &gt; 100:
+            level = 100
+        else:
+            level = value
+        endif
+    endfunc
+public
+    property value : int read level write SetLevel
+endobject
+
+func *Main():
+    var volume &lt;- OVolume()
+    volume.value = 150 // SetLevel limits it to 100
+    volume.value -= 10 // reads 100, then calls SetLevel(90)
+    PrintLn("{}", [volume.value])
+endfunc
+</code></pre>
+<p>This prints <code>90</code>.</p>
+<h3 id="property-accessor-rules">2.14.5.4 Property Accessor Rules</h3>
+<p>The methods used to read and write a property are called <strong>accessors</strong>:
+- <code>read</code> specifies the field or getter method that supplies the value. A getter
+  takes no parameters and returns the property type.
+- <code>write</code> specifies the field or setter method that updates the value. A setter
+  takes the new value as its only parameter and returns nothing.</p>
+<p>Accessor methods must belong to the same object and must be declared before the
+property that uses them.</p>
+<p>A property needs at least one accessor:
+- Omit <code>write</code> for a read-only property.
+- Omit <code>read</code> for a write-only property.
+- Compound assignment operators such as <code>+=</code> or <code>-=</code> read the current value,
+  modify it, and write it back, so they require both <code>read</code> and <code>write</code>.</p>
+<h3 id="indexed-and-default-properties">2.14.5.5 Indexed and Default Properties</h3>
+<p>An <strong>indexed property</strong> lets callers use square bracket syntax (<code>[]</code>), similar
+to an array. Its getter receives the index; its setter receives the index
+followed by the new value:</p>
+<pre><code class="language-dq">object OScores:
+private
+    values : [3]int
+
+    func GetScore(index : int) -&gt; int:
+        return values[index]
+    endfunc
+
+    func SetScore(index : int, value : int):
+        values[index] = value
+    endfunc
+public
+    property score : [index : int]int default read GetScore write SetScore
+endobject
+
+var scores &lt;- OScores()
+scores.score[0] = 10
+scores[1] = 20 // the default keyword lets you omit .score
+</code></pre>
+<p>Indices are accessor parameters and are not restricted to integers. For example,
+<code>OStrStrMap</code> in <code>collections/strstrmap</code> declares its <code>item</code> property with a
+string key:</p>
+<pre><code class="language-dq">property item : [akey : str]str default read GetItem write SetItem
+</code></pre>
+<p>Callers can use a string with either the property name or the default syntax:</p>
+<pre><code class="language-dq">use collections/strstrmap, print
+
+func *Main():
+    var settings &lt;- OStrStrMap()
+    settings.item["theme"] = "dark"
+    PrintLn("{}", [settings["theme"]]) // prints dark
+endfunc
+</code></pre>
+<p>An indexed property can accept more than one index, which is useful for grids
+and tables:</p>
+<pre><code class="language-dq">property cell : [row : int, col : int]int read GetCell write SetCell
+</code></pre>
+<p>Callers can use this with multiple indices: <code>grid.cell[1, 2] = 5</code>.</p>
+<p>Putting <code>default</code> after the indexed property type allows callers to use brackets
+directly on the object itself (such as <code>scores[1]</code> instead of
+<code>scores.score[1]</code>). When an object and its base types declare several default
+properties, the one declared latest is selected.</p>
+<h3 id="property-restrictions">2.14.5.6 Property Restrictions</h3>
+<p>A property is not an actual variable stored at a single memory address: reading
+it calls a getter or reads a field, and writing it calls a setter. Because of
+this:</p>
+<ul>
+<li>A property cannot be passed to a <code>ref</code>, <code>refin</code>, or <code>refout</code> parameter. To
+  pass a property's value to a function that modifies it through <code>ref</code>, copy the
+  value into a temporary local variable, pass that variable, and assign the
+  updated value back to the property:</li>
+</ul>
+<pre><code class="language-dq">var level : int = volume.value
+Adjust(level) // func Adjust(value : ref int)
+volume.value = level
+</code></pre>
+<ul>
+<li>You cannot take the memory address of a property using <code>%</code>.</li>
+</ul>
+<p>Values returned by a property behave normally; for example, a property that
+returns an object reference can be followed immediately by member access, as in
+<code>window.current_button.Click()</code>.</p>
+<h2 id="inheritance">2.14.6 Inheritance</h2>
+<p><strong>Inheritance</strong> allows a new object type to build on an existing object type:
+- The existing type is called the <strong>base object</strong> (or parent).
+- The new type is called the <strong>derived object</strong> (or child).</p>
+<p>The derived object automatically inherits all fields and methods from the base
+object and can add its own new fields and methods. In DQ, an object can inherit
+from one base object, written in parentheses after its name:</p>
+<pre><code class="language-dq">object OAnimal:
+    name : str
+
+    func *Create(aname : strslice):
+        name = aname
+    endfunc
+endobject
+
+object ODog(OAnimal):
+    tricks : int = 0
+
+    func Learn():
+        tricks += 1
+    endfunc
+endobject
+
+var dog &lt;- ODog("Rex") // uses the inherited OAnimal constructor
+dog.Learn()
+var animal : OAnimal = dog // a derived object can be assigned to a base reference
+</code></pre>
+<p>A derived object can be used wherever its base type is expected, as shown in the
+assignment <code>var animal : OAnimal = dog</code>. When viewed through an <code>animal</code>
+reference, only the members declared in <code>OAnimal</code> are accessible.</p>
+<h3 id="constructors-and-inheritance">2.14.6.1 Constructors and Inheritance</h3>
+<p>When an object inherits from a base type, the base part must be initialized:</p>
+<ul>
+<li>If the derived object does not declare a constructor of its own, it
+  automatically inherits the base constructor (as <code>ODog("Rex")</code> does above).</li>
+<li>If the derived object declares its own constructor, it must call the base
+  constructor using <code>inherited Create(...)</code>:</li>
+</ul>
+<pre><code class="language-dq">object OGuideDog(ODog):
+    owner : str
+
+    func *Create(aname : strslice, aowner : strslice):
+        inherited Create(aname) // initialize the base OAnimal/ODog part first
+        owner = aowner
+    endfunc
+endobject
+</code></pre>
+<p>If the base constructor takes no parameters, calling <code>inherited Create()</code> is
+optional; DQ calls it automatically if you omit it. If the base constructor
+requires parameters, the derived constructor must call it explicitly. The
+compiler prevents calling the base constructor more than once.</p>
+<p>Object setup runs from base to derived, and cleanup runs in reverse order: when
+an object is destroyed, the derived destructor runs first, and then the base
+destructor runs automatically. A destructor may call <code>inherited Destroy()</code>
+explicitly if the base cleanup must happen at a specific point during destruction.</p>
+<h3 id="virtual-methods">2.14.6.2 Virtual Methods</h3>
+<p>Normally, when you call a method through an object reference, the compiler
+decides which method to run based on the <strong>declared type</strong> of the variable. For
+example, if a variable is declared as <code>var animal : OAnimal</code>, calling
+<code>animal.Sound()</code> would normally call <code>OAnimal.Sound()</code>, even if the variable
+currently holds an <code>ODog</code>.</p>
+<p>A <strong>virtual method</strong> changes this: it tells DQ to inspect the <strong>actual object</strong>
+in memory at runtime and run that specific object's version of the method
+instead.</p>
+<ul>
+<li>In the base object, mark the method with <code>[[virtual]]</code> to allow derived
+  objects to customize it.</li>
+<li>In the derived object, mark the replacement method with <code>[[override]]</code>.</li>
+</ul>
+<pre><code class="language-dq">use print
+
+object OAnimal:
+    name : str
+
+    func *Create(aname : strslice):
+        name = aname
+    endfunc
+
+    func Sound() -&gt; str [[virtual]]:
+        return "..."
+    endfunc
+
+    func Speak():
+        @.PrintLn("{} says {}", [name, Sound()])
+    endfunc
+endobject
+
+object ODog(OAnimal):
+    func Sound() -&gt; str [[override]]:
+        return "Woof"
+    endfunc
+endobject
+
+object OCat(OAnimal):
+    func Sound() -&gt; str [[override]]:
+        return "Meow"
+    endfunc
+endobject
+
+func *Main():
+    var dog &lt;- ODog("Rex")
+    var cat &lt;- OCat("Tom")
+    var animals : [2]OAnimal = [dog, cat]
+    for animal :? in animals:
+        animal.Speak()
+    endfor
+endfunc
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">Rex says Woof
+Tom says Meow
+</code></pre>
+<p><code>Speak</code> is declared only in <code>OAnimal</code>, yet its call to <code>Sound()</code> runs the
+derived implementation for each animal. Without <code>[[virtual]]</code>, both lines would
+print <code>...</code>.</p>
+<p>The override must have the exact same parameters and return type as the virtual
+base method. The compiler reports an error if <code>[[override]]</code> is used on a method
+that has no matching virtual method in the base type, or if a derived method has
+the same name as a virtual method but forgets <code>[[override]]</code>.</p>
+<p>Accessor methods can be virtual. A derived object can override an inherited
+accessor method to customize how the property behaves.</p>
+<p>A destructor cannot call virtual methods, because derived parts of the object
+may already have been torn down.</p>
+<h3 id="calling-the-base-implementation">2.14.6.3 Calling the Base Implementation</h3>
+<p>Inside an overriding method, <code>inherited</code> calls the base type's version of that
+method. This lets you extend the base behavior rather than replacing it
+entirely:</p>
+<pre><code class="language-dq">object OLoudDog(ODog):
+    func Sound() -&gt; str [[override]]:
+        var base : str = inherited Sound()
+        return base + "!!!" // "Woof!!!"
+    endfunc
+endobject
+</code></pre>
+<p>Use the explicit call syntax, <code>inherited Sound()</code>, when you need the return
+value or want to pass different arguments. A bare <code>inherited</code> statement calls
+the base method with the current arguments and ignores any return value.</p>
+<h3 id="abstract-and-final-methods">2.14.6.4 Abstract and Final Methods</h3>
+<p>An <strong>abstract method</strong> has a header but no body. It acts as a requirement: the
+base object declares that every derived object <em>must</em> provide its own version
+of this method. Declare it with <code>[[virtual, abstract]]</code> and two dots <code>..</code>
+instead of a body:</p>
+<pre><code class="language-dq">object OShape:
+    func Area() -&gt; float [[virtual, abstract]] ..
+endobject
+</code></pre>
+<p>Because an abstract object type has incomplete methods, <strong>you cannot create an
+object directly from an abstract type</strong> (writing <code>new OShape()</code> or
+<code>&lt;- OShape()</code> is an error). You can only create objects from derived types that
+have implemented all abstract methods.</p>
+<p>A <strong>final method</strong>, marked with <code>[[virtual, final]]</code>, prevents any further
+derived types from overriding it.</p>
+<h2 id="runtime-types">2.14.7 Runtime Types</h2>
+<h3 id="runtime-type-tests-and-casts">2.14.7.1 Runtime Type Tests and Casts</h3>
+<p>When you hold a reference of a base type (such as <code>var animal : OAnimal</code>), it
+might point to an <code>ODog</code>, an <code>OCat</code>, or another derived object. DQ provides two
+tools to check and convert references safely at runtime:</p>
+<h4 id="testing-types-with-is">2.14.7.1.1 Testing Types with <code>is</code></h4>
+<p>The <code>is</code> operator tests whether an object reference points to an object of a
+particular type or one of its derived types. It returns <code>true</code> or <code>false</code>, and
+safely returns <code>false</code> if the reference is <code>nil</code>:</p>
+<pre><code class="language-dq">var dog &lt;- ODog("Rex")
+var animal : OAnimal = dog
+if animal is ODog:
+    // true: animal refers to an ODog
+endif
+</code></pre>
+<h4 id="converting-references-with-trycast">2.14.7.1.2 Converting References with <code>TryCast()</code></h4>
+<p>To access fields or methods that exist only on the derived type, you must
+convert the base reference to the derived type. This conversion is called a
+<strong>type cast</strong>.</p>
+<p>Because the object might not actually be of that type, use
+<code>TryCast(TargetType, source)</code> for a safe, checked conversion. Local variables
+can be declared in any of these three forms:</p>
+<ul>
+<li><code>var specific : ODog = TryCast(ODog, animal)</code></li>
+<li><code>var specific :? = TryCast(ODog, animal)</code></li>
+<li><code>var specific = TryCast(ODog, animal)</code></li>
+</ul>
+<p>The last two forms infer the variable's type from the target type passed to
+<code>TryCast</code>. All three forms check the actual object at runtime:</p>
+<ul>
+<li>If the object is an <code>ODog</code> (or a type derived from <code>ODog</code>), the new variable
+  receives a reference to that object.</li>
+<li>If the object is something else (such as an <code>OCat</code>), or if <code>animal</code> is <code>nil</code>,
+  the new variable receives <code>nil</code> instead of crashing.</li>
+</ul>
+<pre><code class="language-dq">var asdog = TryCast(ODog, animal) // the ODog, or nil
+var ascat = TryCast(OCat, animal) // nil: animal is not an OCat
+if asdog &lt;&gt; nil:
+    asdog.Learn()
+endif
+</code></pre>
+<p>Converting a reference only changes how the compiler views the object. It does
+not copy the object, and it does not transfer ownership.</p>
+<h3 id="object-type-variables-and-type-names">2.14.7.2 Object Type Variables and Type Names</h3>
+<p>In DQ, variables can hold data values, but they can also hold <em>types</em>. A
+<code>type of OBase</code> variable can store the type <code>OBase</code> or any type derived from it.
+This allows a program to choose at runtime which kind of object to construct:</p>
+<pre><code class="language-dq">func MakeAnimal(cat : bool, name : strslice) -&gt; OAnimal:
+    var animaltype : type of OAnimal = ODog
+    if cat:
+        animaltype = OCat
+    endif
+    return new animaltype(name) // creates an ODog or OCat using the OAnimal constructor
+endfunc
+</code></pre>
+<p>Calling <code>new</code> on the type variable constructs an object of whichever type was
+stored in it. The selected type must accept the constructor arguments of the
+base type. Unrelated types, abstract types, and types with incompatible
+constructors are rejected by the compiler. The returned heap object still needs
+an autofree variable or an explicit <code>delete</code>.</p>
+<h4 id="querying-type-names">2.14.7.2.1 Querying Type Names</h4>
+<p><code>TypeName(Type)</code> returns the name of a type as text. When passed an object
+reference, <code>TypeName(reference)</code> returns the actual runtime type of the object
+if it is non-<code>nil</code>, or the variable's declared type if it is <code>nil</code>:</p>
+<pre><code class="language-dq">var animal : OAnimal = MakeAnimal(true, "Tom")
+PrintLn("{}", [TypeName(animal)]) // prints "OCat"
+delete animal
+</code></pre>
+<p>Use <code>TypeName</code> for debugging and logging rather than as a permanent identifier
+in file formats or network protocols.</p>
+<h2 id="object-method-references">2.14.8 Object Method References</h2>
+<p>DQ allows you to store a function in a variable so it can be called later (a
+function reference). Because a method belongs to a specific object instance,
+storing a method requires an <strong>object method reference</strong>, written as
+<code>func(...) of object</code>.</p>
+<p>An object method reference bundles two things together:</p>
+<ol>
+<li>The method to call.</li>
+<li>The specific object instance to call it on.</li>
+</ol>
+<p>When you assign a virtual method to an object method reference, DQ resolves the
+method implementation for that specific object at the time of assignment. The
+reference only borrows the object—it does not keep the object alive. See
+<a href="../060-functions/#object-method-references">Object Method References</a> for a
+complete example.</p>
+<h2 id="organizing-object-code">2.14.9 Organizing Object Code</h2>
+<p>As objects grow, method bodies can be defined separately from their declarations.
+Forward declarations let object types refer to each other, and explicit module
+prefixes or method-local <code>use</code> control access to outside names.</p>
+<h3 id="declaring-methods-separately">2.14.9.1 Declaring Methods Separately</h3>
+<p>Every method has two parts:</p>
+<ol>
+<li><strong>The declaration (the header):</strong> tells the compiler the method's name, its
+   parameters, and what type it returns.</li>
+<li><strong>The definition (the body):</strong> the actual lines of code that run when the
+   method is called.</li>
+</ol>
+<p>Both parts can be written together directly inside the <code>object ... endobject</code>
+block. However, when an object has many methods or long code, keeping everything
+inside the object can make it difficult to read. DQ lets you separate them:</p>
+<ul>
+<li>Put just the <strong>declaration</strong> inside the object, followed by <code>..</code> (two dots)
+  to indicate that the body will be provided later.</li>
+<li>Write the full <strong>definition</strong> (the body) outside the object, prefixing the
+  method name with the object type name, such as <code>func OButton.Click():</code>.</li>
+</ul>
+<pre><code class="language-dq">object OButton:
+    caption : str
+
+    func Click() ..
+    func *Create(acaption : strslice) ..
+endobject
+
+func OButton.*Create(acaption : strslice):
+    caption = acaption
+endfunc
+
+func OButton.Click():
+    @.PrintLn("{} clicked", [caption])
+endfunc
+</code></pre>
+<p>The definition outside the object must match the declaration's parameters,
+return type, and attributes. Inside the separated method body, all fields and
+methods of the object are available directly by name, exactly as if the method
+were written directly inside the object block.</p>
+<h3 id="forward-declarations">2.14.9.2 Forward Declarations</h3>
+<p>The DQ compiler reads source files from top to bottom. If two object types
+reference each other (for example, <code>OParent</code> has a field pointing to <code>OChild</code>,
+and <code>OChild</code> has a field pointing to <code>OParent</code>), one of them must be introduced
+before its full description is written.</p>
+<p>A <strong>forward declaration</strong> introduces the name of an object type using <code>..</code> so
+other declarations can refer to it:</p>
+<pre><code class="language-dq">object OParent .. // forward declaration: introduces OParent
+
+object OChild:
+    parent : OParent // allowed because OParent was introduced above
+endobject
+
+object OParent:
+    child : OChild
+endobject
+</code></pre>
+<p>The full definition of the object must be supplied before any code creates the
+object, accesses its fields, or calls its methods.</p>
+<h3 id="accessing-variables-and-functions-outside-of-the-object">2.14.9.3 Accessing Variables and Functions Outside of the Object</h3>
+<p>Inside an object method, bare names always refer to the object's own members
+(its fields, methods, and properties). Variables, constants, and functions
+outside of the object scope are <strong>not</strong> directly available by their bare names.
+This restriction applies to:</p>
+<ul>
+<li>Global variables and constants declared in the same module.</li>
+<li>Functions declared in the same module.</li>
+<li>Symbols from imported modules, including the runtime's built-in <code>sys</code> module
+  (such as <code>MemSet</code>, <code>MemCopy</code>, or <code>MemAlloc</code>).</li>
+</ul>
+<p>This scope separation prevents accidental naming conflicts—an object's field
+(such as <code>count</code>, <code>status</code>, or <code>length</code>) can never be confused with an outside
+variable or library function with the same name.</p>
+<p>The exception to this rule is <strong>compiler internal built-ins</strong>, such as
+<code>SizeOf()</code>, <code>OffsetOf()</code>, and <code>TypeName()</code>, as well as language types (such as
+<code>int</code>, <code>float</code>, <code>str</code>, <code>rostr</code>, or <code>SPoint</code>). These are built into the language
+itself and are always available everywhere without any prefix.</p>
+<p>To access outside variables, constants, or functions from inside a method, you
+normally prefix them with <code>@</code>:</p>
+<ul>
+<li><strong><code>@module.Name</code> (fully qualified):</strong> names the imported module and the
+  symbol, such as <code>@print.PrintLn</code>, <code>@sys.MemSet</code>, or <code>@socket.AF_INET</code>.</li>
+<li><strong><code>@..Name</code> (current module only):</strong> refers to a symbol that is defined in
+  the current module (until this source code position)</li>
+<li><strong><code>@.Name</code> (full outside scope):</strong> the short form. It reaches everything
+  available in the current module at that source code position, including its
+  own global variables and constants, as well as imported functions.</li>
+</ul>
+<pre><code class="language-dq">use print
+
+var greeting_count : int = 0
+
+object OGreeter:
+    name : str = "Lin"
+
+    func Greet():
+        @print.PrintLn("Hello, {}!", [name]) // fully qualified module reference
+        @.greeting_count += 1                // short form for a module variable
+        @.PrintLn("Greetings so far: {}", [@.greeting_count])
+    endfunc
+endobject
+</code></pre>
+<p>Writing <code>PrintLn(...)</code> or <code>greeting_count</code> without a prefix inside <code>Greet</code> is a
+compile error (<code>ObjVsInModuleNs</code>), and the compiler error message suggests the
+prefixed form.</p>
+<h3 id="method-local-use">2.14.9.4 Method-Local Use</h3>
+<p>While prefixing outside symbols with <code>@.</code> or <code>@module.</code> works well for
+occasional calls, practical code often uses many outside definitions at once.
+For example, low-level networking, file I/O, or system routines frequently
+rely on dozens of constants, types, and functions from modules such as <code>socket</code>
+or <code>sys</code>. Writing <code>@socket.AF_INET</code>, <code>@socket.libc_htons(...)</code>, and
+<code>@sys.MemSet(...)</code> on every single line quickly becomes verbose and clutters the
+code.</p>
+<p>To solve this, DQ provides the <strong>method-local <code>use</code></strong> statement. Placing a
+<code>use</code> statement at the very beginning of a method body opens outside namespaces
+for direct, unqualified access inside that specific method:</p>
+<pre><code class="language-dq">func ONanoDatagram.SetRemoteAddr(aaddr : rostr, aport : uint16):
+    use socket, sys
+    MemSet(%remote_addr, 0, SizeOf(remote_addr))
+    remote_addr_len = SizeOf(remote_addr)
+    remote_addr.sin_family = AF_INET
+    remote_addr.sin_port = libc_htons(aport)
+
+    if libc_inet_pton(AF_INET, aaddr, %remote_addr.sin_addr) &lt;&gt; 1:
+        raise ENanoNet('Invalid Host IP address: {}', [aaddr])
+    endif
+endfunc
+</code></pre>
+<p>In this method:</p>
+<ul>
+<li><code>SizeOf(remote_addr)</code> needs no prefix because <code>SizeOf()</code> is a compiler
+  internal function available everywhere.</li>
+<li><code>MemSet</code> comes from the <code>sys</code> module, while <code>AF_INET</code>, <code>libc_htons</code>, and
+  <code>libc_inet_pton</code> come from <code>socket</code>.</li>
+<li>The <code>use socket, sys</code> statement makes all of them accessible directly by
+  their bare names throughout the method body.</li>
+</ul>
+<h4 id="forms-of-method-local-use">2.14.9.4.1 Forms of Method-Local <code>use</code></h4>
+<p>Method-local <code>use</code> supports the following forms:</p>
+<ul>
+<li><strong><code>use module1, module2</code>:</strong> Opens one or more specific imported module
+  namespaces for direct access (as shown with <code>use socket, sys</code> above).</li>
+<li><strong>Using an imported alias:</strong> If a module was imported at the file level with
+  an alias (such as <code>use libc/stdio as cstdio</code>), you must use that <strong>alias
+  name</strong> in the method-local statement:
+  <code>dq
+  func OLogger.Log(msg : strslice):
+      use cstdio // refers to libc/stdio via its module alias
+      printf("%s\n", msg.pchar)
+  endfunc</code></li>
+<li><strong><code>use .</code> (local module definitions):</strong> Makes all declarations belonging to
+  the current module itself (its global variables, constants, and functions)
+  directly available without <code>@.</code> prefixes.</li>
+<li><strong><code>use *</code> (make everything available):</strong> Makes <em>all</em> symbols visible at the
+  current module level directly available inside the method, including the
+  current module's own declarations and all imported modules.</li>
+</ul>
+<h4 id="scope-and-rules">2.14.9.4.2 Scope and Rules</h4>
+<ul>
+<li>Method-local <code>use</code> only affects name lookup <strong>inside that specific method
+  body</strong>. It does not affect any other methods in the same object or file.</li>
+<li>It does not load new modules from disk; it only opts already imported module
+  namespaces into unqualified lookup within the method.</li>
+<li>Object members always take precedence: if an object field has the same name
+  as an outside symbol brought in by <code>use</code>, using that name inside the method
+  accesses the object's field. To reach the outside symbol in that case, use an
+  explicit <code>@module.Name</code> or <code>@.Name</code> prefix.</li>
+</ul>
+<h2 id="object-examples">2.14.10 Object Examples</h2>
+<h3 id="a-short-object-demo">2.14.10.1 A Short Object Demo</h3>
+<p>This example combines inheritance, a read-only property, an embedded helper,
+and autofree variables. <code>OChild</code> changes a protected field and extends a
+virtual method, while <code>OBase</code> manages the helper's construction and cleanup.</p>
+<pre><code class="language-dq">use print
+
+object OBase ..
+
+object OHelper:
+    base : OBase
+
+    func *Create(abase : OBase) ..
+    func *Destroy() ..
+endobject
+
+object OBase:
+protected
+    intval : int = 1
+public
+    name   : embstr(64)
+    helper &lt;- OHelper ..
+
+    property value : int  read intval
+
+    func PrintExtra()  [[virtual]]:
+        @.Print(' value={}', [value])
+    endfunc
+
+    func *Create(aname : rostr):
+        name = aname
+        helper.Create(self)
+    endfunc
+
+    func *Destroy():
+        @.PrintLn('"{}" destroyed', [name])
+    endfunc
+
+    func Print()  [[virtual]]:
+        @print.Print('{}:', [name])
+        PrintExtra()
+        @.PrintLn()
+    endfunc
+endobject
+
+func OHelper.*Create(abase : OBase):
+    base = abase
+    @.PrintLn('Helper for "{}" created', [base.name])
+endfunc
+
+func OHelper.*Destroy():
+    @.PrintLn('Helper for "{}" destroyed', [base.name])
+endfunc
+
+
+object OChild(OBase):
+    flval : float
+
+    func *Create(aname : rostr, aflval : float):
+        inherited Create(aname)
+        intval = 2
+        flval = aflval
+    endfunc
+
+    func PrintExtra()  [[override]]:
+        inherited
+        @.Print(' flval={}', [flval])
+    endfunc
+endobject
+
+func Manipulate(aobj : ref autofree OBase):
+    aobj = new OChild('Child3-heap', 7 / 3)
+    aobj.Print()
+endfunc
+
+func ErrorTest():
+    PrintLn('Error test')
+    try:
+        var obj = new autofree OChild('ErrChild-heap', 8.3)
+        raise Exception('Some error happened!')
+    except Exception as e:
+        PrintLn('ERROR: {}', [e.message])
+        e.PrintBacktrace()
+    endtry
+endfunc
+
+func *Main():
+    PrintLn('DQ Objects Demo')
+
+    var ob = new autofree OBase('Base-heap')
+    ob.Print()
+
+    if true:
+        var oc1 &lt;- OChild('Child1-stack', 3 / 2)
+        oc1.Print()
+    endif
+
+    ErrorTest()
+
+    PrintLn('reassigning autofree type')
+    ob = new OChild('Child2-heap', 3.14)
+    ob.Print()
+
+    PrintLn('Autofree type as argument')
+    Manipulate(ob)
+
+    PrintLn('nil-ing autofree type')
+    ob = nil
+
+    PrintLn('Test finished.')
+endfunc
+</code></pre>
+<p>Source: <a href="https://github.com/nvitya/dq-lang/blob/main/examples/dq_intro_3.dq">dq_intro_3.dq</a>.</p>
+<p>This test outputs:</p>
+<pre><code class="language-text">DQ Objects Demo
+Helper for "Base-heap" created
+Base-heap: value=1
+Helper for "Child1-stack" created
+Child1-stack: value=2 flval=1.5
+"Child1-stack" destroyed
+Helper for "Child1-stack" destroyed
+Error test
+Helper for "ErrChild-heap" created
+"ErrChild-heap" destroyed
+Helper for "ErrChild-heap" destroyed
+ERROR: Some error happened!
+Backtrace =
+  #0 ErrorTest @ /workvc/dq-lang/examples/dq_intro_3.dq:75
+  #1 Main @ /workvc/dq-lang/examples/dq_intro_3.dq:93
+reassigning autofree type
+"Base-heap" destroyed
+Helper for "Base-heap" destroyed
+Helper for "Child2-heap" created
+Child2-heap: value=2 flval=3.14
+Autofree type as argument
+"Child2-heap" destroyed
+Helper for "Child2-heap" destroyed
+Helper for "Child3-heap" created
+Child3-heap: value=2 flval=2.333333333333334
+nil-ing autofree type
+"Child3-heap" destroyed
+Helper for "Child3-heap" destroyed
+Test finished.
+</code></pre>
+<p><code>OChild</code> can change the protected <code>intval</code> field, while outside callers can
+only read it through the inherited <code>value</code> property. Calling <code>Print()</code> runs
+<code>OBase.Print</code>, whose virtual call to <code>PrintExtra()</code> selects the child's
+override. The bare <code>inherited</code> in that override prints the base value before
+the child adds <code>flval</code>.</p>
+<p><code>helper.Create(self)</code> gives the embedded helper a borrowed reference to its
+container. The helper's method bodies appear after the full <code>OBase</code> definition
+so they can access <code>base.name</code>. The name uses <code>embstr(64)</code>, keeping its text
+storage inside the object. Because <code>helper</code> is declared after <code>name</code>, it is
+destroyed first and can still read the name during cleanup.</p>
+<p><code>ErrorTest</code> shows that the local autofree variable destroys its object before the exception
+handler runs. The handler then calls <code>e.PrintBacktrace()</code>; its frames depend on
+the build and source location. The rest of <code>Main</code> demonstrates autofree variable replacement,
+replacement through a <code>ref autofree OBase</code> parameter, and early destruction by
+assigning <code>nil</code>.</p>
+<h3 id="a-temperature-log-with-properties">2.14.10.2 A Temperature Log with Properties</h3>
+<p><code>OTemperatureLog</code> keeps a limited number of recent temperature readings. Its
+internal storage is private; callers interact with it exclusively through
+properties and methods:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Kind</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>count</code></td>
+<td>read-only, computed</td>
+<td>Current number of stored readings</td>
+</tr>
+<tr>
+<td><code>average</code></td>
+<td>read-only, computed</td>
+<td>Average of all stored readings</td>
+</tr>
+<tr>
+<td><code>capacity</code></td>
+<td>field-backed read, validated setter</td>
+<td>Maximum number of readings; lowering it discards the oldest extra readings</td>
+</tr>
+<tr>
+<td><code>reading</code></td>
+<td>indexed, default</td>
+<td>Reads or updates a stored reading by index</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dq">use print
+
+object OTemperatureLog:
+private
+    readings : [*]float
+    limit    : int = 5
+
+    func GetCount() -&gt; int:
+        return readings.length
+    endfunc
+
+    func GetAverage() -&gt; float:
+        result = 0
+        for value : float in readings:
+            result += value
+        endfor
+        if readings.length &gt; 0:
+            result /= readings.length
+        endif
+    endfunc
+
+    func SetCapacity(value : int):
+        limit = iif(value &lt; 1, 1, value)
+        while readings.length &gt; limit:
+            readings.Delete(0) // drop the oldest readings
+        endwhile
+    endfunc
+
+    func GetReading(index : int) -&gt; float:
+        return readings[index]
+    endfunc
+
+    func SetReading(index : int, value : float):
+        readings[index] = value
+    endfunc
+
+public
+    property count    : int   read GetCount
+    property average  : float read GetAverage
+    property capacity : int   read limit write SetCapacity
+    property reading  : [index : int]float default read GetReading write SetReading
+
+    func Add(value : float):
+        if readings.length == limit:
+            readings.Delete(0)
+        endif
+        readings.Append(value)
+    endfunc
+
+    func Print():
+        @.Print("count {}:", [count])
+        for i : int = 0 count count:
+            @.Print(" {}", [reading[i]])
+        endfor
+        @.PrintLn(", average {:.2f}", [average])
+    endfunc
+endobject
+
+func *Main():
+    var log &lt;- OTemperatureLog()
+    log.Add(21.5)
+    log.Add(22)
+    log.Add(35)
+    log.Add(22.5)
+    log.Print()
+
+    log[2] = 23 // corrects a wrong reading through the default property
+    log.reading[0] += 0.5
+    log.Print()
+
+    log.capacity = 2 // keeps only the two newest readings
+    log.Print()
+
+    log.capacity = -5 // SetCapacity limits it to a minimum of 1
+    log.Add(24)
+    log.Print()
+    PrintLn("Capacity: {}", [log.capacity])
+endfunc
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">count 4: 21.5 22 35 22.5, average 25.25
+count 4: 22 22 23 22.5, average 22.38
+count 2: 23 22.5, average 22.75
+count 1: 24, average 24.00
+Capacity: 1
+</code></pre>
+<p><code>count</code> and <code>average</code> do not have dedicated storage fields; their getters
+compute fresh values directly from the <code>readings</code> array each time they are read.
+<code>capacity</code> reads the private <code>limit</code> field directly, but writes go through
+<code>SetCapacity</code>, which enforces a minimum value of 1 and trims excess elements.</p>
+<p><code>log[2] = 23</code> invokes <code>SetReading(2, 23)</code> through the default property.
+<code>log.reading[0] += 0.5</code> exercises both accessors: it calls <code>GetReading(0)</code>, adds
+<code>0.5</code>, and then passes the result to <code>SetReading(0, 22)</code>. Inside <code>Print</code>,
+properties are accessed naturally by name, such as <code>count</code> and <code>reading[i]</code>.</p>
+<p>Because <code>readings</code> is private, external code cannot modify the array directly or
+bypass the validation logic in <code>Add</code> and <code>SetCapacity</code>.</p>
+<h3 id="shapes-in-an-array-with-autofree-elements">2.14.10.3 Shapes in an Array with Autofree Elements</h3>
+<p>This example builds a shape hierarchy. <code>OShape</code> declares an abstract <code>Area</code>
+method, and each derived shape provides its own calculation. A dynamic array of
+<code>autofree</code> references owns the shapes, so they are destroyed automatically when
+they are removed from the array or when the array leaves scope.</p>
+<pre><code class="language-dq">use print
+
+object OShape:
+    name : str
+
+    func *Create(aname : strslice):
+        name = aname
+    endfunc
+
+    func Area() -&gt; float [[virtual, abstract]] ..
+
+    func Describe() [[virtual]]:
+        @.PrintLn("{}: area {:.2f}", [name, Area()])
+    endfunc
+
+    func *Destroy():
+        @.PrintLn("Released {}", [name])
+    endfunc
+endobject
+
+object ORectangle(OShape):
+    width  : float
+    height : float
+
+    func *Create(awidth : float, aheight : float):
+        inherited Create("rectangle")
+        width = awidth
+        height = aheight
+    endfunc
+
+    func Area() -&gt; float [[override]]:
+        return width * height
+    endfunc
+endobject
+
+object OSquare(ORectangle):
+    func *Create(aside : float):
+        inherited Create(aside, aside)
+        name = "square"
+    endfunc
+endobject
+
+object OCircle(OShape):
+    radius : float
+
+    func *Create(aradius : float):
+        inherited Create("circle")
+        radius = aradius
+    endfunc
+
+    func Area() -&gt; float [[override]]:
+        return 3.14159 * radius * radius
+    endfunc
+
+    func Describe() [[override]]:
+        inherited // prints the name and the area
+        @.PrintLn("  radius: {}", [radius])
+    endfunc
+endobject
+
+func TotalArea(shapes : []autofree OShape) -&gt; float:
+    result = 0
+    for shape : OShape in shapes:
+        result += shape.Area() // calls the Area method of the actual shape type
+    endfor
+endfunc
+
+func *Main():
+    var shapes : [*]autofree OShape // the array owns the shapes
+    shapes.Append(new ORectangle(4, 2.5))
+    shapes.Append(new OSquare(3))
+    shapes.Append(new OCircle(1.5))
+
+    for shape : OShape in shapes:
+        shape.Describe()
+    endfor
+    PrintLn("Total area: {:.2f}", [TotalArea(shapes)])
+
+    var rectangles : int = 0
+    for shape : OShape in shapes:
+        if shape is ORectangle: // true for OSquare too
+            ++rectangles
+        endif
+
+        var circle = TryCast(OCircle, shape) // nil for other shapes
+        if circle &lt;&gt; nil:
+            circle.radius *= 2
+            PrintLn("Enlarged {}: area {:.2f}", [TypeName(circle), circle.Area()])
+        endif
+    endfor
+    PrintLn("Rectangles: {}", [rectangles])
+
+    shapes.Delete(0) // destroys the rectangle
+    PrintLn("Remaining: {}", [shapes.length])
+endfunc
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">rectangle: area 10.00
+square: area 9.00
+circle: area 7.07
+  radius: 1.5
+Total area: 26.07
+Enlarged OCircle: area 28.27
+Rectangles: 2
+Released rectangle
+Remaining: 2
+Released square
+Released circle
+</code></pre>
+<p><code>OSquare</code> inherits from <code>ORectangle</code> and reuses its constructor and <code>Area</code>
+calculation, simply passing the same value for both width and height. <code>OCircle</code>
+overrides <code>Describe</code> and uses a bare <code>inherited</code> call to run the base shape
+description before printing its radius.</p>
+<p>Inside the loop, <code>shape</code> has the base type <code>OShape</code>, yet each <code>shape.Area()</code>
+call selects the correct derived formula at runtime. <code>shape is ORectangle</code> is
+also true for the square, because <code>OSquare</code> derives from <code>ORectangle</code>.
+<code>TryCast</code> safely converts the reference to <code>OCircle</code>, returning <code>nil</code> for any
+other shape.</p>
+<p>The loop variables and the <code>TotalArea</code> parameter only borrow the shapes. The
+<code>shapes</code> dynamic array owns them: <code>shapes.Delete(0)</code> immediately destroys the
+rectangle, and the remaining shapes are destroyed automatically when <code>shapes</code>
+goes out of scope at the end of <code>Main</code>.</p>
+<h3 id="lifetime-of-composed-objects">2.14.10.4 Lifetime of Composed Objects</h3>
+<p>This example traces how objects are created and destroyed when objects are
+composed together. An <code>OMachine</code> contains an embedded <code>OEngine</code>, and the engine
+keeps an ordinary reference back to its machine. <code>OPump</code> inherits from
+<code>OMachine</code> and extends its <code>Run</code> method.</p>
+<pre><code class="language-dq">use print
+
+object OMachine ..
+
+object OEngine:
+    machine : OMachine // back-reference; the engine does not own the machine
+
+    func *Create(amachine : OMachine) ..
+    func Start() ..
+    func *Destroy() ..
+endobject
+
+object OMachine:
+    name   : str
+    engine &lt;- OEngine .. // constructed later, in OMachine.Create
+
+    func *Create(aname : strslice):
+        name = aname
+        @.PrintLn("{}: created", [name])
+        engine.Create(self)
+    endfunc
+
+    func Run() [[virtual]]:
+        engine.Start()
+    endfunc
+
+    func *Destroy():
+        @.PrintLn("{}: destroyed", [name])
+    endfunc
+endobject
+
+func OEngine.*Create(amachine : OMachine):
+    machine = amachine
+    @.PrintLn("{}: engine created", [machine.name])
+endfunc
+
+func OEngine.Start():
+    @.PrintLn("{}: engine running", [machine.name])
+endfunc
+
+func OEngine.*Destroy():
+    @.PrintLn("{}: engine destroyed", [machine.name])
+endfunc
+
+object OPump(OMachine):
+    rate : int
+
+    func *Create(aname : strslice, arate : int):
+        inherited Create(aname)
+        rate = arate
+    endfunc
+
+    func Run() [[override]]:
+        inherited
+        @.PrintLn("{}: pumping {} l/min", [name, rate])
+    endfunc
+endobject
+
+func ReplaceMachine(machine : ref autofree OMachine):
+    machine = new OPump("pump-2", 40) // releases the caller's previous machine
+endfunc
+
+func *Main():
+    PrintLn("-- embedded object in a block")
+    if true:
+        var local &lt;- OPump("pump-1", 25)
+        local.Run()
+    endif
+
+    PrintLn("-- autofree variable replacement")
+    var current = new autofree OMachine("mixer")
+    current.Run()
+    ReplaceMachine(current)
+    current.Run()
+
+    PrintLn("-- exception")
+    try:
+        var temporary = new autofree OMachine("tester")
+        raise Exception("power failure")
+    except Exception as e:
+        PrintLn("Error: {}", [e.message])
+    endtry
+
+    PrintLn("-- end of Main")
+endfunc
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">-- embedded object in a block
+pump-1: created
+pump-1: engine created
+pump-1: engine running
+pump-1: pumping 25 l/min
+pump-1: destroyed
+pump-1: engine destroyed
+-- autofree variable replacement
+mixer: created
+mixer: engine created
+mixer: engine running
+mixer: destroyed
+mixer: engine destroyed
+pump-2: created
+pump-2: engine created
+pump-2: engine running
+pump-2: pumping 40 l/min
+-- exception
+tester: created
+tester: engine created
+tester: destroyed
+tester: engine destroyed
+Error: power failure
+-- end of Main
+pump-2: destroyed
+pump-2: engine destroyed
+</code></pre>
+<p><code>OEngine</code> needs to store a reference to its machine, but <code>OMachine</code> is declared
+further down in the file. The forward declaration <code>object OMachine ..</code> introduces
+the type name so <code>OEngine</code> can declare the <code>machine : OMachine</code> field. The
+engine's method bodies are defined after <code>OMachine</code> is fully declared because
+they access <code>machine.name</code>.</p>
+<p>The engine cannot be constructed in its field declaration line because the
+machine's <code>self</code> reference is only available inside <code>OMachine.Create</code>. The <code>..</code>
+in <code>engine &lt;- OEngine ..</code> reserves the field's storage, delaying construction
+until <code>engine.Create(self)</code> is called.</p>
+<p>Each machine's destructor runs before its fields are cleaned up, which is why
+<code>destroyed</code> appears before <code>engine destroyed</code>. Furthermore, fields are cleaned
+up in reverse declaration order, so <code>engine</code> is destroyed before <code>name</code>, ensuring
+<code>machine.name</code> remains valid while the engine's destructor runs.</p>
+<p>The three sections illustrate the different ways objects are cleaned up:
+- <code>local</code> is destroyed when the <code>if</code> block ends.
+- <code>ReplaceMachine</code> replaces the caller's autofree variable via a <code>ref autofree</code> parameter,
+  which automatically destroys <code>"mixer"</code> before assigning <code>"pump-2"</code>.
+- <code>temporary</code> is destroyed when the exception escapes the <code>try</code> block, before
+  the <code>except</code> handler begins executing.
+- Finally, <code>current</code> releases <code>"pump-2"</code> when <code>Main</code> returns.</p>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+</body>
+</html>

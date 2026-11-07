@@ -1,0 +1,1841 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Documentation for the DQ programming language, libraries and tools" name="description"/>
+<link href="../040-compiler-usage-and-options/" rel="prev"/>
+<link href="../060-build-process-and-module-artifacts/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>3.6. Project Files - DQ-lang Project</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../pdf/dq-lang-book.pdf" rel="alternate" title="PDF" type="application/pdf"/></head>
+<body dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#project-files-dqproj">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="DQ-lang Project" class="md-header__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            DQ-lang Project
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              3.6. Project Files
+            
+          </span>
+</div>
+</div>
+</div>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<a class="md-header-nav__button md-icon" href="../../pdf/dq-lang-book.pdf" title="PDF">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<path d="M128,0c-17.6,0-32,14.4-32,32v448c0,17.6,14.4,32,32,32h320c17.6,0,32-14.4,32-32V128L352,0H128z" fill="#E2E5E7"></path>
+<path d="m384 128h96l-128-128v96c0 17.6 14.4 32 32 32z" fill="#B0B7BD"></path>
+<polygon fill="#CAD1D8" points="480 224 384 128 480 128"></polygon>
+<path d="M416,416c0,8.8-7.2,16-16,16H48c-8.8,0-16-7.2-16-16V256c0-8.8,7.2-16,16-16h352c8.8,0,16,7.2,16,16  V416z" fill="#F15642"></path>
+<g fill="#fff">
+<path d="m101.74 303.15c0-4.224 3.328-8.832 8.688-8.832h29.552c16.64 0 31.616 11.136 31.616 32.48 0 20.224-14.976 31.488-31.616 31.488h-21.36v16.896c0 5.632-3.584 8.816-8.192 8.816-4.224 0-8.688-3.184-8.688-8.816v-72.032zm16.88 7.28v31.872h21.36c8.576 0 15.36-7.568 15.36-15.504 0-8.944-6.784-16.368-15.36-16.368h-21.36z"></path>
+<path d="m196.66 384c-4.224 0-8.832-2.304-8.832-7.92v-72.672c0-4.592 4.608-7.936 8.832-7.936h29.296c58.464 0 57.184 88.528 1.152 88.528h-30.448zm8.064-72.912v57.312h21.232c34.544 0 36.08-57.312 0-57.312h-21.232z"></path>
+<path d="m303.87 312.11v20.336h32.624c4.608 0 9.216 4.608 9.216 9.072 0 4.224-4.608 7.68-9.216 7.68h-32.624v26.864c0 4.48-3.184 7.92-7.664 7.92-5.632 0-9.072-3.44-9.072-7.92v-72.672c0-4.592 3.456-7.936 9.072-7.936h44.912c5.632 0 8.96 3.344 8.96 7.936 0 4.096-3.328 8.704-8.96 8.704h-37.248v0.016z"></path>
+</g>
+<path d="m400 432h-304v16h304c8.8 0 16-7.2 16-16v-16c0 8.8-7.2 16-16 16z" fill="#CAD1D8"></path>
+</svg>
+</a></nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="DQ-lang Project" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    DQ-lang Project
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../010-project/">
+<span class="md-ellipsis">
+    
+  
+    1. DQ-lang Project
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    1. DQ-lang Project
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    1.1. DQ-lang Project Introduction
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/020-features-and-goals/">
+<span class="md-ellipsis">
+    
+  
+    1.2. Features and Design Goals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/030-getting-started/">
+<span class="md-ellipsis">
+    
+  
+    1.3. Getting Started
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../020-language/">
+<span class="md-ellipsis">
+    
+  
+    2. DQ Programming Language
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    2. DQ Programming Language
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/010-basic-syntax/">
+<span class="md-ellipsis">
+    
+  
+    2.1. Basic Syntax
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/020-basic-types-and-conversions/">
+<span class="md-ellipsis">
+    
+  
+    2.2. Basic Types and Conversions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/030-variables-constants-references-and-scope/">
+<span class="md-ellipsis">
+    
+  
+    2.3. Variables, Constants, References, and Scope
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/040-expressions-and-operators/">
+<span class="md-ellipsis">
+    
+  
+    2.4. Expressions and Operators
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/050-statements-and-control-flow/">
+<span class="md-ellipsis">
+    
+  
+    2.5. Statements and Control Flow
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/060-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.6. Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/070-strings-and-characters/">
+<span class="md-ellipsis">
+    
+  
+    2.7. Character and String Types
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/075-string-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.8. String Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/077-text-formatting/">
+<span class="md-ellipsis">
+    
+  
+    2.9. Text Formatting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/080-arrays-and-slices/">
+<span class="md-ellipsis">
+    
+  
+    2.10. Arrays and Slices
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/090-enumerations/">
+<span class="md-ellipsis">
+    
+  
+    2.11. Enumerations
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/100-structures-and-unions/">
+<span class="md-ellipsis">
+    
+  
+    2.12. Structures and Unions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/110-pointers/">
+<span class="md-ellipsis">
+    
+  
+    2.13. Pointers
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/120-objects-and-properties/">
+<span class="md-ellipsis">
+    
+  
+    2.14. Objects and Properties
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/130-memory-management-and-ownership/">
+<span class="md-ellipsis">
+    
+  
+    2.15. Memory Management and Autofree
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/140-exceptions-and-error-handling/">
+<span class="md-ellipsis">
+    
+  
+    2.16. Exceptions and Error Handling
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/150-anyvalue/">
+<span class="md-ellipsis">
+    
+  
+    2.17. anyvalue
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/170-modules-and-packages/">
+<span class="md-ellipsis">
+    
+  
+    2.18. Modules and Packages
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/180-attributes/">
+<span class="md-ellipsis">
+    
+  
+    2.19. Attributes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/190-compiler-directives/">
+<span class="md-ellipsis">
+    
+  
+    2.20. Compiler Directives
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/200-c-interoperability/">
+<span class="md-ellipsis">
+    
+  
+    2.21. C Interoperability
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/210-assembly-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.22. Assembly Functions
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    3. DQ Compiler and Tools
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    3. DQ Compiler and Tools
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../010-compiler-and-tool-overview/">
+<span class="md-ellipsis">
+    
+  
+    3.1. Compiler and Tool Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../015-runtime-and-program-execution/">
+<span class="md-ellipsis">
+    
+  
+    3.2. Runtime and Program Execution
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../020-linux-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.3. Linux Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../030-windows-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.4. Windows Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../040-compiler-usage-and-options/">
+<span class="md-ellipsis">
+    
+  
+    3.5. Compiler Usage and Options
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    3.6. Project Files
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    3.6. Project Files
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#project-file-example">
+<span class="md-ellipsis">
+      
+        3.6.1 Project File Example
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#lexical-rules">
+<span class="md-ellipsis">
+      
+        3.6.2 Lexical Rules
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#statements">
+<span class="md-ellipsis">
+      
+        3.6.3 Statements
+      
+    </span>
+</a>
+<nav aria-label="3.6.3 Statements" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#properties">
+<span class="md-ellipsis">
+      
+        3.6.3.1 Properties
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#link-mode">
+<span class="md-ellipsis">
+      
+        3.6.3.2 Link Mode
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#exception-handling">
+<span class="md-ellipsis">
+      
+        3.6.3.3 Exception Handling
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dynamic-strings">
+<span class="md-ellipsis">
+      
+        3.6.3.4 Dynamic Strings
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bare-metal-runtimes">
+<span class="md-ellipsis">
+      
+        3.6.3.5 Bare-Metal Runtimes
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#defines">
+<span class="md-ellipsis">
+      
+        3.6.3.6 Defines
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#paths">
+<span class="md-ellipsis">
+      
+        3.6.4 Paths
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#variables">
+<span class="md-ellipsis">
+      
+        3.6.5 Variables
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#package-lookup">
+<span class="md-ellipsis">
+      
+        3.6.6 Package Lookup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#includes">
+<span class="md-ellipsis">
+      
+        3.6.7 Includes
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#linker-argument-ordering">
+<span class="md-ellipsis">
+      
+        3.6.8 Linker Argument Ordering
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#command-line-precedence">
+<span class="md-ellipsis">
+      
+        3.6.9 Command-Line Precedence
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#errors-and-diagnostics">
+<span class="md-ellipsis">
+      
+        3.6.10 Errors and Diagnostics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compact-grammar">
+<span class="md-ellipsis">
+      
+        3.6.11 Compact Grammar
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../060-build-process-and-module-artifacts/">
+<span class="md-ellipsis">
+    
+  
+    3.7. Build Process and Module Artifacts
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../070-targets-and-cross-compilation/">
+<span class="md-ellipsis">
+    
+  
+    3.8. Targets and Cross-Compilation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../080-vscode-setup-and-debugging/">
+<span class="md-ellipsis">
+    
+  
+    3.9. VSCode Setup and Debugging
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../040-packages/">
+<span class="md-ellipsis">
+    
+  
+    4. Standard Packages
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    4. Standard Packages
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/010-library-overview-and-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.1. Library Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/015-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.2. sys
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/020-print/">
+<span class="md-ellipsis">
+    
+  
+    4.3. print
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/040-file/">
+<span class="md-ellipsis">
+    
+  
+    4.4. file
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/050-json/">
+<span class="md-ellipsis">
+    
+  
+    4.5. json
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/060-threads/">
+<span class="md-ellipsis">
+    
+  
+    4.6. threads
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/065-time/">
+<span class="md-ellipsis">
+    
+  
+    4.7. time
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/070-nanonet/">
+<span class="md-ellipsis">
+    
+  
+    4.8. nanonet
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/075-shell/">
+<span class="md-ellipsis">
+    
+  
+    4.9. shell
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/080-additional-standard-packages/">
+<span class="md-ellipsis">
+    
+  
+    4.10. Additional Standard Packages
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    5. Appendices
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    5. Appendices
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/010-example-programs/">
+<span class="md-ellipsis">
+    
+  
+    5.1. Example Programs
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/020-building-the-compiler-from-source/">
+<span class="md-ellipsis">
+    
+  
+    5.2. Building the Compiler from Source
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/030-contributor-and-implementation-notes/">
+<span class="md-ellipsis">
+    
+  
+    5.3. Contributor and Implementation Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/031-module-and-interface-internals/">
+<span class="md-ellipsis">
+    
+  
+    5.4. Module and Interface Internals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/032-exceptions-and-backtraces/">
+<span class="md-ellipsis">
+    
+  
+    5.5. Exceptions and Backtraces
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/033-release-and-cross-builds/">
+<span class="md-ellipsis">
+    
+  
+    5.6. Release and Cross-Build Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/040-glossary-and-index/">
+<span class="md-ellipsis">
+    
+  
+    5.7. Glossary and Index
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/050-documentation-coverage/">
+<span class="md-ellipsis">
+    
+  
+    5.8. Documentation Coverage
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#project-file-example">
+<span class="md-ellipsis">
+      
+        3.6.1 Project File Example
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#lexical-rules">
+<span class="md-ellipsis">
+      
+        3.6.2 Lexical Rules
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#statements">
+<span class="md-ellipsis">
+      
+        3.6.3 Statements
+      
+    </span>
+</a>
+<nav aria-label="3.6.3 Statements" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#properties">
+<span class="md-ellipsis">
+      
+        3.6.3.1 Properties
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#link-mode">
+<span class="md-ellipsis">
+      
+        3.6.3.2 Link Mode
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#exception-handling">
+<span class="md-ellipsis">
+      
+        3.6.3.3 Exception Handling
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dynamic-strings">
+<span class="md-ellipsis">
+      
+        3.6.3.4 Dynamic Strings
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bare-metal-runtimes">
+<span class="md-ellipsis">
+      
+        3.6.3.5 Bare-Metal Runtimes
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#defines">
+<span class="md-ellipsis">
+      
+        3.6.3.6 Defines
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#paths">
+<span class="md-ellipsis">
+      
+        3.6.4 Paths
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#variables">
+<span class="md-ellipsis">
+      
+        3.6.5 Variables
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#package-lookup">
+<span class="md-ellipsis">
+      
+        3.6.6 Package Lookup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#includes">
+<span class="md-ellipsis">
+      
+        3.6.7 Includes
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#linker-argument-ordering">
+<span class="md-ellipsis">
+      
+        3.6.8 Linker Argument Ordering
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#command-line-precedence">
+<span class="md-ellipsis">
+      
+        3.6.9 Command-Line Precedence
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#errors-and-diagnostics">
+<span class="md-ellipsis">
+      
+        3.6.10 Errors and Diagnostics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#compact-grammar">
+<span class="md-ellipsis">
+      
+        3.6.11 Compact Grammar
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="project-files-dqproj">3.6. Project Files (<code>.dqproj</code>)</h1>
+<p>Some projects may require a large amount of compiler options to compile. In order to make the complex project compilation easier the DQ compiler supports project files.</p>
+<p>The DQ project files are basically a set of compiler options in a more manageable way.</p>
+<p>The project files use the <code>.dqproj</code> extension:</p>
+<p>Example usage:</p>
+<pre><code class="language-bash">dq-comp application.dqproj
+dq-comp -O0 -g -o build/application application.dqproj
+</code></pre>
+<p>(the dq-comp options provided in the command line override the options in the .dqproj file)</p>
+<p>Unless <code>output</code> or <code>-o</code> selects another path, the executable is named after the
+project file and written beside it. Build artifacts are kept below the project
+directory's <code>.dqbuild</code> directory, independently of the <code>main</code> source location.</p>
+<h2 id="project-file-example">3.6.1 Project File Example</h2>
+<pre><code class="language-text">// application.dqproj
+
+packagepath = 'packages'
+var BOARD_SUPPORT = PackagePath('board_support')
+
+include '${BOARD_SUPPORT}/project/stm32f746.dqproj'
+
+main      = 'src/application.dq'
+output    = 'build/${PROJECT_NAME}.elf'
+target    = 'arm_m7f-bare'
+cpu_features = '+no-movt'
+compiler_runtime = 'libgcc'
+c_runtime = 'newlib-nano'
+link      = true
+optlevel  = 2
+debuginfo = true
+lto       = false
+
+define BOARD_NUCLEO_F746
+define CPU_CLOCK_HZ = 216000000
+
+linkobject = '${BOARD_SUPPORT}/lib/startup.o'
+linkoption = '--gc-sections'
+</code></pre>
+<p><code>arm_m7f-bare</code> selects the Cortex-M7 single-precision FPU and makes <code>float</code>
+32-bit. Use <code>arm_m7fd-bare</code> for Cortex-M7 devices with a double-precision FPU;
+on that target <code>float</code> is 64-bit. The explicit <code>float32</code> and <code>float64</code> types do
+not change with the target.</p>
+<p>Use <code>dq-comp --targets</code> for the canonical target list and detailed defaults.
+The additional hosted Linux targets are <code>armhf-linux</code>, <code>arm64-linux</code>, and
+<code>rv64g-linux</code>; select the target distribution or SDK root with <code>sysroot</code> when
+linking for one of them. The additional cross targets are <code>wasm32-wasi</code>,
+<code>wasm32-bare</code>, and <code>rv32imac-bare</code>. WASI exceptions are unsupported, so a
+project selecting <code>wasm32-wasi</code> must not set <code>exceptions = true</code>.</p>
+<p>An included fragment might contain the shared target and linker configuration:</p>
+<pre><code class="language-text">// board_support/project/stm32f746.dqproj
+
+linkerpath = '${THIS_DIR}/../lib'
+linkscript = '${THIS_DIR}/../ld/stm32f746.ld'
+</code></pre>
+<h2 id="lexical-rules">3.6.2 Lexical Rules</h2>
+<p>The format uses DQ-like identifiers, strings, comments, and statement
+terminators. Property and keyword names are case-sensitive.</p>
+<p>An identifier starts with an ASCII letter or <code>_</code> and may continue with ASCII
+letters, decimal digits, or <code>_</code>:</p>
+<pre><code class="language-text">FEATURE
+CPU_CLOCK_HZ
+board2
+</code></pre>
+<p>Strings may use single or double quotes. They must end on the same physical
+line on which they begin.</p>
+<pre><code class="language-text">'src/main.dq'
+"arm_m7f-bare"
+</code></pre>
+<p>The recognized string escapes are:</p>
+<table>
+<thead>
+<tr>
+<th>Escape</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>\n</code></td>
+<td>newline character</td>
+</tr>
+<tr>
+<td><code>\r</code></td>
+<td>carriage return</td>
+</tr>
+<tr>
+<td><code>\t</code></td>
+<td>tab</td>
+</tr>
+<tr>
+<td><code>\\</code></td>
+<td>backslash</td>
+</tr>
+<tr>
+<td><code>\"</code></td>
+<td>double quote</td>
+</tr>
+<tr>
+<td><code>\'</code></td>
+<td>single quote</td>
+</tr>
+</tbody>
+</table>
+<p>An unrecognized escape is preserved as a backslash followed by the escaped
+character.</p>
+<p>Both DQ comment forms are supported:</p>
+<pre><code class="language-text">// line comment
+
+/* block
+   comment */
+</code></pre>
+<p>An unterminated string or block comment is an error.</p>
+<p>Statements normally end at a newline. A semicolon is optional at the end of a
+statement and is required between multiple statements on the same line:</p>
+<pre><code class="language-text">main = 'main.dq'
+output = 'app'
+
+main = 'main.dq'; output = 'app'
+</code></pre>
+<p>The parts of one statement, including <code>=</code>, its value, and the arguments of
+<code>PackagePath()</code>, may not continue onto another line.</p>
+<h2 id="statements">3.6.3 Statements</h2>
+<p>A project consists of property assignments and three special statements:
+<code>define</code>, <code>var</code>, and <code>include</code>.</p>
+<pre><code class="language-text">property = value
+define NAME
+define NAME = value
+var NAME = value
+include 'file.dqproj'
+</code></pre>
+<p>Unknown properties, invalid value types, trailing tokens, and duplicate
+single-value properties are errors.</p>
+<h3 id="properties">3.6.3.1 Properties</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+<th>Repetition</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>main</code></td>
+<td>path string</td>
+<td>once, required</td>
+<td>DQ source file compiled as the project entry module.</td>
+</tr>
+<tr>
+<td><code>output</code></td>
+<td>path string</td>
+<td>once, optional</td>
+<td>Final executable or object filename. Normal compiler output defaults apply when omitted.</td>
+</tr>
+<tr>
+<td><code>target</code></td>
+<td>string</td>
+<td>once, optional</td>
+<td>Compiler target name, using the same names accepted by <code>--target</code>.</td>
+</tr>
+<tr>
+<td><code>sysroot</code></td>
+<td>path string</td>
+<td>once, optional</td>
+<td>Target system root passed to the Clang linker driver for hosted cross builds.</td>
+</tr>
+<tr>
+<td><code>cpu_features</code></td>
+<td>string</td>
+<td>once, optional</td>
+<td>Append LLVM CPU feature flags to the target defaults, separated by commas.</td>
+</tr>
+<tr>
+<td><code>packagepath</code></td>
+<td>path string</td>
+<td>repeatable</td>
+<td>Add a DQ package search root.</td>
+</tr>
+<tr>
+<td><code>link</code></td>
+<td>boolean</td>
+<td>once, optional</td>
+<td>Force linking when <code>true</code>; compile only when <code>false</code>.</td>
+</tr>
+<tr>
+<td><code>static</code></td>
+<td>boolean</td>
+<td>once, optional</td>
+<td>Pass <code>-static</code> to the linker when <code>true</code>, equivalent to <code>--static</code> or <code>--linker-arg=-static</code>. Defaults to <code>false</code>, which adds no linker argument.</td>
+</tr>
+<tr>
+<td><code>exceptions</code></td>
+<td>boolean</td>
+<td>once, optional</td>
+<td>Enable or disable DQ exception handling. Defaults to enabled on hosted targets and disabled on bare targets; <code>wasm32-wasi</code> always disables and rejects enabling exceptions.</td>
+</tr>
+<tr>
+<td><code>dynstrings</code></td>
+<td>boolean</td>
+<td>once, optional</td>
+<td>Enable or disable heap-backed dynamic strings. Defaults to enabled on hosted targets and disabled on bare targets.</td>
+</tr>
+<tr>
+<td><code>compiler_runtime</code></td>
+<td>string</td>
+<td>once, optional</td>
+<td>Bare-target compiler support runtime: <code>libgcc</code> (default) or <code>none</code>.</td>
+</tr>
+<tr>
+<td><code>c_runtime</code></td>
+<td>string</td>
+<td>once, optional</td>
+<td>Bare-target C runtime: <code>newlib-nano</code> (default) or <code>none</code>.</td>
+</tr>
+<tr>
+<td><code>linkobject</code></td>
+<td>path string</td>
+<td>repeatable</td>
+<td>Add an existing object or other positional linker input.</td>
+</tr>
+<tr>
+<td><code>linkerpath</code></td>
+<td>path string</td>
+<td>repeatable</td>
+<td>Pass <code>--library-path=&lt;path&gt;</code> to the linker.</td>
+</tr>
+<tr>
+<td><code>linkoption</code></td>
+<td>string</td>
+<td>repeatable</td>
+<td>Pass one argument directly to the linker.</td>
+</tr>
+<tr>
+<td><code>linkscript</code></td>
+<td>path string</td>
+<td>once, optional</td>
+<td>Pass <code>--script=&lt;path&gt;</code> to the linker.</td>
+</tr>
+<tr>
+<td><code>debuginfo</code></td>
+<td>boolean</td>
+<td>once, optional</td>
+<td>Enable or disable debug information.</td>
+</tr>
+<tr>
+<td><code>optlevel</code></td>
+<td>integer or string <code>0</code> through <code>3</code>, or string <code>'s'</code> or <code>'z'</code></td>
+<td>once, optional</td>
+<td>Set the optimization level. Numeric levels may be quoted or unquoted; <code>'s'</code> and <code>'z'</code> optimize for size.</td>
+</tr>
+<tr>
+<td><code>lto</code></td>
+<td>boolean</td>
+<td>once, optional</td>
+<td>Enable full LTO when <code>true</code>; disable LTO when <code>false</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><code>main</code> is required only after the top-level file and all its includes have been
+assembled. An included fragment therefore does not need its own <code>main</code>.
+<code>output</code> is always optional.</p>
+<p>The <code>cpu</code>, <code>abi</code>, and <code>floatabi</code> property names are reserved for future target
+tuning. They are currently rejected as unsupported. They are not silently
+ignored.</p>
+<h3 id="link-mode">3.6.3.2 Link Mode</h3>
+<p>Without a <code>link</code> property, the compiler retains its automatic link mode:</p>
+<ul>
+<li>A hosted target links a module that contains <code>*Main</code>.</li>
+<li>A bare target produces an object by default.</li>
+</ul>
+<p><code>link = true</code> is equivalent to explicitly selecting <code>--link</code>. It can force a
+bare target to link an ELF image. <code>link = false</code> is equivalent to <code>-c</code> and
+always requests compile-only output.</p>
+<h3 id="exception-handling">3.6.3.3 Exception Handling</h3>
+<p>Exception handling is enabled by default for hosted targets and disabled by
+default for bare targets. Projects can override the target default explicitly:</p>
+<pre><code class="language-text">exceptions = false
+</code></pre>
+<p>When enabled, the compiler defines <code>EXCEPTIONS</code> in the <code>@def</code> scope, so source
+and RTL code can select exception-dependent code with <code>#ifdef EXCEPTIONS</code>.
+Disabling exceptions removes native unwind generation and rejects <code>try</code>,
+<code>except</code>, <code>finally</code>, and <code>raise</code>; runtime checks remain enabled and report
+through the <code>RuntimeError</code> hook.</p>
+<h3 id="dynamic-strings">3.6.3.4 Dynamic Strings</h3>
+<p>Dynamic strings are enabled by default for hosted targets and disabled by
+default for bare targets. Projects can override the target default explicitly:</p>
+<pre><code class="language-text">dynstrings = true
+</code></pre>
+<p>When enabled, the compiler defines <code>DYNSTRINGS</code> in the <code>@def</code> scope. When
+disabled, heap-owning <code>str</code> declarations, conversions, concatenation, and
+methods are rejected with <code>DynStringsDisabled</code>. Non-owning and bounded text
+facilities—text literals, <code>rostr</code>, <code>strslice</code>, and bounded <code>embstr</code>—remain available.</p>
+<h3 id="bare-metal-runtimes">3.6.3.5 Bare-Metal Runtimes</h3>
+<p>For supported bare-metal targets, the compiler selects bundled libraries that
+match the target CPU and floating-point ABI. The defaults are equivalent to:</p>
+<pre><code class="language-text">compiler_runtime = 'libgcc'
+c_runtime = 'newlib-nano'
+</code></pre>
+<p><code>compiler_runtime</code> supplies compiler-generated ABI helper routines and, when
+exceptions are enabled, the C++ exception ABI support and target unwinder.
+<code>c_runtime</code> supplies Newlib Nano and its no-system fallback stubs, and makes the
+matching bundled math library available to <code>#linklib('m')</code>. Static archive
+members are included only when referenced. Board or application implementations
+override the fallback stubs and must provide functional system calls where the
+application requires them.</p>
+<p>Either property may be set to <code>none</code> when the application supplies that part
+of the runtime explicitly. These properties are rejected for hosted targets,
+whose runtime libraries continue to be selected by the system linker driver.</p>
+<h3 id="defines">3.6.3.6 Defines</h3>
+<p><code>define</code> creates a symbol in the compiler's <code>@def</code> scope:</p>
+<pre><code class="language-text">define FEATURE
+define LOGGING = true
+define TRACE = false
+define BUFFER_SIZE = 4096
+define OFFSET = -16
+</code></pre>
+<p>A define without a value has boolean value <code>true</code>. Explicit values are limited
+to <code>true</code>, <code>false</code>, or a signed 64-bit decimal integer. Strings, hexadecimal
+integers, expressions, and variables are not accepted as define values.</p>
+<p>Define names are identifiers and must be unique throughout the assembled
+project, including all included files. A command-line <code>-DNAME</code> or
+<code>-DNAME=value</code> replaces the project define with the same name.</p>
+<p>Project defines are inherited by imported child modules.</p>
+<h2 id="paths">3.6.4 Paths</h2>
+<p>The following properties contain paths:</p>
+<ul>
+<li><code>main</code></li>
+<li><code>output</code></li>
+<li><code>packagepath</code></li>
+<li><code>linkobject</code></li>
+<li><code>linkerpath</code></li>
+<li><code>linkscript</code></li>
+<li><code>include</code></li>
+</ul>
+<p>After variable expansion, a relative path is resolved against the directory of
+the file containing that statement. The result is converted to an absolute,
+lexically normalized path. This rule applies independently to every included
+file.</p>
+<p>For example, in <code>project/boards/board.dqproj</code>:</p>
+<pre><code class="language-text">linkscript = '../ld/board.ld'
+</code></pre>
+<p>the path is relative to <code>project/boards</code>, not to the process working directory
+or the top-level project directory.</p>
+<p>The project parser requires included files and <code>PackagePath()</code> results to
+exist. It does not check the existence of <code>main</code>, <code>output</code>, <code>packagepath</code>,
+<code>linkobject</code>, <code>linkerpath</code>, or <code>linkscript</code>; the compiler, filesystem, or linker
+reports problems with those paths when they are used.</p>
+<h2 id="variables">3.6.5 Variables</h2>
+<p>A variable stores a path for later substitution. Its value must be either a
+quoted path string or the result of <code>PackagePath()</code>:</p>
+<pre><code class="language-text">var SOURCE_DIR = 'src'
+var SDK = PackagePath('sdk')
+
+main = '${SOURCE_DIR}/main.dq'
+include '${SDK}/project/common.dqproj'
+</code></pre>
+<p>A relative quoted value is resolved against the directory of the file that
+declares the variable. Consequently, it keeps the same meaning when it is used
+later from a different included file.</p>
+<p>Variable references use only the explicit <code>${NAME}</code> form. Expansion is
+performed inside all quoted project values, including path properties,
+<code>target</code>, <code>linkoption</code>, include paths, and <code>PackagePath()</code> arguments.</p>
+<p>Variable names are case-sensitive, must be declared before use, and are shared
+through includes. A variable cannot be declared more than once. User variables
+also cannot redefine either built-in variable:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>${PROJECT_NAME}</code></td>
+<td>Name of the top level <code>.dqproj</code> file, without extension</td>
+</tr>
+<tr>
+<td><code>${PROJECT_DIR}</code></td>
+<td>Directory containing the top-level <code>.dqproj</code> file.</td>
+</tr>
+<tr>
+<td><code>${THIS_DIR}</code></td>
+<td>Directory containing the file with the current statement.</td>
+</tr>
+</tbody>
+</table>
+<p>The project language does not expand environment variables, <code>~</code>, <code>$NAME</code>, or
+<code>%NAME%</code>. A dollar sign has no special meaning unless it starts <code>${NAME}</code>.</p>
+<h2 id="package-lookup">3.6.6 Package Lookup</h2>
+<p><code>PackagePath()</code> locates a package using the same package-root resolver as a DQ
+<code>use</code> statement:</p>
+<pre><code class="language-text">var SDK = PackagePath('sdk')
+</code></pre>
+<p>The argument must expand to one identifier. If <code>/opt/dq/packages/sdk</code> is the
+selected package, the function returns the absolute normalized path
+<code>/opt/dq/packages/sdk</code>, not <code>/opt/dq/packages</code>.</p>
+<p>Package roots are searched from highest to lowest precedence:</p>
+<ol>
+<li>Command-line <code>--pkg-path</code> roots, with the last command-line root winning.</li>
+<li>Project <code>packagepath</code> roots already encountered, with the last project root
+   winning.</li>
+<li>Compiler default package roots, with the later default root winning.</li>
+</ol>
+<p>Command-line package roots are collected before the project is evaluated, so
+they are available to every <code>PackagePath()</code> call regardless of command-line
+position. A project <code>packagepath</code> becomes available only after its statement is
+evaluated. Includes follow the same textual ordering rule.</p>
+<p>A missing package is a project-evaluation error.</p>
+<h2 id="includes">3.6.7 Includes</h2>
+<p>An include inserts another <code>.dqproj</code> file at the point of the statement:</p>
+<pre><code class="language-text">include 'common.dqproj'
+include '${SDK}/project/board.dqproj'
+</code></pre>
+<p>The path is expanded and resolved relative to the including file. Included
+files must also use the <code>.dqproj</code> extension.</p>
+<p>Includes behave like textual insertion with file-local path anchoring:</p>
+<ul>
+<li>Variables declared before an include are visible inside it.</li>
+<li>Variables declared by an included file remain visible after it returns.</li>
+<li><code>packagepath</code> statements affect later <code>PackagePath()</code> calls.</li>
+<li>Single-property, variable, and define duplicate checks span all files.</li>
+<li>Repeatable property ordering follows statement order across includes.</li>
+</ul>
+<p>The same file may be included again after its earlier inclusion has completed.
+Normal duplicate rules still apply to the repeated statements. Including a file
+that is already active is a cycle and is rejected with the canonical include
+chain.</p>
+<h2 id="linker-argument-ordering">3.6.8 Linker Argument Ordering</h2>
+<p><code>linkerpath</code>, <code>linkscript</code>, <code>linkoption</code>, and <code>static = true</code> produce linker
+arguments in their assembled project statement order. Included statements retain
+their position in that order. Command-line <code>--linker-arg=&lt;arg&gt;</code> and <code>--static</code>
+entries follow all project linker arguments.</p>
+<p>The compiler constructs linker inputs in this order:</p>
+<ol>
+<li>The object generated for <code>main</code>.</li>
+<li>Objects generated for imported DQ modules.</li>
+<li>Project <code>linkobject</code> inputs, in statement order.</li>
+<li><code>-o</code> and the final output filename.</li>
+<li>Libraries requested by DQ modules.</li>
+</ol>
+<p>Each project or command-line linker argument is passed through the compiler
+driver as one linker argument before those positional inputs.
+<code>-static</code> is passed directly to the driver so it also selects static startup
+files and runtime libraries.</p>
+<p>Project parsing does not verify that linker objects, library paths, or linker
+scripts exist. Such errors are reported by the linker.</p>
+<h2 id="command-line-precedence">3.6.9 Command-Line Precedence</h2>
+<p>The project is parsed before normal command-line option evaluation and before
+target-dependent compiler initialization. Project values act as defaults;
+explicit command-line selections are then applied on top.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Precedence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Target</td>
+<td><code>--target</code> overrides <code>target</code>; otherwise the project target overrides the host default.</td>
+</tr>
+<tr>
+<td>CPU features</td>
+<td><code>--cpu-features=</code> overrides <code>cpu_features</code>; the effective value is appended to the selected target defaults.</td>
+</tr>
+<tr>
+<td>Output</td>
+<td><code>-o</code> overrides <code>output</code>; otherwise normal output defaults apply when the property is absent.</td>
+</tr>
+<tr>
+<td>Optimization</td>
+<td><code>-O0</code> through <code>-O3</code>, <code>-Os</code>, and <code>-Oz</code> override <code>optlevel</code>.</td>
+</tr>
+<tr>
+<td>Debug information</td>
+<td><code>-g</code> enables debug information even when <code>debuginfo = false</code>. There is currently no command-line option to force it off.</td>
+</tr>
+<tr>
+<td>LTO</td>
+<td><code>--lto</code> or <code>--lto=full|off</code> overrides <code>lto</code>.</td>
+</tr>
+<tr>
+<td>Exceptions</td>
+<td><code>--exceptions</code> or <code>--no-exceptions</code> overrides <code>exceptions</code>; the last command-line flag wins.</td>
+</tr>
+<tr>
+<td>Dynamic strings</td>
+<td><code>--dynstrings</code> or <code>--no-dynstrings</code> overrides <code>dynstrings</code>; the last command-line flag wins.</td>
+</tr>
+<tr>
+<td>Link mode</td>
+<td>The first explicit <code>-c</code> or <code>--link</code> replaces the project mode. Conflicting subsequent command-line link modes are errors.</td>
+</tr>
+<tr>
+<td>Defines</td>
+<td>The first command-line definition of a name removes the project definition of that name.</td>
+</tr>
+<tr>
+<td>Package roots</td>
+<td>Command-line roots have higher lookup precedence than project and default roots.</td>
+</tr>
+<tr>
+<td>Linker arguments</td>
+<td>Project arguments precede command-line <code>--linker-arg</code> and <code>--static</code> entries.</td>
+</tr>
+</tbody>
+</table>
+<p>The project target is selected early enough to initialize target-dependent
+built-in types correctly. Imported child modules inherit the effective target,
+optimization level, debug and LTO settings, defines, build settings, and package
+roots through compiler arguments. Child compilations receive the resolved <code>.dq</code>
+source file and do not parse the project again.</p>
+<h2 id="errors-and-diagnostics">3.6.10 Errors and Diagnostics</h2>
+<p>Project evaluation stops at the first error. Diagnostics identify the file,
+line, column, diagnostic identifier, and message:</p>
+<pre><code class="language-text">/work/app/application.dqproj(12,8) ERROR(ProjectValue): optlevel must be 0 through 3, 's', or 'z'
+</code></pre>
+<p>Project errors include, among others:</p>
+<ul>
+<li>unreadable project or include files;</li>
+<li>wrong project extensions;</li>
+<li>malformed strings, comments, or statements;</li>
+<li>unknown, duplicate, or unsupported properties;</li>
+<li>invalid property types or values;</li>
+<li>duplicate or unknown variables;</li>
+<li>duplicate project defines;</li>
+<li>missing packages;</li>
+<li>include cycles;</li>
+<li>an assembled project without <code>main</code>.</li>
+</ul>
+<h2 id="compact-grammar">3.6.11 Compact Grammar</h2>
+<p>The following grammar is descriptive. <code>newline</code> or <code>;</code> terminates a statement,
+and the final statement may end at end-of-file.</p>
+<pre><code class="language-text">project       := { terminator | statement terminator } [ statement ] EOF
+
+statement     := property '=' property-value
+               | 'define' identifier [ '=' define-value ]
+               | 'var' identifier '=' variable-value
+               | 'include' string
+
+property      := 'main' | 'output' | 'target' | 'packagepath'
+               | 'link' | 'static' | 'linkobject' | 'linkerpath' | 'linkoption'
+               | 'linkscript' | 'debuginfo' | 'optlevel' | 'lto'
+               | 'exceptions' | 'dynstrings' | 'cpu_features'
+
+property-value := string | boolean | signed-decimal-integer
+variable-value := string | 'PackagePath' '(' string ')'
+define-value   := boolean | signed-decimal-integer
+boolean        := 'true' | 'false'
+terminator     := newline | ';'
+</code></pre>
+<p>Whitespace and comments may occur between tokens as long as they do not move
+the remainder of the current statement onto another line.</p>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+</body>
+</html>

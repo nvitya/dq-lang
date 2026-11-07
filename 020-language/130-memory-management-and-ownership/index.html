@@ -1,0 +1,1752 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Documentation for the DQ programming language, libraries and tools" name="description"/>
+<link href="../120-objects-and-properties/" rel="prev"/>
+<link href="../140-exceptions-and-error-handling/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>2.15. Memory Management and Autofree - DQ-lang Project</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../pdf/dq-lang-book.pdf" rel="alternate" title="PDF" type="application/pdf"/></head>
+<body dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#memory-management-and-autofree">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="DQ-lang Project" class="md-header__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            DQ-lang Project
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              2.15. Memory Management and Autofree
+            
+          </span>
+</div>
+</div>
+</div>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<a class="md-header-nav__button md-icon" href="../../pdf/dq-lang-book.pdf" title="PDF">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<path d="M128,0c-17.6,0-32,14.4-32,32v448c0,17.6,14.4,32,32,32h320c17.6,0,32-14.4,32-32V128L352,0H128z" fill="#E2E5E7"></path>
+<path d="m384 128h96l-128-128v96c0 17.6 14.4 32 32 32z" fill="#B0B7BD"></path>
+<polygon fill="#CAD1D8" points="480 224 384 128 480 128"></polygon>
+<path d="M416,416c0,8.8-7.2,16-16,16H48c-8.8,0-16-7.2-16-16V256c0-8.8,7.2-16,16-16h352c8.8,0,16,7.2,16,16  V416z" fill="#F15642"></path>
+<g fill="#fff">
+<path d="m101.74 303.15c0-4.224 3.328-8.832 8.688-8.832h29.552c16.64 0 31.616 11.136 31.616 32.48 0 20.224-14.976 31.488-31.616 31.488h-21.36v16.896c0 5.632-3.584 8.816-8.192 8.816-4.224 0-8.688-3.184-8.688-8.816v-72.032zm16.88 7.28v31.872h21.36c8.576 0 15.36-7.568 15.36-15.504 0-8.944-6.784-16.368-15.36-16.368h-21.36z"></path>
+<path d="m196.66 384c-4.224 0-8.832-2.304-8.832-7.92v-72.672c0-4.592 4.608-7.936 8.832-7.936h29.296c58.464 0 57.184 88.528 1.152 88.528h-30.448zm8.064-72.912v57.312h21.232c34.544 0 36.08-57.312 0-57.312h-21.232z"></path>
+<path d="m303.87 312.11v20.336h32.624c4.608 0 9.216 4.608 9.216 9.072 0 4.224-4.608 7.68-9.216 7.68h-32.624v26.864c0 4.48-3.184 7.92-7.664 7.92-5.632 0-9.072-3.44-9.072-7.92v-72.672c0-4.592 3.456-7.936 9.072-7.936h44.912c5.632 0 8.96 3.344 8.96 7.936 0 4.096-3.328 8.704-8.96 8.704h-37.248v0.016z"></path>
+</g>
+<path d="m400 432h-304v16h304c8.8 0 16-7.2 16-16v-16c0 8.8-7.2 16-16 16z" fill="#CAD1D8"></path>
+</svg>
+</a></nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="DQ-lang Project" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    DQ-lang Project
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../010-project/">
+<span class="md-ellipsis">
+    
+  
+    1. DQ-lang Project
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    1. DQ-lang Project
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    1.1. DQ-lang Project Introduction
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/020-features-and-goals/">
+<span class="md-ellipsis">
+    
+  
+    1.2. Features and Design Goals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/030-getting-started/">
+<span class="md-ellipsis">
+    
+  
+    1.3. Getting Started
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    2. DQ Programming Language
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    2. DQ Programming Language
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../010-basic-syntax/">
+<span class="md-ellipsis">
+    
+  
+    2.1. Basic Syntax
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../020-basic-types-and-conversions/">
+<span class="md-ellipsis">
+    
+  
+    2.2. Basic Types and Conversions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../030-variables-constants-references-and-scope/">
+<span class="md-ellipsis">
+    
+  
+    2.3. Variables, Constants, References, and Scope
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../040-expressions-and-operators/">
+<span class="md-ellipsis">
+    
+  
+    2.4. Expressions and Operators
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../050-statements-and-control-flow/">
+<span class="md-ellipsis">
+    
+  
+    2.5. Statements and Control Flow
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../060-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.6. Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../070-strings-and-characters/">
+<span class="md-ellipsis">
+    
+  
+    2.7. Character and String Types
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../075-string-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.8. String Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../077-text-formatting/">
+<span class="md-ellipsis">
+    
+  
+    2.9. Text Formatting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../080-arrays-and-slices/">
+<span class="md-ellipsis">
+    
+  
+    2.10. Arrays and Slices
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../090-enumerations/">
+<span class="md-ellipsis">
+    
+  
+    2.11. Enumerations
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../100-structures-and-unions/">
+<span class="md-ellipsis">
+    
+  
+    2.12. Structures and Unions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../110-pointers/">
+<span class="md-ellipsis">
+    
+  
+    2.13. Pointers
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../120-objects-and-properties/">
+<span class="md-ellipsis">
+    
+  
+    2.14. Objects and Properties
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    2.15. Memory Management and Autofree
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    2.15. Memory Management and Autofree
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#choosing-storage-and-cleanup">
+<span class="md-ellipsis">
+      
+        2.15.1 Choosing Storage and Cleanup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#explicit-allocation-and-release">
+<span class="md-ellipsis">
+      
+        2.15.2 Explicit Allocation and Release
+      
+    </span>
+</a>
+<nav aria-label="2.15.2 Explicit Allocation and Release" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reusing-a-variable-after-delete">
+<span class="md-ellipsis">
+      
+        2.15.2.1 Reusing a Variable After delete
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#autofree-types-and-variables">
+<span class="md-ellipsis">
+      
+        2.15.3 autofree Types and Variables
+      
+    </span>
+</a>
+<nav aria-label="2.15.3 autofree Types and Variables" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#declaring-autofree-variables">
+<span class="md-ellipsis">
+      
+        2.15.3.1 Declaring Autofree Variables
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cleanup">
+<span class="md-ellipsis">
+      
+        2.15.3.2 Cleanup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#borrowing-and-moving-ownership">
+<span class="md-ellipsis">
+      
+        2.15.3.3 Borrowing and Moving Ownership
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#autofree-variables-and-functions">
+<span class="md-ellipsis">
+      
+        2.15.3.4 Autofree Variables and Functions
+      
+    </span>
+</a>
+<nav aria-label="2.15.3.4 Autofree Variables and Functions" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#returning-a-new-object">
+<span class="md-ellipsis">
+      
+        2.15.3.4.1 Returning a New Object
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#autofree-fields">
+<span class="md-ellipsis">
+      
+        2.15.3.5 Autofree Fields
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#arrays">
+<span class="md-ellipsis">
+      
+        2.15.3.6 Arrays
+      
+    </span>
+</a>
+<nav aria-label="2.15.3.6 Arrays" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#array-copying-restrictions">
+<span class="md-ellipsis">
+      
+        2.15.3.6.1 Array Copying Restrictions
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#placement-restrictions-and-type-inference">
+<span class="md-ellipsis">
+      
+        2.15.3.7 Placement Restrictions and Type Inference
+      
+    </span>
+</a>
+<nav aria-label="2.15.3.7 Placement Restrictions and Type Inference" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#inference-example">
+<span class="md-ellipsis">
+      
+        2.15.3.7.1 Inference Example
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../140-exceptions-and-error-handling/">
+<span class="md-ellipsis">
+    
+  
+    2.16. Exceptions and Error Handling
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../150-anyvalue/">
+<span class="md-ellipsis">
+    
+  
+    2.17. anyvalue
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../170-modules-and-packages/">
+<span class="md-ellipsis">
+    
+  
+    2.18. Modules and Packages
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../180-attributes/">
+<span class="md-ellipsis">
+    
+  
+    2.19. Attributes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../190-compiler-directives/">
+<span class="md-ellipsis">
+    
+  
+    2.20. Compiler Directives
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../200-c-interoperability/">
+<span class="md-ellipsis">
+    
+  
+    2.21. C Interoperability
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../210-assembly-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.22. Assembly Functions
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../030-compiler/">
+<span class="md-ellipsis">
+    
+  
+    3. DQ Compiler and Tools
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    3. DQ Compiler and Tools
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/010-compiler-and-tool-overview/">
+<span class="md-ellipsis">
+    
+  
+    3.1. Compiler and Tool Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/015-runtime-and-program-execution/">
+<span class="md-ellipsis">
+    
+  
+    3.2. Runtime and Program Execution
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/020-linux-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.3. Linux Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/030-windows-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.4. Windows Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/040-compiler-usage-and-options/">
+<span class="md-ellipsis">
+    
+  
+    3.5. Compiler Usage and Options
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/050-project-files/">
+<span class="md-ellipsis">
+    
+  
+    3.6. Project Files
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/060-build-process-and-module-artifacts/">
+<span class="md-ellipsis">
+    
+  
+    3.7. Build Process and Module Artifacts
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/070-targets-and-cross-compilation/">
+<span class="md-ellipsis">
+    
+  
+    3.8. Targets and Cross-Compilation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/080-vscode-setup-and-debugging/">
+<span class="md-ellipsis">
+    
+  
+    3.9. VSCode Setup and Debugging
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../040-packages/">
+<span class="md-ellipsis">
+    
+  
+    4. Standard Packages
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    4. Standard Packages
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/010-library-overview-and-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.1. Library Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/015-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.2. sys
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/020-print/">
+<span class="md-ellipsis">
+    
+  
+    4.3. print
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/040-file/">
+<span class="md-ellipsis">
+    
+  
+    4.4. file
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/050-json/">
+<span class="md-ellipsis">
+    
+  
+    4.5. json
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/060-threads/">
+<span class="md-ellipsis">
+    
+  
+    4.6. threads
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/065-time/">
+<span class="md-ellipsis">
+    
+  
+    4.7. time
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/070-nanonet/">
+<span class="md-ellipsis">
+    
+  
+    4.8. nanonet
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/075-shell/">
+<span class="md-ellipsis">
+    
+  
+    4.9. shell
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/080-additional-standard-packages/">
+<span class="md-ellipsis">
+    
+  
+    4.10. Additional Standard Packages
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    5. Appendices
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    5. Appendices
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/010-example-programs/">
+<span class="md-ellipsis">
+    
+  
+    5.1. Example Programs
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/020-building-the-compiler-from-source/">
+<span class="md-ellipsis">
+    
+  
+    5.2. Building the Compiler from Source
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/030-contributor-and-implementation-notes/">
+<span class="md-ellipsis">
+    
+  
+    5.3. Contributor and Implementation Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/031-module-and-interface-internals/">
+<span class="md-ellipsis">
+    
+  
+    5.4. Module and Interface Internals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/032-exceptions-and-backtraces/">
+<span class="md-ellipsis">
+    
+  
+    5.5. Exceptions and Backtraces
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/033-release-and-cross-builds/">
+<span class="md-ellipsis">
+    
+  
+    5.6. Release and Cross-Build Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/040-glossary-and-index/">
+<span class="md-ellipsis">
+    
+  
+    5.7. Glossary and Index
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/050-documentation-coverage/">
+<span class="md-ellipsis">
+    
+  
+    5.8. Documentation Coverage
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#choosing-storage-and-cleanup">
+<span class="md-ellipsis">
+      
+        2.15.1 Choosing Storage and Cleanup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#explicit-allocation-and-release">
+<span class="md-ellipsis">
+      
+        2.15.2 Explicit Allocation and Release
+      
+    </span>
+</a>
+<nav aria-label="2.15.2 Explicit Allocation and Release" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reusing-a-variable-after-delete">
+<span class="md-ellipsis">
+      
+        2.15.2.1 Reusing a Variable After delete
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#autofree-types-and-variables">
+<span class="md-ellipsis">
+      
+        2.15.3 autofree Types and Variables
+      
+    </span>
+</a>
+<nav aria-label="2.15.3 autofree Types and Variables" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#declaring-autofree-variables">
+<span class="md-ellipsis">
+      
+        2.15.3.1 Declaring Autofree Variables
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cleanup">
+<span class="md-ellipsis">
+      
+        2.15.3.2 Cleanup
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#borrowing-and-moving-ownership">
+<span class="md-ellipsis">
+      
+        2.15.3.3 Borrowing and Moving Ownership
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#autofree-variables-and-functions">
+<span class="md-ellipsis">
+      
+        2.15.3.4 Autofree Variables and Functions
+      
+    </span>
+</a>
+<nav aria-label="2.15.3.4 Autofree Variables and Functions" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#returning-a-new-object">
+<span class="md-ellipsis">
+      
+        2.15.3.4.1 Returning a New Object
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#autofree-fields">
+<span class="md-ellipsis">
+      
+        2.15.3.5 Autofree Fields
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#arrays">
+<span class="md-ellipsis">
+      
+        2.15.3.6 Arrays
+      
+    </span>
+</a>
+<nav aria-label="2.15.3.6 Arrays" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#array-copying-restrictions">
+<span class="md-ellipsis">
+      
+        2.15.3.6.1 Array Copying Restrictions
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#placement-restrictions-and-type-inference">
+<span class="md-ellipsis">
+      
+        2.15.3.7 Placement Restrictions and Type Inference
+      
+    </span>
+</a>
+<nav aria-label="2.15.3.7 Placement Restrictions and Type Inference" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#inference-example">
+<span class="md-ellipsis">
+      
+        2.15.3.7.1 Inference Example
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="memory-management-and-autofree">2.15. Memory Management and Autofree</h1>
+<p>The earlier chapters introduced automatic string and array storage, borrowed
+pointers, and the three ways to create objects. This chapter brings those rules
+together and explains how <strong>autofree variables</strong> manage heap allocations as
+values pass between functions, objects, and collections.</p>
+<p>An <strong>autofree type</strong>, such as <code>autofree OTask</code> or <code>autofree ^SPoint</code>, adds automatic
+cleanup to an object-reference or pointer type. A variable of that type releases
+its allocation when it is replaced or leaves scope. It is also called the
+allocation's <strong>owner</strong>: it is responsible for releasing that allocation. A
+<strong>borrow</strong> lets other code use the allocation without taking responsibility for
+its cleanup.</p>
+<p>Keeping that responsibility clear prevents both memory leaks (storage that is
+never released) and dangling references (references to storage that no longer
+exists).</p>
+<p>For object construction and destructors, see
+<a href="../120-objects-and-properties/#creating-and-destroying-objects">Creating and Destroying Objects</a>.
+For the lifetime of an address, see
+<a href="../110-pointers/#allocation-and-lifetime">Allocation and Lifetime</a>.</p>
+<h2 id="choosing-storage-and-cleanup">2.15.1 Choosing Storage and Cleanup</h2>
+<p><strong>Lifetime</strong> means how long a value's storage exists. <strong>Ownership</strong> means who
+is responsible for releasing it. Choose a form that fits how you use the value:</p>
+<table>
+<thead>
+<tr>
+<th>Form</th>
+<th>Lifetime and responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Number, fixed array, structure, fixed-storage embedded string</td>
+<td>Lives directly in its containing variable or object.</td>
+</tr>
+<tr>
+<td><code>str</code></td>
+<td>Manages its text storage; changing a shared string makes an independent value.</td>
+</tr>
+<tr>
+<td><code>[*]T</code></td>
+<td>Manages shared array storage; aliases see changes to the same array.</td>
+</tr>
+<tr>
+<td><code>var task &lt;- OTask(...)</code></td>
+<td>Embedded object; lives with its scope or containing object.</td>
+</tr>
+<tr>
+<td><code>new OTask(...)</code></td>
+<td>Heap object; needs an explicit <code>delete</code> or an autofree variable.</td>
+</tr>
+<tr>
+<td><code>autofree OTask</code>, <code>autofree ^T</code>, <code>autofree pointer</code></td>
+<td>Autofree types; variables release their heap allocations automatically.</td>
+</tr>
+<tr>
+<td>Pointer, <code>rostr</code>, <code>strslice</code>, <code>[]T</code>, ordinary object alias</td>
+<td>Borrows existing storage; does not keep it alive.</td>
+</tr>
+</tbody>
+</table>
+<p>Keep borrowed storage alive for as long as you use it. For example, a slice of
+a local array cannot be returned for use after that local array has disappeared.</p>
+<p>An object variable declared without <code>autofree</code> does not destroy the object
+automatically. Assigning it to another variable does not change that:</p>
+<pre><code class="language-dq">var task : OTask = new OTask("download")
+var another : OTask = task
+</code></pre>
+<p>There is one task object, and both variables let you access it. The second
+declaration does not create a second object, and neither variable has an
+autofree type. When both variables leave scope, the object remains allocated.
+DQ does not find and release it for you.</p>
+<p>For automatic cleanup, declare <code>task</code> with an autofree type. Otherwise, call
+<code>delete</code> when you are finished with the object. After it is destroyed, you must
+stop using it through either variable; having another variable refer to the
+object does not keep it alive.</p>
+<p>Strings and dynamic arrays release their own storage automatically, but an
+array's storage is separate from any heap objects its elements refer to. For
+example, releasing a <code>[*]OTask</code> array does not destroy its task objects. Use
+<code>[*]autofree OTask</code> when the array should also destroy those objects during
+cleanup.</p>
+<h2 id="explicit-allocation-and-release">2.15.2 Explicit Allocation and Release</h2>
+<p>Allocate heap objects with <code>new</code> and raw byte buffers with <code>MemAlloc</code>. Use
+<code>delete</code> to release either allocation. The allocation stays in memory until you
+release it; leaving the function does not release it automatically.</p>
+<p>This complete program demonstrates both forms. Each function releases its
+allocation when its work finishes normally. <code>RunTask</code> prints the supplied mode,
+but returns early if the mode is empty. <code>ProcessData</code> fills its buffer with
+<code>fillvalue</code>, which must be between 0 and 255 because each byte holds a value in
+that range. The early-return branches <strong>deliberately contain a mistake</strong>: they
+return before reaching the cleanup.</p>
+<pre><code class="language-dq">use print
+
+object OTask:
+    name : str
+
+    func *Create(aname : strslice):
+        name = aname
+    endfunc
+
+    func *Destroy():
+        @.PrintLn("Finished: {}", [name])
+    endfunc
+endobject
+
+func RunTask(amode : rostr):
+    var task : OTask = new OTask("download")
+    if amode == "":
+        PrintLn("Task mode must not be empty")
+        return // mistake: skips delete, leaving the task allocated
+    endif
+
+    PrintLn("Working on {} in {} mode", [task.name, amode])
+    delete task
+endfunc
+
+func ProcessData(fillvalue : int):
+    var buffer : ^byte = ^byte(MemAlloc(256))
+    if buffer == nil:
+        PrintLn("Could not allocate buffer")
+        return // no allocation was made, so there is nothing to release
+    endif
+    if fillvalue &lt; 0 or fillvalue &gt; 255:
+        PrintLn("Invalid fill value: {}", [fillvalue])
+        return // mistake: skips delete, leaving the buffer allocated
+    endif
+
+    MemSet(buffer, fillvalue, 256)
+    PrintLn("First byte: {}", [buffer[0]^])
+    delete buffer
+    PrintLn("Buffer released")
+endfunc
+
+func *Main():
+    PrintLn("-- normal completion")
+    RunTask("fast")
+    ProcessData(42)
+
+    PrintLn("-- early return")
+    RunTask("")
+    ProcessData(300)
+    PrintLn("Back in Main")
+endfunc
+</code></pre>
+<p>Output when the allocations succeed:</p>
+<pre><code class="language-text">-- normal completion
+Working on download in fast mode
+Finished: download
+First byte: 42
+Buffer released
+-- early return
+Task mode must not be empty
+Invalid fill value: 300
+Back in Main
+</code></pre>
+<p>On the normal path, <code>delete task</code> calls the task's destructor and releases its
+storage. <code>delete buffer</code> releases the byte buffer; there is no object destructor
+to call for it. These variables are not used again before their functions end,
+so there is no need to clear them. Other variables that refer to the same
+allocation must no longer be used to access it either. Never delete an embedded
+object created with <code>&lt;-</code>.</p>
+<p>When the mode is empty or the fill value is outside 0 to 255, <code>return</code>
+immediately leaves the function. It skips all remaining statements, including
+<code>delete</code>. For example, <code>ProcessData(300)</code> allocates its buffer before
+checking the value, then returns without freeing it. Notice that the second
+pair of calls prints neither <code>Finished: download</code> nor <code>Buffer released</code>. Both
+functions return to <code>Main</code>, but the task object and the 256-byte buffer from
+those calls are still allocated.</p>
+<p>Their local variables disappear when the functions return, so the program no
+longer has a way to reach those allocations and release them. This is a
+<strong>memory leak</strong>. Repeating these calls would leave more memory allocated each
+time, even though no work was completed.</p>
+<p>You could add the missing release before each early <code>return</code>. However,
+every additional exit path needs the same care, including exceptions. The next
+section introduces autofree variables, which release their allocations on both
+normal completion and early return, without a separate cleanup call on each
+path.</p>
+<p>The implicit runtime also provides <code>MemFree</code> for releasing raw storage and
+<code>MemFreeRef</code> for releasing it and clearing a generic <code>pointer</code> variable in one
+call. External resources often have their own close or release function; match
+each resource to the operation its API requires.</p>
+<h3 id="reusing-a-variable-after-delete">2.15.2.1 Reusing a Variable After <code>delete</code></h3>
+<p>For a variable without <code>autofree</code>, <code>delete buffer</code> releases the allocation but
+leaves the old address in the variable. That address is no longer valid. If the
+variable stays in scope, use <code>delete buffer = nil</code> to release the allocation and
+set the variable to <code>nil</code> in one statement:</p>
+<pre><code class="language-dq">var buffer : ^byte = ^byte(MemAlloc(256))
+// use the buffer
+
+delete buffer = nil // release the storage and mark the variable as empty
+
+// Later, allocate a new buffer if there is none.
+if buffer == nil:
+    buffer = ^byte(MemAlloc(512))
+endif
+// use the new buffer
+
+delete buffer // finished with this variable
+</code></pre>
+<p>Here, <code>nil</code> tells later code that the variable currently refers to no buffer.
+Without clearing it, <code>buffer == nil</code> would not detect that the first allocation
+has been released. The same applies to an object variable without <code>autofree</code>.
+Clearing one variable does not clear other variables that refer to the released
+allocation.</p>
+<p>You can also assign a new allocation directly after <code>delete</code>; setting <code>nil</code>
+first is not required for reassignment. It is useful when later code needs to
+check whether the variable currently holds an allocation. Assigning <code>nil</code> alone
+to a variable without <code>autofree</code> does not release its allocation.</p>
+<h2 id="autofree-types-and-variables">2.15.3 <code>autofree</code> Types and Variables</h2>
+<h3 id="declaring-autofree-variables">2.15.3.1 Declaring Autofree Variables</h3>
+<p>Use <code>autofree</code> for a heap allocation that should be released automatically.
+This complete program creates two task objects in <code>Main</code> and allocates a
+structure and a byte buffer in <code>ProcessData</code>. The task destructor prints a
+message so you can see when object cleanup happens:</p>
+<pre><code class="language-dq">use print
+
+object OTask:
+    name : str
+
+    func *Create(aname : strslice):
+        name = aname
+    endfunc
+
+    func *Destroy():
+        @.PrintLn("Finished: {}", [name])
+    endfunc
+endobject
+
+struct SPoint:
+    x : int
+    y : int
+endstruct
+
+func ProcessData(fillvalue : int):
+    var point : autofree ^SPoint = new SPoint
+    point.x = 10
+    point.y = 20
+
+    var buffer : autofree ^byte = ^byte(MemAlloc(256))
+    if buffer == nil:
+        PrintLn("Could not allocate buffer")
+        return
+    endif
+    if fillvalue &lt; 0 or fillvalue &gt; 255:
+        PrintLn("Invalid fill value: {}", [fillvalue])
+        return
+    endif
+    MemSet(buffer, fillvalue, 256)
+
+    PrintLn("Point: ({}, {})", [point.x, point.y])
+    PrintLn("Buffer filled with {}", [fillvalue])
+    PrintLn("Leaving ProcessData")
+
+    // no manual free is required for point and buffer
+endfunc
+
+func *Main():
+    var first = new autofree OTask("download")
+    var second : autofree OTask = new OTask("resize")
+    PrintLn("Tasks: {}, {}", [first.name, second.name])
+
+    ProcessData(42)
+    PrintLn("Back in Main")
+endfunc
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">Tasks: download, resize
+Point: (10, 20)
+Buffer filled with 42
+Leaving ProcessData
+Back in Main
+Finished: resize
+Finished: download
+</code></pre>
+<p><code>first</code> uses the <code>new autofree</code> shorthand. <code>second</code> declares its autofree type
+explicitly and assigns a newly created object to it. Both forms arrange for the
+object to be destroyed automatically.</p>
+<p><code>point</code> has type <code>autofree ^SPoint</code> and releases the structure's heap storage
+automatically. <code>buffer</code> has type <code>autofree ^byte</code> and releases its 256-byte
+allocation automatically. The cast <code>^byte(...)</code> gives the raw allocation a
+byte-pointer type. <code>MemSet(buffer, fillvalue, 256)</code> fills all 256 bytes with the requested value.</p>
+<p>When <code>ProcessData</code> returns, its local autofree variables release their
+allocations in reverse declaration order: first <code>buffer</code>, then <code>point</code>. This
+happens after <code>Leaving ProcessData</code> is printed and before <code>Main</code> prints
+<code>Back in Main</code>. Releasing these non-object allocations produces no destructor
+messages; their storage is already freed when execution returns to <code>Main</code>.
+If <code>fillvalue</code> is outside 0 to 255, the early <code>return</code> also releases both
+allocations automatically.</p>
+<p>The task objects remain available until <code>Main</code> ends. Then <code>second</code> is destroyed
+before <code>first</code>, producing <code>Finished: resize</code> and <code>Finished: download</code>.
+No <code>delete</code> or <code>MemFree</code> calls are needed in either function.</p>
+<p>An autofree variable must refer to a compatible heap allocation. Do not give it
+a local variable's address, an address inside another allocation, or an external
+resource handle such as a file handle.</p>
+<p>When the initializer already determines the pointed-to type, you can use
+<code>autofree ?</code> to avoid writing that type twice:</p>
+<pre><code class="language-dq">var buffer : autofree ? = ^byte(MemAlloc(256))
+var point : autofree ? = new SPoint
+</code></pre>
+<p>The compiler infers <code>^byte</code> for <code>buffer</code> and <code>^SPoint</code> for <code>point</code>. The
+<code>autofree</code> type attribute is never inferred: you must write it explicitly.
+Here, <code>autofree ?</code> combines an inferred pointer type with explicitly requested
+automatic cleanup. The <code>new autofree</code> shorthand used for <code>first</code> also specifies
+<code>autofree</code> explicitly.</p>
+<h3 id="cleanup">2.15.3.2 Cleanup</h3>
+<p>An autofree variable releases its current allocation when it is overwritten or
+leaves its scope. Assigning <code>nil</code> releases it early:</p>
+<pre><code class="language-dq">var task = new autofree OTask("download")
+task = new OTask("resize") // destroys download before taking the new object
+task = nil                 // destroys resize; task is now empty
+</code></pre>
+<p>For objects, cleanup calls <code>*Destroy</code> and releases the heap storage. For
+<code>autofree ^T</code> and <code>autofree pointer</code>, it releases the allocation without calling
+an object destructor. An autofree variable set to <code>nil</code> has nothing to release.</p>
+<p><code>delete</code> also works on an autofree variable and leaves it <code>nil</code>:</p>
+<pre><code class="language-dq">var task = new autofree OTask("download")
+delete task // task is now nil; leaving the scope will not delete it again
+</code></pre>
+<p>Local autofree variables start as <code>nil</code>, and local values are cleaned up in
+reverse construction order. Managed values, embedded objects, and autofree
+variables receive cleanup on normal block exit, <code>return</code>, loop transfers, and
+exception propagation. Autofree fields are cleaned up in reverse declaration
+order when their containing object is destroyed.</p>
+<p>Global autofree variables start as <code>nil</code>. Replacing them releases their old
+values, but DQ does not automatically destroy globals at program shutdown.
+Release global resources explicitly.</p>
+<h3 id="borrowing-and-moving-ownership">2.15.3.3 Borrowing and Moving Ownership</h3>
+<p>Only one autofree variable should be responsible for a given allocation.
+Assigning one autofree variable to another <strong>moves ownership</strong>: the destination
+becomes responsible for releasing the allocation, and the source becomes <code>nil</code>:</p>
+<pre><code class="language-dq">var first = new autofree OTask("download")
+var second : autofree OTask = first
+// first is now nil; second owns the download task
+</code></pre>
+<p>Assigning an autofree variable to an ordinary reference instead <strong>borrows</strong> the
+object:</p>
+<pre><code class="language-dq">var task = new autofree OTask("download")
+var borrowed : OTask = task
+borrowed.name = "resize" // changes the same object; task still handles cleanup
+</code></pre>
+<p>The borrow becomes invalid when the autofree variable releases the object. Do
+not delete the borrowed reference separately or assign it to another autofree
+variable. DQ does not track every borrowed reference and clear it when the
+object is destroyed; a non-<code>nil</code> borrow can still be invalid.</p>
+<p>Moving ownership does not move the object in memory. Existing borrows still
+refer to that object, but its lifetime now depends on the destination autofree
+variable. The source becomes <code>nil</code>, so check or replace it before using it again.</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Assign to <code>autofree T</code></th>
+<th>Assign to ordinary <code>T</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ordinary <code>T</code></td>
+<td>Take ownership; the source remains an alias.</td>
+<td>Copy the reference.</td>
+</tr>
+<tr>
+<td><code>autofree T</code> variable</td>
+<td>Move ownership; set the source to <code>nil</code>.</td>
+<td>Borrow; the source still handles cleanup.</td>
+</tr>
+</tbody>
+</table>
+<p>Replacing an autofree variable first releases its previous allocation.
+Assigning an autofree variable to itself leaves it unchanged.</p>
+<h3 id="autofree-variables-and-functions">2.15.3.4 Autofree Variables and Functions</h3>
+<p>An ordinary object or pointer parameter borrows its argument, including when
+the caller passes an autofree variable. The call does not clear that variable
+or transfer responsibility for cleanup:</p>
+<pre><code class="language-dq">func Rename(task : OTask, name : strslice):
+    task.name = name
+endfunc
+</code></pre>
+<p>Calling <code>Rename(task, "resize")</code> changes the object's name while leaving
+ownership with the caller.</p>
+<p>Use <code>ref autofree T</code> when the function needs to replace the caller's autofree
+variable:</p>
+<pre><code class="language-dq">func ReplaceTask(task : ref autofree OTask):
+    task = new OTask("save") // releases the caller's previous task
+endfunc
+</code></pre>
+<p>A <code>ref autofree T</code> parameter requires an autofree variable; a <code>ref T</code> parameter
+requires ordinary reference storage. Their <code>autofree</code> qualifications must match.
+To return a new object, use an ordinary object result and let the caller assign
+it to an autofree variable. <code>autofree</code> return types are not supported.</p>
+<h4 id="returning-a-new-object">2.15.3.4.1 Returning a New Object</h4>
+<p>A factory is a function that creates a value for its caller. It can return a
+new heap object directly:</p>
+<pre><code class="language-dq">func CreateTask(name : strslice) -&gt; OTask:
+    return new OTask(name)
+endfunc
+
+func *Main():
+    var task : autofree OTask = CreateTask("download")
+    Rename(task, "resize")
+    ReplaceTask(task)
+    PrintLn("Working on {}", [task.name])
+endfunc
+</code></pre>
+<p>Put this code after <code>OTask</code>, <code>Rename</code>, and <code>ReplaceTask</code> from the examples above.
+It prints:</p>
+<pre><code class="language-text">Finished: resize
+Working on save
+Finished: save
+</code></pre>
+<p><code>Rename</code> borrows the object. <code>ReplaceTask</code> changes the caller's autofree variable,
+destroying the renamed object before storing the new one. The final object is
+destroyed when <code>Main</code> ends.</p>
+<p>The ordinary <code>OTask</code> result type does not say whether a function returns a new
+object or borrows an existing one. Document that distinction for callers. Never
+return a local embedded object, or an object still owned by a local <code>autofree</code>
+variable: local cleanup would destroy it before the caller could use it.</p>
+<h3 id="autofree-fields">2.15.3.5 Autofree Fields</h3>
+<p>An object can take responsibility for another object through an autofree field:</p>
+<pre><code class="language-dq">object OWorker:
+    current : autofree OTask
+endobject
+
+func *Main():
+    var worker &lt;- OWorker()
+    var task = new autofree OTask("download")
+    worker.current = task // moves ownership into the field; task becomes nil
+    PrintLn("Working on {}", [worker.current.name])
+endfunc
+</code></pre>
+<p>With the earlier <code>OTask</code> definition and <code>use print</code>, this prints
+<code>Working on download</code> followed by <code>Finished: download</code>. Destroying <code>worker</code>
+automatically cleans up <code>current</code>; <code>OWorker</code> needs no custom destructor.
+Use an ordinary <code>OTask</code> field for a borrowed link, such as a reference back to
+a containing object. Giving two fields ownership of the same allocation would
+cause both to attempt to release it.</p>
+<h3 id="arrays">2.15.3.6 Arrays</h3>
+<p>An array with an autofree element type automatically releases its objects:</p>
+<pre><code class="language-dq">var tasks : [*]autofree OTask
+tasks.Append(new OTask("download"))
+tasks.Append(new OTask("resize"))
+tasks.Delete(0) // destroys download; resize remains in the array
+</code></pre>
+<p>Replacing or removing an element destroys its previous object. New empty
+elements are <code>nil</code>. Assigning a dynamic array to another variable still shares
+the same array; its remaining objects are destroyed when the last reference to
+that array is released.</p>
+<p>Single-element <code>.Append()</code>, <code>.Prepend()</code>, and <code>.Insert()</code> take ownership of an
+ordinary reference or move a source of an autofree type. <code>.Pop()</code> and
+<code>.PopFirst()</code> remove an object without destroying it and return an ordinary
+reference. Assign the result to an autofree variable or delete it explicitly:</p>
+<pre><code class="language-dq">var tasks : [*]autofree OTask
+tasks.Append(new OTask("download"))
+var next : autofree OTask = tasks.Pop() // next now owns the removed task
+</code></pre>
+<p>Use <code>for item : ref in tasks</code> to replace array elements in place. The reference
+keeps the element's autofree type, so replacement frees the previous object.
+See <a href="../080-arrays-and-slices/#dynamic-array-autofree-elements">Dynamic Array <code>autofree</code> Elements</a>
+for more examples.</p>
+<h4 id="array-copying-restrictions">2.15.3.6.1 Array Copying Restrictions</h4>
+<p>Assigning a fixed array of autofree elements moves every element: each
+destination's previous value is released, and each source element becomes <code>nil</code>.
+Self-assignment leaves the array unchanged.</p>
+<p>Dynamic arrays of autofree elements cannot use <code>.Clone()</code> or copy a range with
+<code>.Append()</code>, <code>.Prepend()</code>, <code>.Insert()</code>, or the slice variants. Copying those
+objects into separate autofree elements would duplicate ownership. Borrowed
+<code>[]autofree T</code> views can still be indexed, iterated, and passed to read-only
+APIs. Single-element insertion can move an element from the same array even
+when the operation moves the array's storage.</p>
+<h3 id="placement-restrictions-and-type-inference">2.15.3.7 Placement Restrictions and Type Inference</h3>
+<p><code>autofree</code> can qualify an object type, a typed pointer, or <code>pointer</code>. It can be
+used for variables, object fields, fixed- or dynamic-array elements, and <code>ref</code>
+parameters. It cannot be used directly on numbers, booleans, characters,
+structures, unions, function references, or whole array types.</p>
+<p>It is also not supported on embedded <code>&lt;-</code> fields, structure or union fields,
+properties or their indices, function results, or <code>refin</code> and <code>refout</code>
+parameters. Type aliases may name autofree types, with the same placement rules.</p>
+<p>Type inference never adds the <code>autofree</code> attribute. Use <code>autofree ?</code> to infer
+the underlying type while specifying automatic cleanup explicitly. Bare <code>:?</code>
+produces a type without <code>autofree</code>, even when the source is an autofree variable.
+For the <code>new autofree T</code> declaration shorthand, omit <code>:?</code> as in the examples
+above. The same distinction applies to inferred <code>for ... in</code> variables.</p>
+<h4 id="inference-example">2.15.3.7.1 Inference Example</h4>
+<pre><code class="language-dq">var task = new autofree OTask("download")
+var borrowed :? = task           // inferred OTask; task is unchanged
+var next : autofree ? = task     // inferred OTask, explicit autofree; task becomes nil
+</code></pre>
+<p><code>borrowed</code> still refers to the same object, now owned by <code>next</code>. Prefer an
+explicit autofree type at a transfer point if it makes the responsibility easier
+to see.</p>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+</body>
+</html>

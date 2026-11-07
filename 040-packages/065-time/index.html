@@ -1,0 +1,1541 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Documentation for the DQ programming language, libraries and tools" name="description"/>
+<link href="../060-threads/" rel="prev"/>
+<link href="../070-nanonet/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>4.7. time - DQ-lang Project</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../pdf/dq-lang-book.pdf" rel="alternate" title="PDF" type="application/pdf"/></head>
+<body dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#time">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="DQ-lang Project" class="md-header__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            DQ-lang Project
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              4.7. time
+            
+          </span>
+</div>
+</div>
+</div>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<a class="md-header-nav__button md-icon" href="../../pdf/dq-lang-book.pdf" title="PDF">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<path d="M128,0c-17.6,0-32,14.4-32,32v448c0,17.6,14.4,32,32,32h320c17.6,0,32-14.4,32-32V128L352,0H128z" fill="#E2E5E7"></path>
+<path d="m384 128h96l-128-128v96c0 17.6 14.4 32 32 32z" fill="#B0B7BD"></path>
+<polygon fill="#CAD1D8" points="480 224 384 128 480 128"></polygon>
+<path d="M416,416c0,8.8-7.2,16-16,16H48c-8.8,0-16-7.2-16-16V256c0-8.8,7.2-16,16-16h352c8.8,0,16,7.2,16,16  V416z" fill="#F15642"></path>
+<g fill="#fff">
+<path d="m101.74 303.15c0-4.224 3.328-8.832 8.688-8.832h29.552c16.64 0 31.616 11.136 31.616 32.48 0 20.224-14.976 31.488-31.616 31.488h-21.36v16.896c0 5.632-3.584 8.816-8.192 8.816-4.224 0-8.688-3.184-8.688-8.816v-72.032zm16.88 7.28v31.872h21.36c8.576 0 15.36-7.568 15.36-15.504 0-8.944-6.784-16.368-15.36-16.368h-21.36z"></path>
+<path d="m196.66 384c-4.224 0-8.832-2.304-8.832-7.92v-72.672c0-4.592 4.608-7.936 8.832-7.936h29.296c58.464 0 57.184 88.528 1.152 88.528h-30.448zm8.064-72.912v57.312h21.232c34.544 0 36.08-57.312 0-57.312h-21.232z"></path>
+<path d="m303.87 312.11v20.336h32.624c4.608 0 9.216 4.608 9.216 9.072 0 4.224-4.608 7.68-9.216 7.68h-32.624v26.864c0 4.48-3.184 7.92-7.664 7.92-5.632 0-9.072-3.44-9.072-7.92v-72.672c0-4.592 3.456-7.936 9.072-7.936h44.912c5.632 0 8.96 3.344 8.96 7.936 0 4.096-3.328 8.704-8.96 8.704h-37.248v0.016z"></path>
+</g>
+<path d="m400 432h-304v16h304c8.8 0 16-7.2 16-16v-16c0 8.8-7.2 16-16 16z" fill="#CAD1D8"></path>
+</svg>
+</a></nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="DQ-lang Project" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    DQ-lang Project
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../010-project/">
+<span class="md-ellipsis">
+    
+  
+    1. DQ-lang Project
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    1. DQ-lang Project
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    1.1. DQ-lang Project Introduction
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/020-features-and-goals/">
+<span class="md-ellipsis">
+    
+  
+    1.2. Features and Design Goals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/030-getting-started/">
+<span class="md-ellipsis">
+    
+  
+    1.3. Getting Started
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../020-language/">
+<span class="md-ellipsis">
+    
+  
+    2. DQ Programming Language
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    2. DQ Programming Language
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/010-basic-syntax/">
+<span class="md-ellipsis">
+    
+  
+    2.1. Basic Syntax
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/020-basic-types-and-conversions/">
+<span class="md-ellipsis">
+    
+  
+    2.2. Basic Types and Conversions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/030-variables-constants-references-and-scope/">
+<span class="md-ellipsis">
+    
+  
+    2.3. Variables, Constants, References, and Scope
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/040-expressions-and-operators/">
+<span class="md-ellipsis">
+    
+  
+    2.4. Expressions and Operators
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/050-statements-and-control-flow/">
+<span class="md-ellipsis">
+    
+  
+    2.5. Statements and Control Flow
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/060-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.6. Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/070-strings-and-characters/">
+<span class="md-ellipsis">
+    
+  
+    2.7. Character and String Types
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/075-string-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.8. String Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/077-text-formatting/">
+<span class="md-ellipsis">
+    
+  
+    2.9. Text Formatting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/080-arrays-and-slices/">
+<span class="md-ellipsis">
+    
+  
+    2.10. Arrays and Slices
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/090-enumerations/">
+<span class="md-ellipsis">
+    
+  
+    2.11. Enumerations
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/100-structures-and-unions/">
+<span class="md-ellipsis">
+    
+  
+    2.12. Structures and Unions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/110-pointers/">
+<span class="md-ellipsis">
+    
+  
+    2.13. Pointers
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/120-objects-and-properties/">
+<span class="md-ellipsis">
+    
+  
+    2.14. Objects and Properties
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/130-memory-management-and-ownership/">
+<span class="md-ellipsis">
+    
+  
+    2.15. Memory Management and Autofree
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/140-exceptions-and-error-handling/">
+<span class="md-ellipsis">
+    
+  
+    2.16. Exceptions and Error Handling
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/150-anyvalue/">
+<span class="md-ellipsis">
+    
+  
+    2.17. anyvalue
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/170-modules-and-packages/">
+<span class="md-ellipsis">
+    
+  
+    2.18. Modules and Packages
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/180-attributes/">
+<span class="md-ellipsis">
+    
+  
+    2.19. Attributes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/190-compiler-directives/">
+<span class="md-ellipsis">
+    
+  
+    2.20. Compiler Directives
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/200-c-interoperability/">
+<span class="md-ellipsis">
+    
+  
+    2.21. C Interoperability
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../020-language/210-assembly-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.22. Assembly Functions
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../030-compiler/">
+<span class="md-ellipsis">
+    
+  
+    3. DQ Compiler and Tools
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    3. DQ Compiler and Tools
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/010-compiler-and-tool-overview/">
+<span class="md-ellipsis">
+    
+  
+    3.1. Compiler and Tool Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/015-runtime-and-program-execution/">
+<span class="md-ellipsis">
+    
+  
+    3.2. Runtime and Program Execution
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/020-linux-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.3. Linux Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/030-windows-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.4. Windows Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/040-compiler-usage-and-options/">
+<span class="md-ellipsis">
+    
+  
+    3.5. Compiler Usage and Options
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/050-project-files/">
+<span class="md-ellipsis">
+    
+  
+    3.6. Project Files
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/060-build-process-and-module-artifacts/">
+<span class="md-ellipsis">
+    
+  
+    3.7. Build Process and Module Artifacts
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/070-targets-and-cross-compilation/">
+<span class="md-ellipsis">
+    
+  
+    3.8. Targets and Cross-Compilation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/080-vscode-setup-and-debugging/">
+<span class="md-ellipsis">
+    
+  
+    3.9. VSCode Setup and Debugging
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    4. Standard Packages
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    4. Standard Packages
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../010-library-overview-and-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.1. Library Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../015-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.2. sys
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../020-print/">
+<span class="md-ellipsis">
+    
+  
+    4.3. print
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../040-file/">
+<span class="md-ellipsis">
+    
+  
+    4.4. file
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../050-json/">
+<span class="md-ellipsis">
+    
+  
+    4.5. json
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../060-threads/">
+<span class="md-ellipsis">
+    
+  
+    4.6. threads
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    4.7. time
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    4.7. time
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#choosing-a-clock">
+<span class="md-ellipsis">
+      
+        4.7.1 Choosing a Clock
+      
+    </span>
+</a>
+<nav aria-label="4.7.1 Choosing a Clock" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#measuring-elapsed-time">
+<span class="md-ellipsis">
+      
+        4.7.1.1 Measuring Elapsed Time
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#formatting-dates-and-times">
+<span class="md-ellipsis">
+      
+        4.7.2 Formatting Dates and Times
+      
+    </span>
+</a>
+<nav aria-label="4.7.2 Formatting Dates and Times" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#delphi-style-tokens-formattime1">
+<span class="md-ellipsis">
+      
+        4.7.2.1 Delphi-Style Tokens (FormatTime1)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strftime-directives-formattime2-and-formattimeutc">
+<span class="md-ellipsis">
+      
+        4.7.2.2 strftime Directives (FormatTime2 and FormatTimeUtc)
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#sleeping-for-a-duration">
+<span class="md-ellipsis">
+      
+        4.7.3 Sleeping for a Duration
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#sleeping-until-a-deadline">
+<span class="md-ellipsis">
+      
+        4.7.4 Sleeping Until a Deadline
+      
+    </span>
+</a>
+<nav aria-label="4.7.4 Sleeping Until a Deadline" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#periodic-work-without-accumulating-work-time-drift">
+<span class="md-ellipsis">
+      
+        4.7.4.1 Periodic Work Without Accumulating Work-Time Drift
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#running-the-examples">
+<span class="md-ellipsis">
+      
+        4.7.5 Running the Examples
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../070-nanonet/">
+<span class="md-ellipsis">
+    
+  
+    4.8. nanonet
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../075-shell/">
+<span class="md-ellipsis">
+    
+  
+    4.9. shell
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../080-additional-standard-packages/">
+<span class="md-ellipsis">
+    
+  
+    4.10. Additional Standard Packages
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    5. Appendices
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    5. Appendices
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/010-example-programs/">
+<span class="md-ellipsis">
+    
+  
+    5.1. Example Programs
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/020-building-the-compiler-from-source/">
+<span class="md-ellipsis">
+    
+  
+    5.2. Building the Compiler from Source
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/030-contributor-and-implementation-notes/">
+<span class="md-ellipsis">
+    
+  
+    5.3. Contributor and Implementation Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/031-module-and-interface-internals/">
+<span class="md-ellipsis">
+    
+  
+    5.4. Module and Interface Internals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/032-exceptions-and-backtraces/">
+<span class="md-ellipsis">
+    
+  
+    5.5. Exceptions and Backtraces
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/033-release-and-cross-builds/">
+<span class="md-ellipsis">
+    
+  
+    5.6. Release and Cross-Build Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/040-glossary-and-index/">
+<span class="md-ellipsis">
+    
+  
+    5.7. Glossary and Index
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/050-documentation-coverage/">
+<span class="md-ellipsis">
+    
+  
+    5.8. Documentation Coverage
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#choosing-a-clock">
+<span class="md-ellipsis">
+      
+        4.7.1 Choosing a Clock
+      
+    </span>
+</a>
+<nav aria-label="4.7.1 Choosing a Clock" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#measuring-elapsed-time">
+<span class="md-ellipsis">
+      
+        4.7.1.1 Measuring Elapsed Time
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#formatting-dates-and-times">
+<span class="md-ellipsis">
+      
+        4.7.2 Formatting Dates and Times
+      
+    </span>
+</a>
+<nav aria-label="4.7.2 Formatting Dates and Times" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#delphi-style-tokens-formattime1">
+<span class="md-ellipsis">
+      
+        4.7.2.1 Delphi-Style Tokens (FormatTime1)
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strftime-directives-formattime2-and-formattimeutc">
+<span class="md-ellipsis">
+      
+        4.7.2.2 strftime Directives (FormatTime2 and FormatTimeUtc)
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#sleeping-for-a-duration">
+<span class="md-ellipsis">
+      
+        4.7.3 Sleeping for a Duration
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#sleeping-until-a-deadline">
+<span class="md-ellipsis">
+      
+        4.7.4 Sleeping Until a Deadline
+      
+    </span>
+</a>
+<nav aria-label="4.7.4 Sleeping Until a Deadline" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#periodic-work-without-accumulating-work-time-drift">
+<span class="md-ellipsis">
+      
+        4.7.4.1 Periodic Work Without Accumulating Work-Time Drift
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#running-the-examples">
+<span class="md-ellipsis">
+      
+        4.7.5 Running the Examples
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<!-- The API manual is maintained with its package. -->
+<h1 id="time">4.7. <code>time</code></h1>
+<p><code>time</code> provides wall-clock timestamps, monotonic clocks, date/time formatting,
+and sleeps for hosted Linux and Windows programs.</p>
+<pre><code class="language-dq">use time
+</code></pre>
+<h2 id="choosing-a-clock">4.7.1 Choosing a Clock</h2>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Return type</th>
+<th>Unit</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Time()</code></td>
+<td><code>float64</code></td>
+<td>seconds since the Unix epoch<br/>(1970-01-01 00:00:00 UTC)</td>
+<td>dates, timestamps, and wall-clock deadlines</td>
+</tr>
+<tr>
+<td><code>MilliTime()</code></td>
+<td><code>int64</code></td>
+<td>milliseconds</td>
+<td>elapsed time and monotonic deadlines</td>
+</tr>
+<tr>
+<td><code>MicroTime()</code></td>
+<td><code>int64</code></td>
+<td>microseconds</td>
+<td>elapsed time and monotonic deadlines</td>
+</tr>
+<tr>
+<td><code>NanoTime()</code></td>
+<td><code>int64</code></td>
+<td>nanoseconds</td>
+<td>elapsed time and monotonic deadlines</td>
+</tr>
+</tbody>
+</table>
+<p><code>Time()</code> includes a fractional second. It reads the system wall clock, so clock
+corrections can change its value forwards or backwards. Use it when a value must
+correspond to a calendar date, such as a log timestamp.</p>
+<p>The monotonic clocks have a system-defined origin unrelated to the Unix epoch.
+Subtract two readings from the same clock to measure a duration, or add a
+duration to form a deadline. Their values are unaffected by wall-clock changes;
+do not pass them to the date/time formatters or store them as calendar timestamps.
+The unit names describe the returned scale, not a guarantee of clock resolution.</p>
+<h3 id="measuring-elapsed-time">4.7.1.1 Measuring Elapsed Time</h3>
+<pre><code class="language-dq">use print
+use time
+
+func *Main():
+    var started : int64 = MicroTime()
+    SleepMillis(20) // Replace with the operation to measure.
+    var elapsed : int64 = MicroTime() - started
+    PrintLn('Elapsed: {} us ({:.3f} ms)', [elapsed, elapsed / 1000])
+endfunc
+</code></pre>
+<p>The elapsed value can exceed the requested sleep because the operating system
+decides when the thread runs again.</p>
+<h2 id="formatting-dates-and-times">4.7.2 Formatting Dates and Times</h2>
+<p>All three formatters take the format first and a <code>Time()</code>-style timestamp second:</p>
+<pre><code class="language-dq">func FormatTime1(fmt : rostr, atime : float64) -&gt; str ..
+func FormatTime2(fmt : rostr, atime : float64) -&gt; str ..
+func FormatTimeUtc(fmt : rostr, atime : float64) -&gt; str ..
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Time zone</th>
+<th>Format language</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FormatTime1</code></td>
+<td>system local time</td>
+<td>Delphi-style tokens</td>
+</tr>
+<tr>
+<td><code>FormatTime2</code></td>
+<td>system local time</td>
+<td>native <code>strftime</code> directives, plus <code>%f</code> for microseconds</td>
+</tr>
+<tr>
+<td><code>FormatTimeUtc</code></td>
+<td>UTC</td>
+<td>native <code>strftime</code> directives; <code>%f</code> is not expanded</td>
+</tr>
+</tbody>
+</table>
+<p>The timestamp itself has no local-time offset. <code>FormatTime1</code> and <code>FormatTime2</code>
+apply the system's local time-zone and daylight-saving rules during conversion.
+<code>FormatTimeUtc</code> formats the same instant in UTC. None of the formatters accepts
+an explicit time-zone argument.</p>
+<pre><code class="language-dq">use print
+use time
+
+func *Main():
+    var now : float64 = Time()
+    PrintLn('Local: {}', [FormatTime1('yyyy-mm-dd hh:nn:ss.zzz', now)])
+    PrintLn('Local with microseconds: {}',
+            [FormatTime2('%Y-%m-%d %H:%M:%S.%f', now)])
+    PrintLn('UTC: {}', [FormatTimeUtc('%Y-%m-%dT%H:%M:%SZ', now)])
+
+    // Fixed timestamp: 2024-01-01 00:00:00 UTC.
+    PrintLn(FormatTimeUtc('%Y-%m-%d %H:%M:%S', 1704067200))
+endfunc
+</code></pre>
+<p>The last line prints <code>2024-01-01 00:00:00</code> regardless of the local time zone.
+Only append the literal <code>Z</code> when formatting UTC.</p>
+<h3 id="delphi-style-tokens-formattime1">4.7.2.1 Delphi-Style Tokens (<code>FormatTime1</code>)</h3>
+<p>Tokens are case-insensitive. Prefer <code>nn</code> for minutes to distinguish them from
+the month token <code>mm</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>yy</code>, <code>yyyy</code></td>
+<td>two-digit year, full year</td>
+</tr>
+<tr>
+<td><code>m</code>, <code>mm</code></td>
+<td>month without padding, two-digit month</td>
+</tr>
+<tr>
+<td><code>mmm</code>, <code>mmmm</code></td>
+<td>abbreviated month name, full month name</td>
+</tr>
+<tr>
+<td><code>d</code>, <code>dd</code></td>
+<td>day of month without padding, two-digit day</td>
+</tr>
+<tr>
+<td><code>ddd</code>, <code>dddd</code></td>
+<td>abbreviated weekday name, full weekday name</td>
+</tr>
+<tr>
+<td><code>ddddd</code></td>
+<td>locale date representation</td>
+</tr>
+<tr>
+<td><code>h</code>, <code>hh</code></td>
+<td>hour without padding, two-digit hour; normally 24-hour time</td>
+</tr>
+<tr>
+<td><code>n</code>, <code>nn</code></td>
+<td>minute without padding, two-digit minute</td>
+</tr>
+<tr>
+<td><code>s</code>, <code>ss</code></td>
+<td>second without padding, two-digit second</td>
+</tr>
+<tr>
+<td><code>z</code>, <code>zz</code>, <code>zzz</code></td>
+<td>milliseconds padded to at least one, two, or three digits</td>
+</tr>
+<tr>
+<td><code>am/pm</code>, <code>ampm</code></td>
+<td>locale AM/PM marker; switches hours to 12-hour time</td>
+</tr>
+<tr>
+<td><code>a/p</code></td>
+<td><code>a</code> or <code>p</code> (<code>A</code> or <code>P</code> for uppercase token); switches hours to 12-hour time</td>
+</tr>
+<tr>
+<td><code>c</code></td>
+<td>locale date and time representation</td>
+</tr>
+<tr>
+<td><code>t</code>, <code>tt</code></td>
+<td>locale time representation</td>
+</tr>
+</tbody>
+</table>
+<p><code>m</code> and <code>mm</code> mean minutes immediately after an hour token, optionally separated
+by a colon: <code>hh:mm:ss</code> works, but <code>hh:nn:ss</code> is clearer. Text inside matching
+single or double quotes is copied literally; other characters are copied unless
+they form a recognized token. For example:</p>
+<pre><code class="language-dq">PrintLn(FormatTime1('yyyy-mm-dd "at" hh:nn:ss', Time()))
+PrintLn(FormatTime1('hh:nn am/pm', Time()))
+</code></pre>
+<p>This is the token set implemented by DQ, rather than the entire Delphi formatting
+API. Name and locale tokens use the native C library. Unpadded numeric tokens
+use native <code>strftime</code> <code>%-</code> directives, whose support varies by platform; prefer
+the padded forms for portable output.</p>
+<h3 id="strftime-directives-formattime2-and-formattimeutc">4.7.2.2 <code>strftime</code> Directives (<code>FormatTime2</code> and <code>FormatTimeUtc</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Directive</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>%Y</code>, <code>%y</code></td>
+<td>full year, two-digit year</td>
+</tr>
+<tr>
+<td><code>%m</code>, <code>%d</code></td>
+<td>two-digit month, two-digit day of month</td>
+</tr>
+<tr>
+<td><code>%H</code>, <code>%I</code></td>
+<td>two-digit 24-hour hour, two-digit 12-hour hour</td>
+</tr>
+<tr>
+<td><code>%M</code>, <code>%S</code></td>
+<td>two-digit minute, two-digit second</td>
+</tr>
+<tr>
+<td><code>%a</code>, <code>%A</code></td>
+<td>abbreviated weekday name, full weekday name</td>
+</tr>
+<tr>
+<td><code>%b</code>, <code>%B</code></td>
+<td>abbreviated month name, full month name</td>
+</tr>
+<tr>
+<td><code>%p</code></td>
+<td>locale AM/PM marker</td>
+</tr>
+<tr>
+<td><code>%j</code></td>
+<td>day of year, padded to three digits</td>
+</tr>
+<tr>
+<td><code>%w</code></td>
+<td>weekday number, Sunday = 0</td>
+</tr>
+<tr>
+<td><code>%x</code>, <code>%X</code>, <code>%c</code></td>
+<td>locale date, time, date and time</td>
+</tr>
+<tr>
+<td><code>%%</code></td>
+<td>literal percent sign</td>
+</tr>
+<tr>
+<td><code>%f</code></td>
+<td>six-digit microseconds; <strong><code>FormatTime2</code> only</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Other directives and flags are passed to the native C library, so their support
+and output can differ between platforms. In particular, <code>FormatTime2</code> does not
+implement all of Python's date/time API; it adds <code>%f</code> to native <code>strftime</code>.</p>
+<p>Calendar conversion rounds the fractional second to the nearest microsecond,
+carrying into the next second when necessary. <code>FormatTime1</code> then takes the
+millisecond part for <code>z</code> tokens. <code>FormatTimeUtc</code> outputs no fractional seconds
+with the directives above.</p>
+<p>An empty format returns an empty string. Conversion failures or a native
+formatting result that cannot be produced within the internal buffer limit
+also return an empty string; the functions do not return a separate error status.</p>
+<h2 id="sleeping-for-a-duration">4.7.3 Sleeping for a Duration</h2>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Argument type</th>
+<th>Unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SleepSecs(asecs)</code></td>
+<td><code>float64</code></td>
+<td>seconds; fractions are accepted</td>
+</tr>
+<tr>
+<td><code>SleepMillis(ams)</code></td>
+<td><code>int64</code></td>
+<td>milliseconds</td>
+</tr>
+<tr>
+<td><code>SleepMicros(aus)</code></td>
+<td><code>int64</code></td>
+<td>microseconds</td>
+</tr>
+<tr>
+<td><code>SleepNanos(ansecs)</code></td>
+<td><code>int64</code></td>
+<td>nanoseconds</td>
+</tr>
+</tbody>
+</table>
+<p>These functions block the calling thread and return no value. Zero or negative
+durations return immediately. <code>SleepSecs</code> rounds its duration to nanoseconds.
+On Windows, positive durations are rounded up to whole milliseconds before
+calling the native sleep API. On Linux, the package uses <code>nanosleep</code> and retries
+after signal interruptions with the remaining duration.</p>
+<pre><code class="language-dq">SleepSecs(0.05)   // 50 milliseconds.
+SleepMillis(50)
+SleepMicros(500)
+SleepNanos(500000)
+</code></pre>
+<p>Actual wake-up time depends on OS timer resolution and scheduling. A nanosecond
+argument does not imply nanosecond scheduling accuracy. Keep durations within
+the <code>int64</code> range after conversion to nanoseconds; conversion does not saturate
+on overflow.</p>
+<h2 id="sleeping-until-a-deadline">4.7.4 Sleeping Until a Deadline</h2>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Deadline type</th>
+<th>Matching clock</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SleepToTime(asecs)</code></td>
+<td><code>float64</code></td>
+<td><code>Time()</code></td>
+</tr>
+<tr>
+<td><code>SleepToMilliTime(ams)</code></td>
+<td><code>int64</code></td>
+<td><code>MilliTime()</code></td>
+</tr>
+<tr>
+<td><code>SleepToMicroTime(aus)</code></td>
+<td><code>int64</code></td>
+<td><code>MicroTime()</code></td>
+</tr>
+<tr>
+<td><code>SleepToNanoTime(ansecs)</code></td>
+<td><code>int64</code></td>
+<td><code>NanoTime()</code></td>
+</tr>
+</tbody>
+</table>
+<p>These functions take an <strong>absolute deadline</strong>, not a duration, and return no
+value. Use a reading from the matching clock plus the desired delay:</p>
+<pre><code class="language-dq">SleepToTime(Time() + 0.05)
+SleepToMilliTime(MilliTime() + 50)
+SleepToMicroTime(MicroTime() + 50000)
+SleepToNanoTime(NanoTime() + 50000000)
+</code></pre>
+<p>A deadline already reached, or a nonpositive deadline, returns immediately.
+Prefer a monotonic clock for timeouts and periodic work. <code>SleepToTime</code> follows
+wall-clock time, so clock adjustments can affect the wait. Sleep functions do
+not expose native errors to the caller; they are not a hard real-time guarantee.</p>
+<h3 id="periodic-work-without-accumulating-work-time-drift">4.7.4.1 Periodic Work Without Accumulating Work-Time Drift</h3>
+<p>Advance the previous deadline by a fixed interval. Sleeping for an interval
+after every iteration would add each iteration's work time to the period.</p>
+<pre><code class="language-dq">use print
+use time
+
+func *Main():
+    const period_ms : int64 = 100
+    var deadline : int64 = MilliTime()
+    for tick : int = 0 count 5:
+        deadline += period_ms
+        SleepToMilliTime(deadline)
+        PrintLn('Tick {} at {}',
+                [tick + 1, FormatTime1('hh:nn:ss.zzz', Time())])
+    endfor
+endfunc
+</code></pre>
+<p>The first tick is scheduled one period after the initial clock reading. If work
+takes longer than the period, past deadlines return immediately and this loop
+catches up. Applications that should skip missed ticks need an explicit policy
+for advancing the deadline past the current time.</p>
+<h2 id="running-the-examples">4.7.5 Running the Examples</h2>
+<p>The complete programs above are also provided in <code>stdpkg/time/examples/</code>.
+Run them from the repository root:</p>
+<pre><code class="language-bash">build/dq-run stdpkg/time/examples/elapsed.dq
+build/dq-run stdpkg/time/examples/formatting.dq
+build/dq-run stdpkg/time/examples/periodic.dq
+</code></pre>
+<p>With an installed release, use <code>dq-run</code> in place of <code>build/dq-run</code>.</p>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+</body>
+</html>

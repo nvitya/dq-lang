@@ -41,6 +41,7 @@ behavior understandable.
   and `endfunc`, preserving the visual structure while making indentation optional.
 - Statements on separate lines without required semicolons, keeping the source
   easy to read with little punctuation.
+- Flexible module system, with non-merging, merging imports and re-exports
 - Excellent, user-friendly, modern APIs
 - String, array slicing
 

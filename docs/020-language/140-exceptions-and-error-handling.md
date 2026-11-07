@@ -244,21 +244,59 @@ except EInput:
     // handle an input problem without reading its message
 ```
 
-If no handler matches, the exception continues to the caller. A handler can
-also report a problem and then pass the same exception on with a bare `raise`:
+If no handler matches, the exception continues to the caller. Do not call
+`delete` on the handler's exception variable; the exception machinery manages
+that object.
+
+### Re-raising an Exception
+
+A handler can report a failure or do some local work, then let its caller
+handle the same failure. Use `raise` without an argument inside the handler
+to re-raise the current exception:
 
 ```dq
-try:
-    RequirePositive(0)
-except Exception as error:
-    PrintLn("Could not continue: {}", [error.message])
-    raise
-endtry
+use print
+
+object EInput(Exception):
+endobject
+
+func RequirePositive(value : int):
+    if value <= 0:
+        raise EInput("Expected a positive value, got {}", [value])
+    endif
+endfunc
+
+func ProcessValue(value : int):
+    try:
+        RequirePositive(value)
+        PrintLn("Processing {}", [value])
+    except EInput as error:
+        PrintLn("Could not process value: {}", [error.message])
+        raise
+    endtry
+endfunc
+
+func *Main():
+    try:
+        ProcessValue(0)
+    except EInput as error:
+        PrintLn("Please try again: {}", [error.message])
+    endtry
+endfunc
 ```
 
-Raising it again this way preserves the original context and backtrace. Do not
-call `delete` on the handler's exception variable; the exception machinery
-manages that object.
+Output:
+
+```text
+Could not process value: Expected a positive value, got 0
+Please try again: Expected a positive value, got 0
+```
+
+`ProcessValue` reports the problem, but its bare `raise` passes the exception
+on to the handler in `Main`. The `Processing` line is skipped. Re-raising
+preserves the original exception type, message, and backtrace, so the failure
+still points to `RequirePositive`. If no outer handler catches it, the
+exception reaches the default error handler.
 
 ## Cleanup with `finally`
 

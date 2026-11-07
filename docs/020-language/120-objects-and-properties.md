@@ -994,7 +994,9 @@ normally prefix them with `@`:
 
 - **`@module.Name` (fully qualified):** names the imported module and the
   symbol, such as `@print.PrintLn`, `@sys.MemSet`, or `@socket.AF_INET`.
-- **`@.Name` (current module scope):** the short form. It reaches everything
+- **`@..Name` (current module only):** refers to a symbol that is defined in
+  the current module (until this source code position)
+- **`@.Name` (full outside scope):** the short form. It reaches everything
   available in the current module at that source code position, including its
   own global variables and constants, as well as imported functions.
 

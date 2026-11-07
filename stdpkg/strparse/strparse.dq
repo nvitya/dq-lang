@@ -44,7 +44,7 @@ object OStrParse:
     func ReadQuotedString() -> bool ..
     func SearchPattern(checkstring : rostr) -> bool ..
 
-    func CheckSymbol(checkstring : rostr) -> bool ..
+    func CheckSymbol(checkstring : rostr, consume : bool = true) -> bool ..
 
     func PrevStr() -> strslice ..
     func UCComparePrev(checkstring : rostr) -> bool ..
@@ -178,7 +178,7 @@ func OStrParse.ReadToChar(achar : char) -> bool:
     readp = cp
 endfunc
 
-func OStrParse.CheckSymbol(checkstring : rostr) -> bool:
+func OStrParse.CheckSymbol(checkstring : rostr, consume : bool = true) -> bool:
     var cp    : ^char = readp
     var csptr : ^char = checkstring.pchar
     var csend : ^char = csptr + checkstring.length
@@ -192,7 +192,11 @@ func OStrParse.CheckSymbol(checkstring : rostr) -> bool:
         return false
     endif
 
-    readp = cp
+    prevp = readp
+    prevlen = cp - readp
+    if consume:
+        readp = cp
+    endif
     return true
 endfunc
 

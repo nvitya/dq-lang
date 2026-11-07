@@ -1,0 +1,66 @@
+use print
+
+func PrintSplit(label : strslice, text : strslice, separator : strslice):
+    var parts : [*]str = StrSplit(text, separator)
+    Print('{} = {}', [label, parts.length])
+    for i : int = 0 count parts.length:
+        Print(' [{}]', [parts[i]])
+    endfor
+    PrintLn()
+endfunc
+
+func CheckCleanup():
+    var source : str = 'left::right'
+    var parts : [*]str = StrSplit(source, '::')
+    source.Clear(true)
+    var joined : str = StrJoin(parts, '/')
+    PrintLn('owned = {}', [joined]) //?check('owned', 'left/right')
+endfunc
+
+func *Main():
+    PrintSplit('basic', 'one,two,three', ',') //?check('basic', '3 [one] [two] [three]')
+    PrintSplit('empty_fields', '::one::::two::', '::') //?check('empty_fields', '5 [] [one] [] [two] []')
+    PrintSplit('empty_input', '', ',') //?check('empty_input', '1 []')
+    PrintSplit('no_match', 'one', 'longer') //?check('no_match', '1 [one]')
+    PrintSplit('only_separator', '::', '::') //?check('only_separator', '2 [] []')
+    PrintSplit('overlap', 'aaaaa', 'aa') //?check('overlap', '3 [] [] [a]')
+    PrintSplit('utf8', 'árvíz☃tűrő☃', "☃") //?check('utf8', '3 [árvíz] [tűrő] []')
+
+    var source : embstr(32) = 'xxone::twozz'
+    var separator : rostr = '::'
+    PrintSplit('slice', source[2:10], separator) //?check('slice', '2 [one] [two]')
+
+    var parts : [*]str = StrSplit('one,,three', ',')
+    PrintLn('join = [{}]', [StrJoin(parts, '::')]) //?check('join', '[one::::three]')
+    PrintLn('join_empty_separator = [{}]', [StrJoin(parts, '')]) //?check('join_empty_separator', '[onethree]')
+    PrintLn('join_slice = [{}]', [StrJoin(parts[1:], '/')]) //?check('join_slice', '[/three]')
+    var fixed : [3]str = ['one', '', 'three']
+    PrintLn('join_fixed = [{}]', [StrJoin(fixed, "☃")]) //?check('join_fixed', '[one☃☃three]')
+    var empty : [*]str
+    PrintLn('join_empty = [{}]', [StrJoin(empty, ',')]) //?check('join_empty', '[]')
+    var single : [1]str = ['one']
+    PrintLn('join_single = [{}]', [StrJoin(single, ',')]) //?check('join_single', '[one]')
+    single[0] = ''
+    PrintLn('join_single_empty = [{}]', [StrJoin(single, ',')]) //?check('join_single_empty', '[]')
+
+    var binary : str = 'a'
+    binary.Append(char(0))
+    binary.Append('b')
+    var zero : str = ''
+    zero.Append(char(0))
+    var binary_parts : [*]str = StrSplit(binary, zero)
+    PrintSplit('binary_split', binary, zero) //?check('binary_split', '2 [a] [b]')
+    PrintLn('binary_roundtrip = {}', [StrJoin(binary_parts, zero) == binary]) //?check('binary_roundtrip', 'true')
+
+    var caught : bool = false
+    try:
+        var invalid : [*]str = StrSplit('abc', '')
+    except EStrError:
+        caught = true
+    endtry
+    PrintLn('empty_separator_error = {}', [caught]) //?check('empty_separator_error', 'true')
+
+    var baseline : int64 = heap_allocated_size
+    CheckCleanup()
+    PrintLn('cleanup = {}', [heap_allocated_size == baseline]) //?check('cleanup', 'true')
+endfunc

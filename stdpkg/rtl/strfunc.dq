@@ -47,6 +47,8 @@ func StrToFloat(sv : strslice, defvalue : float) -> float [[overload]] ..
 func Format(afmt : strslice, aargs : []anyvalue) -> str ..
 func StrUpper(astr : strslice) -> str ..
 func StrLower(astr : strslice) -> str ..
+func StrSplit(astr : strslice, asplitter : strslice) -> [*]str ..
+func StrJoin(astr : []str, ajoiner : strslice) -> str ..
 func StrFromWchars(chars : []wchar) -> str ..
 func StrFromUtf16(chars : []char16) -> str ..
 func StrFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str ..
@@ -257,6 +259,35 @@ func StrLower(astr : strslice) -> str:
             ch = char(Ord(ch) - Ord('A') + Ord('a'))
         endif
         result.Append(ch)
+    endfor
+endfunc
+
+func StrSplit(astr : strslice, asplitter : strslice) -> [*]str:
+    result = []
+    if asplitter.length == 0:
+        StrfRuntimeError('StrSplit: separator cannot be empty')
+        return
+    endif
+    var start : int = 0
+    while true:
+        var pos : int = StrIndexOf(astr, asplitter, start)
+        if pos < 0:
+            break
+        endif
+        result.Append(astr[start:pos])
+        start = pos + asplitter.length
+    endwhile
+    // Keep the final field even when the input is empty or ends in a separator.
+    result.Append(astr[start:])
+endfunc
+
+func StrJoin(astr : []str, ajoiner : strslice) -> str:
+    result = ''
+    for i : int = 0 count astr.length:
+        if i > 0:
+            result.Append(ajoiner)
+        endif
+        result.Append(astr[i])
     endfor
 endfunc
 #endif

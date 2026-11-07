@@ -57,4 +57,12 @@ func *Main():
         exit_code = 3
         return
     endif
+
+#ifdef DYNSTRINGS
+    var invalid_parts : [*]str = StrSplit('abc', '')
+    if error_count <> 10 or invalid_parts.length <> 0:
+        exit_code = 7
+        return
+    endif
+#endif
 endfunc

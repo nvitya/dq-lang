@@ -88,9 +88,11 @@ dynamic-string support.
 | [`StrFromUtf16Ptr(chars : ^char16, count : int)`](#strfromutf16-and-strfromutf16ptr) | `str` | Convert an explicit number of UTF-16 code units |
 | [`StrFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar : wchar)`](#utf16-fallback-conversion) | `str` | Convert a UTF-16 pointer range with replacement |
 | [`StrFromWchars(chars : []wchar)`](#strfromwchars) | `str` | Encode Unicode characters as UTF-8 |
+| [`StrJoin(astr : []str, ajoiner : strslice)`](#strsplit-and-strjoin) | `str` | Join strings with a separator between elements |
 | [`StrLower(text : strslice)`](#strupper-and-strlower) | `str` | Copy with ASCII letters in lowercase |
 | [`StrSlice(data : ^char, length : int)`](#strslice) | `strslice` | Borrow a pointer and an explicit byte count |
 | [`StrSliceCmp(a : strslice, b : strslice)`](#strslicecmp) | `int` | Compare two byte ranges |
+| [`StrSplit(astr : strslice, asplitter : strslice)`](#strsplit-and-strjoin) | `[*]str` | Split text at each occurrence of a separator |
 | [`StrToFloat(text : strslice)`](#strtoint-and-strtofloat)<br>[`StrToFloat(text : strslice, defvalue : float)`](#strtoint-and-strtofloat) | `float` | Parse a number; raise on invalid input or return a fallback |
 | [`StrToInt(text : strslice)`](#strtoint-and-strtofloat)<br>[`StrToInt(text : strslice, defvalue : int)`](#strtoint-and-strtofloat) | `int` | Parse an integer; raise on invalid input or return a fallback |
 | [`StrUpper(text : strslice)`](#strupper-and-strlower) | `str` | Copy with ASCII letters in uppercase |
@@ -215,6 +217,29 @@ and `.Lower()` provide the same conversions.
 var text : rostr = "Hello, é!"
 var upper : str = StrUpper(text) // "HELLO, é!"
 var lower : str = StrLower(text) // "hello, é!"
+```
+
+### StrSplit and StrJoin
+
+```text
+StrSplit(astr : strslice, asplitter : strslice) -> [*]str
+StrJoin(astr : []str, ajoiner : strslice) -> str
+```
+
+`StrSplit` matches the whole separator from left to right, without overlapping
+matches, and returns owned strings. It preserves empty fields, including at
+the beginning and end. Empty input produces one empty field. An empty separator
+raises `EStrError`; with exceptions disabled it reports a runtime error and
+returns an empty array if the error handler returns.
+
+`StrJoin` inserts the joiner between array elements, including empty elements.
+An empty array produces an empty string; an empty joiner concatenates the
+elements directly. Both functions require dynamic-string support and handle
+explicit byte ranges, including internal zero bytes.
+
+```dq
+var parts : [*]str = StrSplit("one::two::::", "::") // ["one", "two", "", ""]
+var joined : str = StrJoin(parts, "/")             // "one/two//"
 ```
 
 ### StrSlice

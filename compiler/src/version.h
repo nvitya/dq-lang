@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.8"
+#define DQ_COMPILER_VERSION  "0.95.9"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.9:
+  - StrSplit() and StrJoin() functions
 v0.95.8:
   - removed tryfrom, TryCast() without :? added to variable declarations
   - documentation updates

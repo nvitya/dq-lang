@@ -1,0 +1,31 @@
+// Example: Parsing multi-line server log lines with PikeVM named groups and multiline anchors.
+
+use print
+use regexp
+
+func *Main():
+    var log_data : str =
+        "2026-11-07 10:15:02 [INFO]  auth: user=alice ip=10.0.0.12 status=200\n"
+        + "2026-11-07 10:15:09 [WARN]  api:  user=bob ip=10.0.4.88 status=429\n"
+        + "2026-11-07 10:15:14 [ERROR] db:   user=carol ip=192.168.1.5 status=503\n"
+
+    var log_re <- ORegExp(
+        '^(?P<date>\\d{4}-\\d{2}-\\d{2})\\s+(?P<time>\\d{2}:\\d{2}:\\d{2})\\s+'
+        + '\\[(?P<level>[A-Z]+)\\]\\s+(?P<service>\\w+):\\s+'
+        + 'user=(?P<user>\\w+)\\s+ip=(?P<ip>[\\d.]+)\\s+status=(?P<status>\\d+)$',
+        'm'
+    )
+
+    log_re.StartSearch(log_data)
+    while log_re.SearchNext():
+        PrintLn('[{}] {} {} (service={}, user={}, ip={}, status={})', [
+            log_re.named_group['level'],
+            log_re.named_group['date'],
+            log_re.named_group['time'],
+            log_re.named_group['service'],
+            log_re.named_group['user'],
+            log_re.named_group['ip'],
+            log_re.named_group['status']
+        ])
+    endwhile
+endfunc

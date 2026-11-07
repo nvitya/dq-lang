@@ -1,0 +1,1608 @@
+/*
+ * Copyright (c) 2026 Viktor Nagy and DQ contributors
+ * This file is part of the DQ-Compiler standard library
+ * at https://github.com/nvitya/dq-comp/stdpkg
+ *
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+ * See ../LICENSES/Apache-2.0.txt and ../LICENSES/LLVM-exception.txt
+ * for the full license text.
+ * ---------------------------------------------------------------------------------
+ * file:    regexp/regexp.dq
+ * authors: nvitya
+ * created: 2026-11-07
+ * brief:   Regular expression engine based on PikeVM
+ */
+
+object ERegExp(Exception):
+endobject
+
+enum NRegOp =
+(
+    riChar,       // match exact byte ch
+    riCharI,      // match ASCII case-insensitive byte ch (stored lowercase)
+    riAny,        // match any byte except '\n'
+    riAnyDotAll,  // match any byte including '\n'
+    riClass,      // match byte in m_classes[idx]
+    riAssert,     // zero-width assertion (idx = ASSERT_*)
+    riSave,       // save current position into capture slot idx
+    riJmp,        // unconditional jump to out
+    riSplit,      // branch to out (higher priority) and out1 (lower priority)
+    riMatch       // match succeeded
+)
+
+struct SRegInst:
+    op   : NRegOp
+    ch   : char
+    idx  : int
+    out  : int
+    out1 : int
+endstruct
+
+struct SCharClass:
+    bits : [8]uint32
+
+    func Clear() ..
+    func SetBit(ach : char) ..
+    func SetBitCase(ach : char, aicase : bool) ..
+    func SetRange(afrom : char, ato : char, aicase : bool) ..
+    func AddShorthand(akind : char, aicase : bool) -> bool ..
+    func AddPosixClass(aname : strslice, aicase : bool) -> bool ..
+    func Invert() ..
+    func Contains(ach : char) -> bool ..
+endstruct
+
+object ORegExp:
+private
+    m_pattern           : str
+    m_flags_str         : str
+    m_base_flags        : uint = 0
+    m_compile_flags     : uint = 0
+    m_parse_pos         : int = 0
+    m_compiled          : bool = false
+
+    m_prog              : [*]SRegInst
+    m_classes           : [*]SCharClass
+    m_group_count       : int = 0
+    m_slot_count        : int = 0
+    m_group_names       : [*]str
+
+    m_clist_pcs         : [*]int
+    m_nlist_pcs         : [*]int
+    m_clist_caps        : [*]int
+    m_nlist_caps        : [*]int
+    m_work_caps         : [*]int
+    m_best_caps         : [*]int
+    m_visited           : [*]int
+    m_step_id           : int = 0
+
+    m_subject           : str
+    m_matched           : bool = false
+    m_next_pos          : int = 0
+    m_prev_nonempty_end : int = -1
+    m_search_ready      : bool = false
+
+    func Error(amsg : rostr) ..
+    func ErrorAt(apos : int, amsg : rostr) ..
+    func ParseFlagsString(aflags : strslice) -> uint ..
+
+    func Emit(aop : NRegOp, aout : int = 0, aout1 : int = 0) -> int ..
+    func EmitIdx(aop : NRegOp, aidx : int) -> int ..
+    func EmitChar(ach : char) ..
+    func EmitClass(acls : ref SCharClass) ..
+    func MakeSplit(aout : int, aout1 : int, greedy : bool) -> SRegInst ..
+    func InsertInst(apos : int, ainst : SRegInst) ..
+    func CloneFragment(afrag_start : int, afrag_end : int) ..
+
+    func ApplyOptional(afrag_start : int, greedy : bool) ..
+    func ApplyPlus(afrag_start : int, greedy : bool) ..
+    func ApplyStar(afrag_start : int, greedy : bool) ..
+    func ApplyQuantifier(aatom_start : int, amin : int, amax : int, greedy : bool) ..
+
+    func ParseAlternation() ..
+    func ParseConcat() ..
+    func ParseAtom(quantifiable : refout bool) -> int ..
+    func ParseGroup(quantifiable : refout bool) ..
+    func ParseGroupBody(aopen_pos : int, aflags : uint) ..
+    func EmitCapturingGroup(aopen_pos : int, agname : str) ..
+    func ParseInlineFlags(rflags : ref uint) ..
+    func ParseCharClass() ..
+    func ParseEscapeChar(rkind : refout char) -> char ..
+    func ParseHexByte() -> char ..
+    func ParseRepeatBounds(rmin : refout int, rmax : refout int) ..
+    func ReadRepeatInt() -> int ..
+
+    func EnsureCompiled() ..
+    func PrepareVmBuffers() ..
+    func NextStepId() ..
+    func ResetWorkCaps() ..
+    func CheckAssert(akind : int, atext : strslice, apos : int) -> bool ..
+    func InstMatches(ainst : SRegInst, ach : char) -> bool ..
+    func AddThread(apc : int, atext : strslice, apos : int) ..
+    func RunVm(atext : strslice, astart : int, amode : int) -> bool ..
+    func SearchInSubject(astart : int) -> bool ..
+
+public
+    func *Create()                                          [[overload]] ..
+    func *Create(apattern : strslice)                       [[overload]] ..
+    func *Create(apattern : strslice, aflags : strslice)    [[overload]] ..
+
+    func Clear() ..
+    func Compile(apattern : strslice)                       [[overload]] ..
+    func Compile(apattern : strslice, aflags : strslice)    [[overload]] ..
+    func Compiled() -> bool ..
+
+    func Match(atext : strslice) -> bool ..
+    func PrefixMatch(atext : strslice, astart : int = 0) -> bool ..
+    func Search(atext : strslice, astart : int = 0) -> bool ..
+    func StartSearch(atext : strslice, astart : int = 0) ..
+    func SearchNext() -> bool ..
+
+    func GetMatch() -> str ..
+    func GetMatchStart() -> int ..
+    func GetMatchEnd() -> int ..
+    func GetMatchLength() -> int ..
+
+    func Group(aindex : int) -> str ..
+    func GroupStart(aindex : int = 0) -> int ..
+    func GroupEnd(aindex : int = 0) -> int ..
+    func GroupLength(aindex : int = 0) -> int ..
+    func GroupMatched(aindex : int = 0) -> bool ..
+    func GroupName(aindex : int) -> str ..
+    func GroupIndex(aname : strslice) -> int ..
+    func GroupByName(aname : strslice) -> str ..
+    func Groups() -> [*]str ..
+
+    func Expand(areplacement : strslice) -> str ..
+    func FindAll(atext : strslice) -> [*]str ..
+    func Replace(atext : strslice, areplacement : strslice, acount : int = 0) -> str ..
+    func ReplaceFirst(atext : strslice, areplacement : strslice) -> str ..
+    func Split(atext : strslice, amaxsplit : int = 0) -> [*]str ..
+
+    property compiled    : bool                  read m_compiled
+    property pattern     : str                   read m_pattern
+    property flags       : str                   read m_flags_str
+    property subject     : str                   read m_subject
+    property matched     : bool                  read m_matched
+    property match       : str                   read GetMatch
+    property match_start : int                   read GetMatchStart
+    property match_end   : int                   read GetMatchEnd
+    property match_len   : int                   read GetMatchLength
+    property group_count : int                   read m_group_count
+    property group       : [aindex : int]str     default  read Group
+    property named_group : [aname : strslice]str read GroupByName
+endobject
+
+func RegExpMatch(apattern : strslice, atext : strslice) -> bool                                                 [[overload]] ..
+func RegExpMatch(apattern : strslice, atext : strslice, aflags : strslice) -> bool                              [[overload]] ..
+func RegExpSearch(apattern : strslice, atext : strslice) -> bool                                                [[overload]] ..
+func RegExpSearch(apattern : strslice, atext : strslice, aflags : strslice) -> bool                             [[overload]] ..
+func RegExpFind(apattern : strslice, atext : strslice) -> str                                                   [[overload]] ..
+func RegExpFind(apattern : strslice, atext : strslice, aflags : strslice) -> str                                [[overload]] ..
+func RegExpFindAll(apattern : strslice, atext : strslice) -> [*]str                                             [[overload]] ..
+func RegExpFindAll(apattern : strslice, atext : strslice, aflags : strslice) -> [*]str                          [[overload]] ..
+func RegExpReplace(apattern : strslice, atext : strslice, areplacement : strslice) -> str                       [[overload]] ..
+func RegExpReplace(apattern : strslice, atext : strslice, areplacement : strslice, aflags : strslice, acount : int = 0) -> str  [[overload]] ..
+func RegExpSplit(apattern : strslice, atext : strslice) -> [*]str                                               [[overload]] ..
+func RegExpSplit(apattern : strslice, atext : strslice, aflags : strslice, amaxsplit : int = 0) -> [*]str       [[overload]] ..
+func RegExpEscape(atext : strslice) -> str ..
+
+implementation
+
+const FLAG_ICASE     : uint = 1   // 'i': ASCII case-insensitive matching
+const FLAG_MULTILINE : uint = 2   // 'm': ^ and $ match line boundaries
+const FLAG_DOTALL    : uint = 4   // 's': . matches '\n'
+
+const ASSERT_BOL_TEXT   : int = 1  // ^ in normal mode, or \A
+const ASSERT_EOL_TEXT   : int = 2  // $ in normal mode, or \z
+const ASSERT_BOL_LINE   : int = 3  // ^ in multiline mode
+const ASSERT_EOL_LINE   : int = 4  // $ in multiline mode
+const ASSERT_WORD_BOUND : int = 5  // \b
+const ASSERT_NOT_WORD   : int = 6  // \B
+
+const MODE_SEARCH       : int = 0
+const MODE_PREFIX_MATCH : int = 1
+const MODE_FULL_MATCH   : int = 2
+
+const MAX_REPEAT_COUNT  : int = 1000
+
+func LowerAscii(ach : char) -> char:
+    if 'A' <= ach <= 'Z':
+        return char(ach.ord - 'A'.ord + 'a'.ord)
+    endif
+    return ach
+endfunc
+
+func UpperAscii(ach : char) -> char:
+    if 'a' <= ach <= 'z':
+        return char(ach.ord - 'a'.ord + 'A'.ord)
+    endif
+    return ach
+endfunc
+
+func IsWordChar(ach : char) -> bool:
+    return ('a' <= ach <= 'z') or ('A' <= ach <= 'Z') or ('0' <= ach <= '9') or ach == '_'
+endfunc
+
+func IsHexDigit(ach : char) -> bool:
+    return ('0' <= ach <= '9') or ('a' <= ach <= 'f') or ('A' <= ach <= 'F')
+endfunc
+
+func HexDigitVal(ach : char) -> int:
+    if '0' <= ach <= '9':
+        return ach.ord - '0'.ord
+    elif 'a' <= ach <= 'f':
+        return ach.ord - 'a'.ord + 10
+    elif 'A' <= ach <= 'F':
+        return ach.ord - 'A'.ord + 10
+    endif
+    return 0
+endfunc
+
+//------------------------------------------------------------------------------
+// SCharClass
+//------------------------------------------------------------------------------
+
+func SCharClass.Clear():
+    for i : int = 0 count 8:
+        bits[i] = 0
+    endfor
+endfunc
+
+func SCharClass.SetBit(ach : char):
+    var b : uint = ach.ord & 0xFF
+    var mask : uint32 = 1 << (b & 31)
+    bits[b >> 5] |= mask
+endfunc
+
+func SCharClass.SetBitCase(ach : char, aicase : bool):
+    SetBit(ach)
+    if aicase:
+        SetBit(@.LowerAscii(ach))
+        SetBit(@.UpperAscii(ach))
+    endif
+endfunc
+
+func SCharClass.SetRange(afrom : char, ato : char, aicase : bool):
+    var first : int = afrom.ord & 0xFF
+    var last  : int = ato.ord & 0xFF
+    for c : int = first to last:
+        SetBitCase(char(c), aicase)
+    endfor
+endfunc
+
+func SCharClass.AddShorthand(akind : char, aicase : bool) -> bool:
+    var sub : SCharClass = {}
+    if akind == 'd' or akind == 'D':
+        sub.SetRange('0', '9', false)
+        if akind == 'D':
+            sub.Invert()
+        endif
+    elif akind == 'w' or akind == 'W':
+        sub.SetRange('a', 'z', false)
+        sub.SetRange('A', 'Z', false)
+        sub.SetRange('0', '9', false)
+        sub.SetBit('_')
+        if akind == 'W':
+            sub.Invert()
+        endif
+    elif akind == 's' or akind == 'S':
+        sub.SetBit(' ')
+        sub.SetBit('\t')
+        sub.SetBit('\n')
+        sub.SetBit('\r')
+        sub.SetBit(char(11))  // \v
+        sub.SetBit(char(12))  // \f
+        if akind == 'S':
+            sub.Invert()
+        endif
+    else:
+        return false
+    endif
+
+    for i : int = 0 count 8:
+        bits[i] |= sub.bits[i]
+    endfor
+    return true
+endfunc
+
+func SCharClass.AddPosixClass(aname : strslice, aicase : bool) -> bool:
+    if aname == 'digit':
+        SetRange('0', '9', false)
+    elif aname == 'lower':
+        SetRange('a', 'z', aicase)
+    elif aname == 'upper':
+        SetRange('A', 'Z', aicase)
+    elif aname == 'alpha':
+        SetRange('a', 'z', false)
+        SetRange('A', 'Z', false)
+    elif aname == 'alnum':
+        SetRange('a', 'z', false)
+        SetRange('A', 'Z', false)
+        SetRange('0', '9', false)
+    elif aname == 'word':
+        SetRange('a', 'z', false)
+        SetRange('A', 'Z', false)
+        SetRange('0', '9', false)
+        SetBit('_')
+    elif aname == 'xdigit':
+        SetRange('0', '9', false)
+        SetRange('a', 'f', false)
+        SetRange('A', 'F', false)
+    elif aname == 'space':
+        AddShorthand('s', false)
+    elif aname == 'blank':
+        SetBit(' ')
+        SetBit('\t')
+    elif aname == 'cntrl':
+        SetRange(char(0), char(31), false)
+        SetBit(char(127))
+    elif aname == 'print':
+        SetRange(char(32), char(126), false)
+    elif aname == 'graph':
+        SetRange(char(33), char(126), false)
+    elif aname == 'punct':
+        SetRange(char(33), char(47), false)
+        SetRange(char(58), char(64), false)
+        SetRange(char(91), char(96), false)
+        SetRange(char(123), char(126), false)
+    elif aname == 'ascii':
+        SetRange(char(0), char(127), false)
+    else:
+        return false
+    endif
+    return true
+endfunc
+
+func SCharClass.Invert():
+    for i : int = 0 count 8:
+        bits[i] = ~bits[i]
+    endfor
+endfunc
+
+func SCharClass.Contains(ach : char) -> bool:
+    var b : uint = ach.ord & 0xFF
+    var mask : uint32 = 1 << (b & 31)
+    return (bits[b >> 5] & mask) <> 0
+endfunc
+
+//------------------------------------------------------------------------------
+// ORegExp Creation & Compilation
+//------------------------------------------------------------------------------
+
+func ORegExp.*Create() [[overload]]:
+endfunc
+
+func ORegExp.*Create(apattern : strslice) [[overload]]:
+    Compile(apattern, '')
+endfunc
+
+func ORegExp.*Create(apattern : strslice, aflags : strslice) [[overload]]:
+    Compile(apattern, aflags)
+endfunc
+
+func ORegExp.Clear():
+    m_pattern = ''
+    m_flags_str = ''
+    m_base_flags = 0
+    m_compile_flags = 0
+    m_parse_pos = 0
+    m_compiled = false
+
+    m_prog.Clear()
+    m_classes.Clear()
+    m_group_count = 0
+    m_slot_count = 0
+    m_group_names.Clear()
+
+    m_clist_pcs.Clear()
+    m_nlist_pcs.Clear()
+    m_clist_caps.Clear()
+    m_nlist_caps.Clear()
+    m_work_caps.Clear()
+    m_best_caps.Clear()
+    m_visited.Clear()
+    m_step_id = 0
+
+    m_subject = ''
+    m_matched = false
+    m_next_pos = 0
+    m_prev_nonempty_end = -1
+    m_search_ready = false
+endfunc
+
+func ORegExp.Error(amsg : rostr):
+    raise ERegExp('RegExp error at position {}: {}', [m_parse_pos + 1, amsg])
+endfunc
+
+func ORegExp.ErrorAt(apos : int, amsg : rostr):
+    raise ERegExp('RegExp error at position {}: {}', [apos + 1, amsg])
+endfunc
+
+func ORegExp.ParseFlagsString(aflags : strslice) -> uint:
+    result = 0
+    for i : int = 0 count aflags.length:
+        var ch : char = aflags[i]
+        if ch == 'i':
+            result |= @.FLAG_ICASE
+        elif ch == 'm':
+            result |= @.FLAG_MULTILINE
+        elif ch == 's':
+            result |= @.FLAG_DOTALL
+        else:
+            raise ERegExp('Invalid regexp flag: "{}"', [ch])
+        endif
+    endfor
+endfunc
+
+func ORegExp.Compile(apattern : strslice) [[overload]]:
+    Compile(apattern, '')
+endfunc
+
+func ORegExp.Compile(apattern : strslice, aflags : strslice) [[overload]]:
+    Clear()
+    m_pattern = apattern
+    m_flags_str = aflags
+    m_base_flags = ParseFlagsString(aflags)
+    m_compile_flags = m_base_flags
+    m_parse_pos = 0
+
+    // Group 0 is the entire match; m_group_names[0] is reserved for it.
+    m_group_names.Append('')
+
+    EmitIdx(riSave, 0)  // slot 0: match start
+    ParseAlternation()
+    if m_parse_pos < m_pattern.length:
+        Error('Unexpected closing ")"')
+    endif
+    EmitIdx(riSave, 1)  // slot 1: match end
+    Emit(riMatch, 0, 0)
+
+    m_slot_count = (m_group_count + 1) * 2
+    PrepareVmBuffers()
+    m_compiled = true
+endfunc
+
+func ORegExp.Compiled() -> bool:
+    return m_compiled
+endfunc
+
+func ORegExp.Emit(aop : NRegOp, aout : int = 0, aout1 : int = 0) -> int:
+    result = m_prog.length
+    var inst : SRegInst = {op: aop, ch: char(0), idx: 0, out: aout, out1: aout1}
+    m_prog.Append(inst)
+endfunc
+
+func ORegExp.EmitIdx(aop : NRegOp, aidx : int) -> int:
+    result = m_prog.length
+    var inst : SRegInst = {op: aop, ch: char(0), idx: aidx, out: 0, out1: 0}
+    m_prog.Append(inst)
+endfunc
+
+func ORegExp.EmitChar(ach : char):
+    if (m_compile_flags & @.FLAG_ICASE) <> 0 and (('A' <= ach <= 'Z') or ('a' <= ach <= 'z')):
+        var inst : SRegInst = {op: riCharI, ch: @.LowerAscii(ach), idx: 0, out: 0, out1: 0}
+        m_prog.Append(inst)
+    else:
+        var inst : SRegInst = {op: riChar, ch: ach, idx: 0, out: 0, out1: 0}
+        m_prog.Append(inst)
+    endif
+endfunc
+
+func ORegExp.EmitClass(acls : ref SCharClass):
+    var cls_idx : int = m_classes.length
+    m_classes.Append(acls)
+    EmitIdx(riClass, cls_idx)
+endfunc
+
+func ORegExp.MakeSplit(aout : int, aout1 : int, greedy : bool) -> SRegInst:
+    result = {op: riSplit, ch: char(0), idx: 0, out: aout, out1: aout1}
+    if not greedy:
+        result.out = aout1
+        result.out1 = aout
+    endif
+endfunc
+
+// Adjust internal jump targets within m_prog[apos:] before inserting at apos.
+func ORegExp.InsertInst(apos : int, ainst : SRegInst):
+    for i : int = apos count m_prog.length - apos:
+        if m_prog[i].op == riJmp:
+            if m_prog[i].out >= apos:
+                ++m_prog[i].out
+            endif
+        elif m_prog[i].op == riSplit:
+            if m_prog[i].out >= apos:
+                ++m_prog[i].out
+            endif
+            if m_prog[i].out1 >= apos:
+                ++m_prog[i].out1
+            endif
+        endif
+    endfor
+    m_prog.Insert(apos, ainst)
+endfunc
+
+func ORegExp.CloneFragment(afrag_start : int, afrag_end : int):
+    var offset : int = m_prog.length - afrag_start
+    for i : int = afrag_start count afrag_end - afrag_start:
+        var inst : SRegInst = m_prog[i]
+        if inst.op == riJmp:
+            inst.out += offset
+        elif inst.op == riSplit:
+            inst.out += offset
+            inst.out1 += offset
+        endif
+        m_prog.Append(inst)
+    endfor
+endfunc
+
+func ORegExp.ApplyOptional(afrag_start : int, greedy : bool):
+    InsertInst(afrag_start, MakeSplit(afrag_start + 1, m_prog.length + 1, greedy))
+endfunc
+
+func ORegExp.ApplyPlus(afrag_start : int, greedy : bool):
+    m_prog.Append(MakeSplit(afrag_start, m_prog.length + 1, greedy))
+endfunc
+
+// Emit Split both before and after the body so that exiting after 1+ iterations
+// preserves capture slots set inside the body even when the body matches empty.
+func ORegExp.ApplyStar(afrag_start : int, greedy : bool):
+    var split_inst : SRegInst = MakeSplit(afrag_start + 1, m_prog.length + 2, greedy)
+    InsertInst(afrag_start, split_inst)
+    m_prog.Append(split_inst)
+endfunc
+
+func ORegExp.ApplyQuantifier(aatom_start : int, amin : int, amax : int, greedy : bool):
+    var atom_end : int = m_prog.length
+    if aatom_start >= atom_end:
+        return
+    endif
+
+    if amax < 0:
+        if amin == 0:
+            ApplyStar(aatom_start, greedy)
+        else:
+            var last_start : int = aatom_start
+            for i : int = 1 count amin - 1:
+                last_start = m_prog.length
+                CloneFragment(aatom_start, atom_end)
+            endfor
+            ApplyPlus(last_start, greedy)
+        endif
+        return
+    endif
+
+    if amax == 0:
+        m_prog.Delete(aatom_start, atom_end - aatom_start)
+        return
+    endif
+
+    if amin == 0:
+        ApplyOptional(aatom_start, greedy)
+        var orig_start : int = aatom_start + 1
+        var orig_end   : int = atom_end + 1
+        for i : int = 1 count amax - 1:
+            var opt_start : int = m_prog.length
+            CloneFragment(orig_start, orig_end)
+            ApplyOptional(opt_start, greedy)
+        endfor
+    else:
+        for i : int = 1 count amin - 1:
+            CloneFragment(aatom_start, atom_end)
+        endfor
+        for i : int = 0 count amax - amin:
+            var opt_start : int = m_prog.length
+            CloneFragment(aatom_start, atom_end)
+            ApplyOptional(opt_start, greedy)
+        endfor
+    endif
+endfunc
+
+func ORegExp.ParseAlternation():
+    var alt_start : int = m_prog.length
+    ParseConcat()
+    if m_parse_pos < m_pattern.length and m_pattern[m_parse_pos] == '|':
+        ++m_parse_pos
+        InsertInst(alt_start, MakeSplit(alt_start + 1, 0, true))
+        var jmp_pc : int = Emit(riJmp, 0, 0)
+        m_prog[alt_start].out1 = m_prog.length
+        ParseAlternation()
+        m_prog[jmp_pc].out = m_prog.length
+    endif
+endfunc
+
+func ORegExp.ParseConcat():
+    while m_parse_pos < m_pattern.length:
+        var ch : char = m_pattern[m_parse_pos]
+        if ch == ')' or ch == '|':
+            return
+        endif
+
+        var quantifiable : bool = false
+        var atom_start : int = ParseAtom(quantifiable)
+
+        if m_parse_pos < m_pattern.length:
+            var qch : char = m_pattern[m_parse_pos]
+            if qch == '*' or qch == '+' or qch == '?' or qch == '{':
+                if not quantifiable:
+                    Error('Nothing to repeat')
+                endif
+
+                var min_rep : int = 0
+                var max_rep : int = -1
+                if qch == '*':
+                    ++m_parse_pos
+                elif qch == '+':
+                    ++m_parse_pos
+                    min_rep = 1
+                elif qch == '?':
+                    ++m_parse_pos
+                    max_rep = 1
+                else:
+                    ParseRepeatBounds(min_rep, max_rep)
+                endif
+
+                var greedy : bool = true
+                if m_parse_pos < m_pattern.length and m_pattern[m_parse_pos] == '?':
+                    greedy = false
+                    ++m_parse_pos
+                endif
+
+                if m_parse_pos < m_pattern.length:
+                    var next_q : char = m_pattern[m_parse_pos]
+                    if next_q == '*' or next_q == '+' or next_q == '?' or next_q == '{':
+                        Error('Multiple repeat quantifiers')
+                    endif
+                endif
+
+                ApplyQuantifier(atom_start, min_rep, max_rep, greedy)
+            endif
+        endif
+    endwhile
+endfunc
+
+func ORegExp.ParseAtom(quantifiable : refout bool) -> int:
+    result = m_prog.length
+    quantifiable = true
+
+    var ch : char = m_pattern[m_parse_pos]
+    if ch == '(':
+        ParseGroup(quantifiable)
+    elif ch == '[':
+        ParseCharClass()
+    elif ch == '.':
+        ++m_parse_pos
+        if (m_compile_flags & @.FLAG_DOTALL) <> 0:
+            Emit(riAnyDotAll, 0, 0)
+        else:
+            Emit(riAny, 0, 0)
+        endif
+    elif ch == '^':
+        ++m_parse_pos
+        quantifiable = false
+        EmitIdx(riAssert, iif((m_compile_flags & @.FLAG_MULTILINE) <> 0, @.ASSERT_BOL_LINE, @.ASSERT_BOL_TEXT))
+    elif ch == '$':
+        ++m_parse_pos
+        quantifiable = false
+        EmitIdx(riAssert, iif((m_compile_flags & @.FLAG_MULTILINE) <> 0, @.ASSERT_EOL_LINE, @.ASSERT_EOL_TEXT))
+    elif ch == char(92):  // '\'
+        ++m_parse_pos
+        if m_parse_pos >= m_pattern.length:
+            Error('Trailing backslash')
+        endif
+        var esc : char = m_pattern[m_parse_pos]
+        if esc == 'b' or esc == 'B' or esc == 'A' or esc == 'z':
+            ++m_parse_pos
+            quantifiable = false
+            if esc == 'b':
+                EmitIdx(riAssert, @.ASSERT_WORD_BOUND)
+            elif esc == 'B':
+                EmitIdx(riAssert, @.ASSERT_NOT_WORD)
+            elif esc == 'A':
+                EmitIdx(riAssert, @.ASSERT_BOL_TEXT)
+            else:
+                EmitIdx(riAssert, @.ASSERT_EOL_TEXT)
+            endif
+        else:
+            var kind : char = char(0)
+            var lit : char = ParseEscapeChar(kind)
+            if kind <> char(0):
+                var cls : SCharClass = {}
+                cls.AddShorthand(kind, (m_compile_flags & @.FLAG_ICASE) <> 0)
+                EmitClass(cls)
+            else:
+                EmitChar(lit)
+            endif
+        endif
+    elif ch == '*' or ch == '+' or ch == '?' or ch == '{':
+        Error('Nothing to repeat')
+    else:
+        ++m_parse_pos
+        EmitChar(ch)
+    endif
+endfunc
+
+func ORegExp.ParseGroupBody(aopen_pos : int, aflags : uint):
+    var saved_flags : uint = m_compile_flags
+    m_compile_flags = aflags
+    ParseAlternation()
+    m_compile_flags = saved_flags
+
+    if m_parse_pos >= m_pattern.length or m_pattern[m_parse_pos] <> ')':
+        ErrorAt(aopen_pos, 'Unterminated group')
+    endif
+    ++m_parse_pos
+endfunc
+
+func ORegExp.EmitCapturingGroup(aopen_pos : int, agname : str):
+    ++m_group_count
+    var gidx : int = m_group_count
+    m_group_names.Append(agname)
+
+    EmitIdx(riSave, gidx * 2)
+    ParseGroupBody(aopen_pos, m_compile_flags)
+    EmitIdx(riSave, gidx * 2 + 1)
+endfunc
+
+func ORegExp.ParseGroup(quantifiable : refout bool):
+    var open_pos : int = m_parse_pos
+    ++m_parse_pos  // skip '('
+    if m_parse_pos >= m_pattern.length:
+        ErrorAt(open_pos, 'Unterminated group')
+    endif
+
+    quantifiable = true
+
+    if m_pattern[m_parse_pos] == '?':
+        ++m_parse_pos
+        if m_parse_pos >= m_pattern.length:
+            ErrorAt(open_pos, 'Unterminated group')
+        endif
+
+        // Named group: (?P<name>...) or (?<name>...)
+        if m_pattern[m_parse_pos] == 'P' or m_pattern[m_parse_pos] == '<':
+            if m_pattern[m_parse_pos] == 'P':
+                ++m_parse_pos
+                if m_parse_pos >= m_pattern.length or m_pattern[m_parse_pos] <> '<':
+                    Error('Expected "<" after "(?P"')
+                endif
+            endif
+            ++m_parse_pos  // skip '<'
+            var name_start : int = m_parse_pos
+            while m_parse_pos < m_pattern.length and m_pattern[m_parse_pos] <> '>':
+                var nch : char = m_pattern[m_parse_pos]
+                if not @.IsWordChar(nch) or (m_parse_pos == name_start and ('0' <= nch <= '9')):
+                    Error('Invalid group name')
+                endif
+                ++m_parse_pos
+            endwhile
+            if m_parse_pos >= m_pattern.length or m_pattern[m_parse_pos] <> '>':
+                Error('Unterminated group name')
+            endif
+            if m_parse_pos == name_start:
+                Error('Empty group name')
+            endif
+
+            var gname : str = m_pattern[name_start:m_parse_pos]
+            if GroupIndex(gname) > 0:
+                Error('Duplicate group name')
+            endif
+            ++m_parse_pos  // skip '>'
+            EmitCapturingGroup(open_pos, gname)
+            return
+        endif
+
+        // Inline flags (?ims-ims) or non-capturing group (?:...) / (?ims:...)
+        var new_flags : uint = m_compile_flags
+        ParseInlineFlags(new_flags)
+
+        if m_parse_pos < m_pattern.length and m_pattern[m_parse_pos] == ')':
+            ++m_parse_pos
+            m_compile_flags = new_flags
+            quantifiable = false
+            return
+        endif
+
+        if m_parse_pos >= m_pattern.length or m_pattern[m_parse_pos] <> ':':
+            Error('Invalid group syntax')
+        endif
+        ++m_parse_pos  // skip ':'
+        ParseGroupBody(open_pos, new_flags)
+        return
+    endif
+
+    EmitCapturingGroup(open_pos, '')
+endfunc
+
+func ORegExp.ParseInlineFlags(rflags : ref uint):
+    var negate : bool = false
+    while m_parse_pos < m_pattern.length:
+        var ch : char = m_pattern[m_parse_pos]
+        if ch == ':' or ch == ')':
+            return
+        elif ch == '-':
+            if negate:
+                Error('Invalid inline flag syntax')
+            endif
+            negate = true
+            ++m_parse_pos
+        else:
+            var bit : uint = 0
+            if ch == 'i':
+                bit = @.FLAG_ICASE
+            elif ch == 'm':
+                bit = @.FLAG_MULTILINE
+            elif ch == 's':
+                bit = @.FLAG_DOTALL
+            else:
+                Error('Unknown inline flag')
+            endif
+            if negate:
+                rflags &= ~bit
+            else:
+                rflags |= bit
+            endif
+            ++m_parse_pos
+        endif
+    endwhile
+endfunc
+
+func ORegExp.ParseCharClass():
+    var open_pos : int = m_parse_pos
+    ++m_parse_pos  // skip '['
+    if m_parse_pos >= m_pattern.length:
+        ErrorAt(open_pos, 'Unterminated character class')
+    endif
+
+    var icase : bool = (m_compile_flags & @.FLAG_ICASE) <> 0
+    var negated : bool = false
+    if m_pattern[m_parse_pos] == '^':
+        negated = true
+        ++m_parse_pos
+    endif
+
+    var cls : SCharClass = {}
+    var first : bool = true
+    var have_range_start : bool = false
+
+    while m_parse_pos < m_pattern.length:
+        var ch : char = m_pattern[m_parse_pos]
+        if ch == ']' and not first:
+            ++m_parse_pos
+            if negated:
+                cls.Invert()
+            endif
+            EmitClass(cls)
+            return
+        endif
+        first = false
+
+        // Check for POSIX class [:name:]
+        if ch == '[' and m_parse_pos + 1 < m_pattern.length and m_pattern[m_parse_pos + 1] == ':':
+            var pstart : int = m_parse_pos + 2
+            var pend : int = pstart
+            while pend + 1 < m_pattern.length and not (m_pattern[pend] == ':' and m_pattern[pend + 1] == ']'):
+                ++pend
+            endwhile
+            if pend + 1 < m_pattern.length and m_pattern[pend] == ':' and m_pattern[pend + 1] == ']':
+                if not cls.AddPosixClass(m_pattern[pstart:pend], icase):
+                    Error('Unknown POSIX character class')
+                endif
+                m_parse_pos = pend + 2
+                have_range_start = false
+                continue
+            endif
+        endif
+
+        var item_kind : char = char(0)
+        var item_ch : char = char(0)
+        if ch == char(92):  // '\'
+            ++m_parse_pos
+            if m_parse_pos >= m_pattern.length:
+                ErrorAt(open_pos, 'Unterminated character class')
+            endif
+            item_ch = ParseEscapeChar(item_kind)
+        else:
+            item_ch = ch
+            ++m_parse_pos
+        endif
+
+        if item_kind <> char(0):
+            if have_range_start and m_parse_pos < m_pattern.length and m_pattern[m_parse_pos] == '-':
+                Error('Invalid character range with shorthand class')
+            endif
+            cls.AddShorthand(item_kind, icase)
+            have_range_start = false
+            continue
+        endif
+
+        // Check if this starts a character range a-z
+        if m_parse_pos + 1 < m_pattern.length and m_pattern[m_parse_pos] == '-' and m_pattern[m_parse_pos + 1] <> ']':
+            ++m_parse_pos  // skip '-'
+            var end_kind : char = char(0)
+            var end_ch : char = char(0)
+            if m_pattern[m_parse_pos] == char(92):
+                ++m_parse_pos
+                if m_parse_pos >= m_pattern.length:
+                    ErrorAt(open_pos, 'Unterminated character class')
+                endif
+                end_ch = ParseEscapeChar(end_kind)
+                if end_kind <> char(0):
+                    Error('Invalid character range with shorthand class')
+                endif
+            else:
+                end_ch = m_pattern[m_parse_pos]
+                ++m_parse_pos
+            endif
+
+            if (item_ch.ord & 0xFF) > (end_ch.ord & 0xFF):
+                Error('Character range out of order')
+            endif
+            cls.SetRange(item_ch, end_ch, icase)
+            have_range_start = false
+        else:
+            cls.SetBitCase(item_ch, icase)
+            have_range_start = true
+        endif
+    endwhile
+
+    ErrorAt(open_pos, 'Unterminated character class')
+endfunc
+
+func ORegExp.ParseEscapeChar(rkind : refout char) -> char:
+    rkind = char(0)
+    var ch : char = m_pattern[m_parse_pos]
+    ++m_parse_pos
+
+    if ch == 'd' or ch == 'D' or ch == 'w' or ch == 'W' or ch == 's' or ch == 'S':
+        rkind = ch
+        return char(0)
+    elif ch == 'n':
+        return '\n'
+    elif ch == 'r':
+        return '\r'
+    elif ch == 't':
+        return '\t'
+    elif ch == 'f':
+        return char(12)
+    elif ch == 'v':
+        return char(11)
+    elif ch == 'a':
+        return char(7)
+    elif ch == '0':
+        return char(0)
+    elif ch == 'x':
+        return ParseHexByte()
+    elif (ch == '.' or ch == '^' or ch == '$' or ch == '*' or ch == '+' or ch == '?'
+          or ch == '(' or ch == ')' or ch == '[' or ch == ']' or ch == '{' or ch == '}'
+          or ch == '|' or ch == char(92) or ch == '/' or ch == '-'):
+        return ch
+    else:
+        Error('Invalid escape sequence')
+        return char(0)
+    endif
+endfunc
+
+func ORegExp.ParseHexByte() -> char:
+    if m_parse_pos + 2 > m_pattern.length:
+        Error('Invalid hex escape')
+    endif
+    var c1 : char = m_pattern[m_parse_pos]
+    var c2 : char = m_pattern[m_parse_pos + 1]
+    if not @.IsHexDigit(c1) or not @.IsHexDigit(c2):
+        Error('Invalid hex escape')
+    endif
+    m_parse_pos += 2
+    return char((@.HexDigitVal(c1) << 4) | @.HexDigitVal(c2))
+endfunc
+
+func ORegExp.ReadRepeatInt() -> int:
+    if m_parse_pos >= m_pattern.length or not ('0' <= m_pattern[m_parse_pos] <= '9'):
+        Error('Invalid repeat quantifier')
+    endif
+    result = 0
+    while m_parse_pos < m_pattern.length and '0' <= m_pattern[m_parse_pos] <= '9':
+        result = result * 10 + (m_pattern[m_parse_pos].ord - '0'.ord)
+        if result > @.MAX_REPEAT_COUNT:
+            Error('Repeat quantifier exceeds maximum')
+        endif
+        ++m_parse_pos
+    endwhile
+endfunc
+
+func ORegExp.ParseRepeatBounds(rmin : refout int, rmax : refout int):
+    var open_pos : int = m_parse_pos
+    ++m_parse_pos  // skip '{'
+    rmin = ReadRepeatInt()
+    if m_parse_pos >= m_pattern.length:
+        ErrorAt(open_pos, 'Unterminated repeat quantifier')
+    endif
+
+    if m_pattern[m_parse_pos] == '}':
+        ++m_parse_pos
+        rmax = rmin
+        return
+    endif
+
+    if m_pattern[m_parse_pos] <> ',':
+        Error('Invalid repeat quantifier')
+    endif
+    ++m_parse_pos  // skip ','
+
+    if m_parse_pos >= m_pattern.length:
+        ErrorAt(open_pos, 'Unterminated repeat quantifier')
+    endif
+
+    if m_pattern[m_parse_pos] == '}':
+        ++m_parse_pos
+        rmax = -1
+        return
+    endif
+
+    rmax = ReadRepeatInt()
+    if m_parse_pos >= m_pattern.length or m_pattern[m_parse_pos] <> '}':
+        ErrorAt(open_pos, 'Unterminated repeat quantifier')
+    endif
+    ++m_parse_pos
+
+    if rmax < rmin:
+        Error('Repeat quantifier min greater than max')
+    endif
+endfunc
+
+//------------------------------------------------------------------------------
+// PikeVM Execution
+//------------------------------------------------------------------------------
+
+func ORegExp.EnsureCompiled():
+    if not m_compiled:
+        raise ERegExp('Regular expression is not compiled')
+    endif
+endfunc
+
+func ORegExp.PrepareVmBuffers():
+    var prog_len : int = m_prog.length
+    var total_caps : int = prog_len * m_slot_count
+
+    m_clist_pcs.Reserve(prog_len)
+    m_nlist_pcs.Reserve(prog_len)
+    m_clist_caps.SetLength(total_caps)
+    m_nlist_caps.SetLength(total_caps)
+    m_work_caps.SetLength(m_slot_count)
+    m_best_caps.SetLength(m_slot_count)
+    m_visited.SetLength(prog_len)
+    for i : int = 0 count prog_len:
+        m_visited[i] = 0
+    endfor
+    m_step_id = 0
+endfunc
+
+func ORegExp.NextStepId():
+    ++m_step_id
+    if m_step_id <= 0:
+        for i : int = 0 count m_visited.length:
+            m_visited[i] = 0
+        endfor
+        m_step_id = 1
+    endif
+endfunc
+
+func ORegExp.ResetWorkCaps():
+    for i : int = 0 count m_slot_count:
+        m_work_caps[i] = -1
+    endfor
+endfunc
+
+func ORegExp.CheckAssert(akind : int, atext : strslice, apos : int) -> bool:
+    if akind == @.ASSERT_BOL_TEXT:
+        return apos == 0
+    elif akind == @.ASSERT_EOL_TEXT:
+        return apos == atext.length
+    elif akind == @.ASSERT_BOL_LINE:
+        return apos == 0 or atext[apos - 1] == '\n'
+    elif akind == @.ASSERT_EOL_LINE:
+        return apos == atext.length or atext[apos] == '\n'
+    elif akind == @.ASSERT_WORD_BOUND or akind == @.ASSERT_NOT_WORD:
+        var left_w  : bool = apos > 0 and @.IsWordChar(atext[apos - 1])
+        var right_w : bool = apos < atext.length and @.IsWordChar(atext[apos])
+        return iif(akind == @.ASSERT_WORD_BOUND, left_w <> right_w, left_w == right_w)
+    endif
+    return false
+endfunc
+
+func ORegExp.InstMatches(ainst : SRegInst, ach : char) -> bool:
+    if ainst.op == riChar:
+        return ach == ainst.ch
+    elif ainst.op == riCharI:
+        return @.LowerAscii(ach) == ainst.ch
+    elif ainst.op == riAny:
+        return ach <> '\n'
+    elif ainst.op == riAnyDotAll:
+        return true
+    elif ainst.op == riClass:
+        return m_classes[ainst.idx].Contains(ach)
+    endif
+    return false
+endfunc
+
+// Compute the epsilon-closure from apc at apos in priority order, using m_visited
+// to guarantee each instruction is visited at most once per step.
+func ORegExp.AddThread(apc : int, atext : strslice, apos : int):
+    if m_visited[apc] == m_step_id:
+        return
+    endif
+    m_visited[apc] = m_step_id
+
+    var inst : SRegInst = m_prog[apc]
+    if inst.op == riJmp:
+        AddThread(inst.out, atext, apos)
+    elif inst.op == riSplit:
+        AddThread(inst.out, atext, apos)
+        AddThread(inst.out1, atext, apos)
+    elif inst.op == riSave:
+        var old_val : int = m_work_caps[inst.idx]
+        m_work_caps[inst.idx] = apos
+        AddThread(apc + 1, atext, apos)
+        m_work_caps[inst.idx] = old_val
+    elif inst.op == riAssert:
+        if CheckAssert(inst.idx, atext, apos):
+            AddThread(apc + 1, atext, apos)
+        endif
+    else:
+        var tidx : int = m_nlist_pcs.length
+        m_nlist_pcs.Append(apc)
+        var base : int = tidx * m_slot_count
+        for i : int = 0 count m_slot_count:
+            m_nlist_caps[base + i] = m_work_caps[i]
+        endfor
+    endif
+endfunc
+
+func ORegExp.RunVm(atext : strslice, astart : int, amode : int) -> bool:
+    EnsureCompiled()
+    m_matched = false
+    for i : int = 0 count m_slot_count:
+        m_best_caps[i] = -1
+    endfor
+
+    if astart < 0 or astart > atext.length:
+        return false
+    endif
+
+    m_nlist_pcs.Clear()
+    NextStepId()
+    ResetWorkCaps()
+    AddThread(0, atext, astart)
+
+    for pos : int = astart to atext.length:
+        var tmp_pcs : [*]int = m_clist_pcs
+        m_clist_pcs = m_nlist_pcs
+        m_nlist_pcs = tmp_pcs
+
+        var tmp_caps : [*]int = m_clist_caps
+        m_clist_caps = m_nlist_caps
+        m_nlist_caps = tmp_caps
+
+        m_nlist_pcs.Clear()
+        if m_clist_pcs.length == 0 and (m_matched or amode <> @.MODE_SEARCH):
+            break
+        endif
+
+        NextStepId()
+
+        for tidx : int = 0 count m_clist_pcs.length:
+            var pc : int = m_clist_pcs[tidx]
+            var inst : SRegInst = m_prog[pc]
+            var base : int = tidx * m_slot_count
+
+            if inst.op == riMatch:
+                if amode <> @.MODE_FULL_MATCH or pos == atext.length:
+                    for i : int = 0 count m_slot_count:
+                        m_best_caps[i] = m_clist_caps[base + i]
+                    endfor
+                    m_matched = true
+                    break
+                endif
+            elif pos < atext.length and InstMatches(inst, atext[pos]):
+                for i : int = 0 count m_slot_count:
+                    m_work_caps[i] = m_clist_caps[base + i]
+                endfor
+                AddThread(pc + 1, atext, pos + 1)
+            endif
+        endfor
+
+        if pos < atext.length and not m_matched and amode == @.MODE_SEARCH:
+            ResetWorkCaps()
+            AddThread(0, atext, pos + 1)
+        endif
+    endfor
+
+    return m_matched
+endfunc
+
+//------------------------------------------------------------------------------
+// Public Matching, Searching, and Replacement Methods
+//------------------------------------------------------------------------------
+
+func ORegExp.Match(atext : strslice) -> bool:
+    m_subject = atext
+    m_search_ready = false
+    m_prev_nonempty_end = -1
+    return RunVm(m_subject, 0, @.MODE_FULL_MATCH)
+endfunc
+
+func ORegExp.PrefixMatch(atext : strslice, astart : int = 0) -> bool:
+    m_subject = atext
+    m_search_ready = false
+    m_prev_nonempty_end = -1
+    return RunVm(m_subject, astart, @.MODE_PREFIX_MATCH)
+endfunc
+
+func ORegExp.SearchInSubject(astart : int) -> bool:
+    var pos : int = astart
+    while pos <= m_subject.length:
+        if not RunVm(m_subject, pos, @.MODE_SEARCH):
+            m_search_ready = false
+            return false
+        endif
+
+        var s : int = m_best_caps[0]
+        var e : int = m_best_caps[1]
+        if s == e and s == m_prev_nonempty_end:
+            pos = s + 1
+            continue
+        endif
+
+        if e > s:
+            m_prev_nonempty_end = e
+            m_next_pos = e
+        else:
+            m_prev_nonempty_end = -1
+            m_next_pos = e + 1
+        endif
+
+        if m_next_pos > m_subject.length:
+            m_search_ready = false
+        endif
+        return true
+    endwhile
+
+    m_matched = false
+    m_search_ready = false
+    return false
+endfunc
+
+func ORegExp.Search(atext : strslice, astart : int = 0) -> bool:
+    EnsureCompiled()
+    m_subject = atext
+    if astart < 0 or astart > m_subject.length:
+        m_matched = false
+        m_search_ready = false
+        return false
+    endif
+    m_prev_nonempty_end = -1
+    m_search_ready = true
+    return SearchInSubject(astart)
+endfunc
+
+func ORegExp.StartSearch(atext : strslice, astart : int = 0):
+    EnsureCompiled()
+    m_subject = atext
+    m_matched = false
+    m_prev_nonempty_end = -1
+    if astart < 0 or astart > m_subject.length:
+        m_next_pos = 0
+        m_search_ready = false
+    else:
+        m_next_pos = astart
+        m_search_ready = true
+    endif
+endfunc
+
+func ORegExp.SearchNext() -> bool:
+    EnsureCompiled()
+    if not m_search_ready:
+        m_matched = false
+        return false
+    endif
+    return SearchInSubject(m_next_pos)
+endfunc
+
+func ORegExp.GetMatch() -> str:
+    return Group(0)
+endfunc
+
+func ORegExp.GetMatchStart() -> int:
+    return GroupStart(0)
+endfunc
+
+func ORegExp.GetMatchEnd() -> int:
+    return GroupEnd(0)
+endfunc
+
+func ORegExp.GetMatchLength() -> int:
+    return GroupLength(0)
+endfunc
+
+func ORegExp.GroupStart(aindex : int = 0) -> int:
+    if not m_matched or not (0 <= aindex <= m_group_count):
+        return -1
+    endif
+    return m_best_caps[aindex * 2]
+endfunc
+
+func ORegExp.GroupEnd(aindex : int = 0) -> int:
+    if not m_matched or not (0 <= aindex <= m_group_count):
+        return -1
+    endif
+    return m_best_caps[aindex * 2 + 1]
+endfunc
+
+func ORegExp.GroupLength(aindex : int = 0) -> int:
+    var s : int = GroupStart(aindex)
+    var e : int = GroupEnd(aindex)
+    if s < 0 or e < s:
+        return 0
+    endif
+    return e - s
+endfunc
+
+func ORegExp.GroupMatched(aindex : int = 0) -> bool:
+    return GroupStart(aindex) >= 0 and GroupEnd(aindex) >= 0
+endfunc
+
+func ORegExp.Group(aindex : int) -> str:
+    var s : int = GroupStart(aindex)
+    var e : int = GroupEnd(aindex)
+    if s < 0 or e < s:
+        return ''
+    endif
+    return m_subject[s:e]
+endfunc
+
+func ORegExp.GroupName(aindex : int) -> str:
+    if 1 <= aindex <= m_group_count:
+        return m_group_names[aindex]
+    endif
+    return ''
+endfunc
+
+func ORegExp.GroupIndex(aname : strslice) -> int:
+    if aname.length == 0:
+        return -1
+    endif
+    for i : int = 1 to m_group_count:
+        if m_group_names[i] == aname:
+            return i
+        endif
+    endfor
+    return -1
+endfunc
+
+func ORegExp.GroupByName(aname : strslice) -> str:
+    var idx : int = GroupIndex(aname)
+    if idx < 1:
+        return ''
+    endif
+    return Group(idx)
+endfunc
+
+func ORegExp.Groups() -> [*]str:
+    result = []
+    if not m_matched:
+        return
+    endif
+    for i : int = 0 to m_group_count:
+        result.Append(Group(i))
+    endfor
+endfunc
+
+func ORegExp.Expand(areplacement : strslice) -> str:
+    result = ''
+    if not m_matched:
+        return
+    endif
+
+    var i : int = 0
+    while i < areplacement.length:
+        var ch : char = areplacement[i]
+        if ch <> '$' or i + 1 >= areplacement.length:
+            result.Append(ch)
+            ++i
+            continue
+        endif
+
+        var next_ch : char = areplacement[i + 1]
+        if next_ch == '$':
+            result.Append('$')
+            i += 2
+        elif next_ch == '&':
+            result.Append(Group(0))
+            i += 2
+        elif '0' <= next_ch <= '9':
+            var gidx : int = next_ch.ord - '0'.ord
+            i += 2
+            while i < areplacement.length and '0' <= areplacement[i] <= '9':
+                var next_idx : int = gidx * 10 + (areplacement[i].ord - '0'.ord)
+                if next_idx > m_group_count:
+                    break
+                endif
+                gidx = next_idx
+                ++i
+            endwhile
+            result.Append(Group(gidx))
+        elif next_ch == '{':
+            var kstart : int = i + 2
+            var kend : int = kstart
+            while kend < areplacement.length and areplacement[kend] <> '}':
+                ++kend
+            endwhile
+            if kend < areplacement.length and kend > kstart:
+                var key : strslice = areplacement[kstart:kend]
+                var all_digits : bool = true
+                var gidx : int = 0
+                for k : int = 0 count key.length:
+                    if '0' <= key[k] <= '9':
+                        gidx = gidx * 10 + (key[k].ord - '0'.ord)
+                    else:
+                        all_digits = false
+                        break
+                    endif
+                endfor
+                if all_digits:
+                    result.Append(Group(gidx))
+                else:
+                    result.Append(GroupByName(key))
+                endif
+                i = kend + 1
+            else:
+                result.Append('$')
+                ++i
+            endif
+        else:
+            result.Append('$')
+            ++i
+        endif
+    endwhile
+endfunc
+
+func ORegExp.FindAll(atext : strslice) -> [*]str:
+    result = []
+    StartSearch(atext, 0)
+    while SearchNext():
+        result.Append(Group(0))
+    endwhile
+endfunc
+
+func ORegExp.Replace(atext : strslice, areplacement : strslice, acount : int = 0) -> str:
+    EnsureCompiled()
+    result = ''
+    var src : str = atext
+    var last_end : int = 0
+    var replaced : int = 0
+
+    StartSearch(src, 0)
+    while (acount <= 0 or replaced < acount) and SearchNext():
+        var s : int = GetMatchStart()
+        var e : int = GetMatchEnd()
+        if s > last_end:
+            result.Append(src[last_end:s])
+        endif
+        result.Append(Expand(areplacement))
+        last_end = e
+        ++replaced
+    endwhile
+
+    if last_end < src.length:
+        result.Append(src[last_end:])
+    endif
+endfunc
+
+func ORegExp.ReplaceFirst(atext : strslice, areplacement : strslice) -> str:
+    return Replace(atext, areplacement, 1)
+endfunc
+
+func ORegExp.Split(atext : strslice, amaxsplit : int = 0) -> [*]str:
+    EnsureCompiled()
+    result = []
+    var src : str = atext
+    var last_end : int = 0
+    var splits : int = 0
+
+    StartSearch(src, 0)
+    while (amaxsplit <= 0 or splits < amaxsplit) and SearchNext():
+        var s : int = GetMatchStart()
+        var e : int = GetMatchEnd()
+        if s == e and (s == last_end or s == src.length):
+            continue
+        endif
+        result.Append(src[last_end:s])
+        last_end = e
+        ++splits
+    endwhile
+
+    result.Append(src[last_end:])
+endfunc
+
+//------------------------------------------------------------------------------
+// Package-level Convenience Functions
+//------------------------------------------------------------------------------
+
+func RegExpMatch(apattern : strslice, atext : strslice) -> bool [[overload]]:
+    var re <- ORegExp(apattern)
+    return re.Match(atext)
+endfunc
+
+func RegExpMatch(apattern : strslice, atext : strslice, aflags : strslice) -> bool [[overload]]:
+    var re <- ORegExp(apattern, aflags)
+    return re.Match(atext)
+endfunc
+
+func RegExpSearch(apattern : strslice, atext : strslice) -> bool [[overload]]:
+    var re <- ORegExp(apattern)
+    return re.Search(atext)
+endfunc
+
+func RegExpSearch(apattern : strslice, atext : strslice, aflags : strslice) -> bool [[overload]]:
+    var re <- ORegExp(apattern, aflags)
+    return re.Search(atext)
+endfunc
+
+func RegExpFind(apattern : strslice, atext : strslice) -> str [[overload]]:
+    var re <- ORegExp(apattern)
+    if re.Search(atext):
+        return re.match
+    endif
+    return ''
+endfunc
+
+func RegExpFind(apattern : strslice, atext : strslice, aflags : strslice) -> str [[overload]]:
+    var re <- ORegExp(apattern, aflags)
+    if re.Search(atext):
+        return re.match
+    endif
+    return ''
+endfunc
+
+func RegExpFindAll(apattern : strslice, atext : strslice) -> [*]str [[overload]]:
+    var re <- ORegExp(apattern)
+    return re.FindAll(atext)
+endfunc
+
+func RegExpFindAll(apattern : strslice, atext : strslice, aflags : strslice) -> [*]str [[overload]]:
+    var re <- ORegExp(apattern, aflags)
+    return re.FindAll(atext)
+endfunc
+
+func RegExpReplace(apattern : strslice, atext : strslice, areplacement : strslice) -> str [[overload]]:
+    var re <- ORegExp(apattern)
+    return re.Replace(atext, areplacement)
+endfunc
+
+func RegExpReplace(apattern : strslice, atext : strslice, areplacement : strslice, aflags : strslice, acount : int = 0) -> str [[overload]]:
+    var re <- ORegExp(apattern, aflags)
+    return re.Replace(atext, areplacement, acount)
+endfunc
+
+func RegExpSplit(apattern : strslice, atext : strslice) -> [*]str [[overload]]:
+    var re <- ORegExp(apattern)
+    return re.Split(atext)
+endfunc
+
+func RegExpSplit(apattern : strslice, atext : strslice, aflags : strslice, amaxsplit : int = 0) -> [*]str [[overload]]:
+    var re <- ORegExp(apattern, aflags)
+    return re.Split(atext, amaxsplit)
+endfunc
+
+func RegExpEscape(atext : strslice) -> str:
+    result = ''
+    result.Reserve(atext.length * 2)
+    for i : int = 0 count atext.length:
+        var ch : char = atext[i]
+        if (ch == '.' or ch == '^' or ch == '$' or ch == '*' or ch == '+' or ch == '?'
+            or ch == '(' or ch == ')' or ch == '[' or ch == ']' or ch == '{' or ch == '}'
+            or ch == '|' or ch == char(92)):
+            result.Append(char(92))
+        endif
+        result.Append(ch)
+    endfor
+endfunc

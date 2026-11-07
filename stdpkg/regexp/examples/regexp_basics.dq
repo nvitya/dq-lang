@@ -1,0 +1,38 @@
+// Example: Basic regular expression matching, capture groups, replacement, and splitting.
+
+use print
+use regexp
+
+func *Main():
+    // 1. Named and numbered capture groups
+    var email_re <- ORegExp('(?P<user>[\\w.+-]+)@(?P<host>[\\w.-]+\\.[A-Za-z]{2,})')
+    var text : str = 'Reach out to alice@example.com or bob.smith@sub.domain.org today.'
+
+    PrintLn('--- Email Search Iteration ---')
+    email_re.StartSearch(text)
+    while email_re.SearchNext():
+        PrintLn('Match [{}:{}]: {} (user="{}", host="{}")', [
+            email_re.match_start,
+            email_re.match_end,
+            email_re.match,
+            email_re.named_group['user'],
+            email_re.named_group['host']
+        ])
+    endwhile
+
+    // 2. Replacement with numbered and named group expansion
+    PrintLn('\n--- Redacting Emails ---')
+    var redacted : str = email_re.Replace(text, '${user}@[REDACTED]')
+    PrintLn('{}', [redacted])
+
+    // 3. Splitting strings by regex delimiter
+    PrintLn('\n--- Splitting CSV / Whitespace ---')
+    var fields : [*]str = RegExpSplit('\\s*,\\s*', 'alpha,  beta ,gamma, delta')
+    PrintLn('Fields: {}', [StrJoin(fields, ' | ')])
+
+    // 4. Escaping arbitrary user strings for literal matching
+    var raw_token : str = 'price: $19.99 (USD)'
+    var escaped : str = RegExpEscape(raw_token)
+    PrintLn('\n--- Escaped Pattern ---')
+    PrintLn('Pattern: {} -> matches: {}', [escaped, RegExpSearch(escaped, 'Item price: $19.99 (USD) on sale')])
+endfunc

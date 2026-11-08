@@ -20,13 +20,20 @@ func SleepToNanoTime(ansecs : int64) ..
 
 implementation
 
+#ifdef WINDOWS
+    type time_t = int64
+#else
+    // Match the native libc ABI, including 32-bit time_t/long on armhf.
+    type time_t = int
+#endif
+
 struct timespec:
-    tv_sec  : int64
+    tv_sec  : time_t
     #ifdef WINDOWS
         tv_nsec : int32
         __pad   : int32
     #else
-        tv_nsec : int64
+        tv_nsec : int
     #endif
 endstruct
 
@@ -41,7 +48,7 @@ struct tm:
     tm_yday   : int32
     tm_isdst  : int32
     #ifndef WINDOWS
-        tm_gmtoff : int64
+        tm_gmtoff : int
         tm_zone   : pointer
     #endif
 endstruct
@@ -57,8 +64,8 @@ endstruct
     func clock_gettime(clk_id : int32, res : ^timespec) -> int32 [[external('clock_gettime')]] ..
     func libc_clock_nanosleep(clk_id : int32, flags : int32, req : ^timespec, remaining : ^timespec) -> int32 [[external('clock_nanosleep')]] ..
     func libc_nanosleep(req : ^timespec, remaining : ^timespec) -> int32 [[external('nanosleep')]] ..
-    func libc_localtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('localtime_r')]] ..
-    func libc_gmtime_r(timep : ^int64, tmout : ^tm) -> ^tm [[external('gmtime_r')]] ..
+    func libc_localtime_r(timep : ^time_t, tmout : ^tm) -> ^tm [[external('localtime_r')]] ..
+    func libc_gmtime_r(timep : ^time_t, tmout : ^tm) -> ^tm [[external('gmtime_r')]] ..
 #endif
 func libc_strftime(dest : ^char, maxlen : uint, fmt : ^char, atm : ^tm) -> uint [[external('strftime')]] ..
 
@@ -114,7 +121,7 @@ func MilliTime() -> int64:
     #else
         var tv : timespec = {}
         clock_gettime(CLOCK_MONOTONIC, %tv)
-        result = tv.tv_nsec div 1000000  + tv.tv_sec * 1000
+        result = tv.tv_nsec div 1000000 + int64(tv.tv_sec) * 1000
     #endif
 endfunc
 
@@ -124,7 +131,7 @@ func MicroTime() -> int64:
     #else
         var tv : timespec = {}
         clock_gettime(CLOCK_MONOTONIC, %tv)
-        result = tv.tv_nsec div 1000  + tv.tv_sec * 1000000
+        result = tv.tv_nsec div 1000 + int64(tv.tv_sec) * 1000000
     #endif
 endfunc
 
@@ -134,7 +141,7 @@ func NanoTime() -> int64:
     #else
         var tv : timespec = {}
         clock_gettime(CLOCK_MONOTONIC, %tv)
-        result = tv.tv_nsec + tv.tv_sec * 1000000000
+        result = tv.tv_nsec + int64(tv.tv_sec) * 1000000000
     #endif
 endfunc
 
@@ -244,7 +251,7 @@ func SleepToNanoTime(ansecs : int64):
 endfunc
 
 func TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> bool:
-    var seconds : int64 = Floor(atime)
+    var seconds : time_t = Floor(atime)
     microseconds = Round((atime - seconds) * 1000000)
     if microseconds >= 1000000:
         ++seconds
@@ -260,7 +267,7 @@ func TimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> 
 endfunc
 
 func UtcTimeToTm(atime : float64, atm : refout tm, microseconds : refout int64) -> bool:
-    var seconds : int64 = Floor(atime)
+    var seconds : time_t = Floor(atime)
     microseconds = Round((atime - seconds) * 1000000)
     if microseconds >= 1000000:
         ++seconds

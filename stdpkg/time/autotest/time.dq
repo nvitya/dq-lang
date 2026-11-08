@@ -1,7 +1,73 @@
 use print
 use time
 
+#ifdef LINUX
+// Measure independently of the package's timespec layout and unit conversion.
+struct NativeTimespec:
+    tv_sec : int
+    tv_nsec : int
+endstruct
+func NativeClockGetTime(id : int32, ts : ^NativeTimespec) -> int32 [[external('clock_gettime')]] ..
+#endif
+
+func TestNanoTime() -> int64:
+    #ifdef LINUX
+        var ts : NativeTimespec = {}
+        NativeClockGetTime(1, %ts) // CLOCK_MONOTONIC
+        return int64(ts.tv_sec) * 1000000000 + ts.tv_nsec
+    #else
+        return NanoTime()
+    #endif
+endfunc
+
 func *Main():
+    var started : int64 = TestNanoTime()
+    var nanos : int64 = NanoTime()
+    var micros : int64 = MicroTime()
+    var millis : int64 = MilliTime()
+    var finished : int64 = TestNanoTime()
+    PrintLn('NanoTime = {}', [started <= nanos <= finished]) //?check('NanoTime', 'true')
+    PrintLn('MicroTime = {}', [started div 1000 <= micros <= finished div 1000]) //?check('MicroTime', 'true')
+    PrintLn('MilliTime = {}', [started div 1000000 <= millis <= finished div 1000000]) //?check('MilliTime', 'true')
+
+    #ifdef LINUX
+        var realtime : NativeTimespec = {}
+        NativeClockGetTime(0, %realtime) // CLOCK_REALTIME
+        var now : float64 = Time()
+        var native_time : float64 = float64(realtime.tv_sec) + float64(realtime.tv_nsec) / 1000000000
+        PrintLn('Time = {}', [native_time <= now < native_time + 1]) //?check('Time', 'true')
+    #endif
+
+    started = TestNanoTime()
+    SleepSecs(1.01) // Exercise both whole and fractional seconds.
+    PrintLn('SleepSecs = {}', [TestNanoTime() - started >= 1010000000]) //?check('SleepSecs', 'true')
+
+    started = TestNanoTime()
+    SleepMillis(10)
+    PrintLn('SleepMillis = {}', [TestNanoTime() - started >= 10000000]) //?check('SleepMillis', 'true')
+
+    started = TestNanoTime()
+    SleepMicros(10000)
+    PrintLn('SleepMicros = {}', [TestNanoTime() - started >= 10000000]) //?check('SleepMicros', 'true')
+
+    started = TestNanoTime()
+    SleepNanos(10000000)
+    PrintLn('SleepNanos = {}', [TestNanoTime() - started >= 10000000]) //?check('SleepNanos', 'true')
+
+    SleepSecs(0)
+    SleepSecs(-1)
+    SleepMillis(0)
+    SleepMillis(-1)
+    SleepMicros(0)
+    SleepMicros(-1)
+    SleepNanos(0)
+    SleepNanos(-1)
+
+    PrintLn('FormatTimeUtc = {}', [FormatTimeUtc('%Y-%m-%d %H:%M:%S', 1704067200)]) //?check('FormatTimeUtc', '2024-01-01 00:00:00')
+    #ifdef LINUX
+        PrintLn('UTC zone = {}', [FormatTimeUtc('%z %Z', 1704067200)]) //?check('UTC zone', '+0000 GMT')
+    #endif
+
     var target_time : float64 = Time() + 0.01
     SleepToTime(target_time)
     PrintLn('SleepToTime = {}', [Time() >= target_time])  //?check('SleepToTime', 'true')

@@ -8,7 +8,8 @@
  * for the full license text.
  * ---------------------------------------------------------------------------------
  * file:    regexp/regexp.dq
- * authors: nvitya
+ * authors: nvitya, Ken Thompson, Rob Pike, Russ Cox
+ * AI-assistants: gemini, codex
  * created: 2026-11-07
  * brief:   Regular expression engine based on PikeVM
  */

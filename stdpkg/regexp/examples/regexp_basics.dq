@@ -5,7 +5,8 @@ use regexp
 
 func *Main():
     // 1. Named and numbered capture groups
-    var email_re <- ORegExp('(?P<user>[\\w.+-]+)@(?P<host>[\\w.-]+\\.[A-Za-z]{2,})')
+    var email_re <- ORegExp()
+    email_re.Prepare('(?P<user>[\\w.+-]+)@(?P<host>[\\w.-]+\\.[A-Za-z]{2,})')
     var text : str = 'Reach out to alice@example.com or bob.smith@sub.domain.org today.'
 
     PrintLn('--- Email Search Iteration ---')
@@ -27,12 +28,12 @@ func *Main():
 
     // 3. Splitting strings by regex delimiter
     PrintLn('\n--- Splitting CSV / Whitespace ---')
-    var fields : [*]str = RegExpSplit('\\s*,\\s*', 'alpha,  beta ,gamma, delta')
+    var fields : [*]str = email_re.Split('\\s*,\\s*', 'alpha,  beta ,gamma, delta')
     PrintLn('Fields: {}', [StrJoin(fields, ' | ')])
 
     // 4. Escaping arbitrary user strings for literal matching
     var raw_token : str = 'price: $19.99 (USD)'
     var escaped : str = RegExpEscape(raw_token)
     PrintLn('\n--- Escaped Pattern ---')
-    PrintLn('Pattern: {} -> matches: {}', [escaped, RegExpSearch(escaped, 'Item price: $19.99 (USD) on sale')])
+    PrintLn('Pattern: {} -> matches: {}', [escaped, email_re.Search(escaped, 'Item price: $19.99 (USD) on sale')])
 endfunc

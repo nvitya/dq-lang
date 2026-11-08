@@ -16,3 +16,18 @@ func SliceStructuralMethodsAreInvalid():
     slice.Pop() //?error(MemberUnknown)
     slice.PopFirst() //?error(MemberUnknown)
 endfunc
+
+func TemporaryArray() -> [*]int:
+    return [1, 2]
+endfunc
+
+func TemporarySliceStorageIsInvalid():
+    var dangling : []int = TemporaryArray() //?error(ArrSlice)
+endfunc
+
+func NeedStrings(items : []str):
+endfunc
+
+func TemporaryElementMismatchIsInvalid():
+    NeedStrings(TemporaryArray()) //?error(ArrElemType)
+endfunc

@@ -102,6 +102,15 @@ their parameter type at the declaration. Reference parameters, array-slice
 parameters, and unsized `embstr` parameters cannot have defaults. Calls pass arguments positionally; named
 arguments are not supported.
 
+`strslice` parameters accept literal-backed constant defaults, including empty
+strings and named text constants:
+
+```dq
+func JoinItems(items : []str, separator : strslice = "|") -> str:
+    return StrJoin(items, separator)
+endfunc
+```
+
 ## Overloading
 
 Functions, methods, or constructors with the same name must be explicitly marked

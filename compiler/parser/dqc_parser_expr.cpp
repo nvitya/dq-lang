@@ -1867,10 +1867,10 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
   auto prefer_slice_append = [&](OExpr * expr) -> bool
   {
     if (!is_range_arg(expr)) return false;
-    int cost_elem = dyntype->elemtype->GetConversionCostFromExpr(expr, EXPCF_ALLOW_ARRAY_LITERAL_SLICE | EXPCF_ALLOW_LAZY_EMBSTR);
+    int cost_elem = dyntype->elemtype->GetConversionCostFromExpr(expr, EXPCF_ALLOW_TEMP_ARRAY_SLICE | EXPCF_ALLOW_LAZY_EMBSTR);
     if (cost_elem >= 0)
     {
-      int cost_slice = dyntype->elemtype->GetSliceType()->GetConversionCostFromExpr(expr, EXPCF_ALLOW_ARRAY_LITERAL_SLICE | EXPCF_ALLOW_LAZY_EMBSTR);
+      int cost_slice = dyntype->elemtype->GetSliceType()->GetConversionCostFromExpr(expr, EXPCF_ALLOW_TEMP_ARRAY_SLICE | EXPCF_ALLOW_LAZY_EMBSTR);
       if (cost_slice < 0 || cost_elem >= cost_slice) return false;
     }
     return true;
@@ -2022,7 +2022,7 @@ OExpr * ODqCompParserExpr::ParseDynArrayMethod(OExpr * receiver_expr, OLValueExp
     uint32_t conv_flags = EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR;
     if (argtypes[i]->ResolveAlias()->kind == TK_ARRAY_SLICE)
     {
-      conv_flags |= EXPCF_ALLOW_ARRAY_LITERAL_SLICE;
+      conv_flags |= EXPCF_ALLOW_TEMP_ARRAY_SLICE;
     }
     if (!ConvertExprToType(argtypes[i], &argexpr, conv_flags))
     {

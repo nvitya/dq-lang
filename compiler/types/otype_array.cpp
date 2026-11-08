@@ -1114,16 +1114,16 @@ int OTypeArraySlice::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool con
 
   if (auto * arrlit = dynamic_cast<OArrayLit *>(src); arrlit && (TK_ARRAY == tks))
   {
-    bool allow_literal_slice = (aflags & EXPCF_ALLOW_ARRAY_LITERAL_SLICE)
+    bool allow_temporary_slice = (aflags & EXPCF_ALLOW_TEMP_ARRAY_SLICE)
         || (TK_ANYVALUE == this->elemtype->ResolveAlias()->kind);
-    if (!allow_literal_slice)
+    if (!allow_temporary_slice)
     {
       return ConversionError(resolved_src, aflags);
     }
     int cost = AnalyzeArrayLiteralElements(arrlit, this->elemtype, uint32_t(arrlit->elements.size()), aflags, convert);
     if (convert && (cost >= 0))
     {
-      *rexpr = new OArrayLitToSliceExpr(arrlit, this);
+      *rexpr = new OTempArrayToSliceExpr(arrlit, this);
     }
     return cost;
   }
@@ -1138,12 +1138,20 @@ int OTypeArraySlice::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool con
     return 0;
   }
 
-  // Fixed and dynamic arrays are borrowed through their address
+  // Stable arrays are borrowed directly; temporary arrays live through the consuming call.
   OLValueExpr * lval = dynamic_cast<OLValueExpr *>(src);
   if (!lval)
   {
-    if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_SLICE_CONVERSION);
-    return -1;
+    if (!(aflags & EXPCF_ALLOW_TEMP_ARRAY_SLICE))
+    {
+      if (aflags & EXPCF_GENERATE_ERRORS) g_compiler->Error(DQERR_ARR_SLICE_CONVERSION);
+      return -1;
+    }
+    if (convert)
+    {
+      *rexpr = new OTempArrayToSliceExpr(src, this);
+    }
+    return 1;
   }
   if (convert)
   {

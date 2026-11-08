@@ -227,7 +227,7 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
   if (VSK_CONST == pvalsym->kind)
   {
     OType * resolved_type = pvalsym->ResolvedType();
-    if (resolved_type && (TK_EMBSTR == resolved_type->kind || TK_ROSTR == resolved_type->kind))
+    if (resolved_type && (TK_EMBSTR == resolved_type->kind || TK_ROSTR == resolved_type->kind || TK_STRSLICE == resolved_type->kind))
     {
       // Text metadata needs addressable descriptor storage, even for constants.
       LlValue * embstraddr = CreateEntryBlockAlloca(pvalsym->ptype->GetLlType(), nullptr, "embstr.const.tmp");
@@ -2280,59 +2280,60 @@ OArrayToSliceExpr::~OArrayToSliceExpr()
   delete arrayexpr;
 }
 
-/* ctor */ OArrayLitToSliceExpr::OArrayLitToSliceExpr(OArrayLit * alit, OType * slicetype)
+/* ctor */ OTempArrayToSliceExpr::OTempArrayToSliceExpr(OExpr * aarray, OType * slicetype)
 {
-  arraylit = alit;
+  arrayexpr = aarray;
   ptype = slicetype;
 }
 
-LlValue * OArrayLitToSliceExpr::Generate(OScope * scope)
+LlValue * OTempArrayToSliceExpr::Generate(OScope * scope)
 {
-  OTypeArray * arrtype = static_cast<OTypeArray *>(arraylit->ptype->ResolveAlias());
-  temporary_address = CreateEntryBlockAlloca(arrtype->GetLlType(), nullptr, "arr.lit.tmp");
-  // An element expression may throw before the literal is complete. Its unwind
-  // cleanup must still be able to safely destroy this call-lifetime storage.
-  ll_builder.CreateStore(llvm::ConstantAggregateZero::get(arrtype->GetLlType()), temporary_address);
-  arrtype->GenerateAssignment(scope, temporary_address, arraylit);
+  OType * arrtype = arrayexpr->ResolvedType();
+  temporary_address = CreateEntryBlockAlloca(arrtype->GetLlType(), nullptr, "arr.call.tmp");
+  // Cleanup must also tolerate a literal whose element evaluation throws.
+  ll_builder.CreateStore(llvm::Constant::getNullValue(arrtype->GetLlType()), temporary_address);
+  arrtype->GenerateAssignment(scope, temporary_address, arrayexpr);
 
+  if (auto * dyntype = dynamic_cast<OTypeDynArray *>(arrtype))
+  {
+    return dyntype->GenerateSlice(scope, temporary_address, nullptr, nullptr, ptype);
+  }
+
+  auto * fixedtype = static_cast<OTypeArray *>(arrtype);
   LlValue * ll_zero = LlNativeIntConst(0);
   LlValue * ll_elemptr = ll_builder.CreateGEP(
-      arrtype->GetLlType(), temporary_address, {ll_zero, ll_zero}, "arr.lit.data");
+      arrtype->GetLlType(), temporary_address, {ll_zero, ll_zero}, "arr.call.data");
 
   LlValue * ll_slice = llvm::UndefValue::get(ptype->GetLlType());
   ll_slice = ll_builder.CreateInsertValue(ll_slice, ll_elemptr, 0, "slice.ptr");
   ll_slice = ll_builder.CreateInsertValue(ll_slice,
-      LlNativeIntConst(arrtype->arraylength),
+      LlNativeIntConst(fixedtype->arraylength),
       1, "slice.len");
   return ll_slice;
 }
 
-bool OArrayLitToSliceExpr::NeedsCallCleanup() const
+bool OTempArrayToSliceExpr::NeedsCallCleanup() const
 {
-  auto * arrtype = dynamic_cast<OTypeArray *>(arraylit->ResolvedType());
-  return arrtype && arrtype->RequiresCleanup();
+  return arrayexpr->ResolvedType()->RequiresCleanup();
 }
 
-void OArrayLitToSliceExpr::GenerateCallCleanup(OScope * scope)
+void OTempArrayToSliceExpr::GenerateCallCleanup(OScope * scope)
 {
-  auto * arrtype = static_cast<OTypeArray *>(arraylit->ResolvedType());
   if (!temporary_address)
   {
-    throw logic_error("OArrayLitToSliceExpr::GenerateCallCleanup(): temporary was not generated");
+    throw logic_error("OTempArrayToSliceExpr::GenerateCallCleanup(): temporary was not generated");
   }
-  arrtype->GenerateCleanup(scope, temporary_address);
+  arrayexpr->ResolvedType()->GenerateCleanup(scope, temporary_address);
 }
 
-void OArrayLitToSliceExpr::FoldChildren()
+void OTempArrayToSliceExpr::FoldChildren()
 {
-  OExpr * tmp = arraylit;
-  OExpr::FoldTree(&tmp);
-  arraylit = static_cast<OArrayLit *>(tmp);
+  OExpr::FoldTree(&arrayexpr);
 }
 
-OArrayLitToSliceExpr::~OArrayLitToSliceExpr()
+OTempArrayToSliceExpr::~OTempArrayToSliceExpr()
 {
-  delete arraylit;
+  delete arrayexpr;
 }
 
 void OCallLifetimeCleanup::RestoreScope()

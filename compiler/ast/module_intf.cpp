@@ -2285,17 +2285,17 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
 
   if (DQMIF_VALUE_EMBSTR_POINTER == reader.recid)
   {
-    if (!IsCCharPointerType(atype) && TK_ROSTR != rtype->kind)
+    if (!IsCCharPointerType(atype) && TK_ROSTR != rtype->kind && TK_STRSLICE != rtype->kind)
     {
       return reader.Fail("DQM interface C string pointer value has a non-^char type");
     }
     string value;
     if (!reader.ReadString(value)) return false;
-    if (TK_ROSTR == rtype->kind)
+    if (TK_ROSTR == rtype->kind || TK_STRSLICE == rtype->kind)
     {
-      auto * rovalue = new OValueRoStr(atype);
-      rovalue->literal.string_literal = value;
-      rvalue = rovalue;
+      auto * textvalue = new OValueTextLiteral(atype);
+      textvalue->literal.string_literal = value;
+      rvalue = textvalue;
     }
     else
     {

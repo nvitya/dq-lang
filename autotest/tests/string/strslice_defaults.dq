@@ -1,0 +1,40 @@
+use print
+
+type TText = strslice
+const DEFAULT_TEXT : TText = 'default'
+const ALIAS_TEXT : strslice = DEFAULT_TEXT
+const RO_TEXT : rostr = 'readonly'
+const C_TEXT : ^char = 'pointer'
+
+func Text(value : TText = ALIAS_TEXT) -> strslice:
+    return value
+endfunc
+
+func Empty(value : strslice = '') -> int:
+    return value.length
+endfunc
+
+func Character(value : strslice = 'x') -> strslice:
+    return value
+endfunc
+
+func ReadOnly(value : strslice = RO_TEXT) -> strslice:
+    return value
+endfunc
+
+func Pointer(value : strslice = C_TEXT) -> strslice:
+    return value
+endfunc
+
+func *Main():
+    PrintLn('default = {}', [Text()]) //?check('default', 'default')
+    PrintLn('explicit = {}', [Text('explicit')]) //?check('explicit', 'explicit')
+    PrintLn('empty = {}', [Empty()]) //?check('empty', 0)
+    PrintLn('char = {}', [Character()]) //?check('char', 'x')
+    PrintLn('rostr = {}', [ReadOnly()]) //?check('rostr', 'readonly')
+    PrintLn('pointer = {}', [Pointer()]) //?check('pointer', 'pointer')
+    PrintLn('constant = {}', [DEFAULT_TEXT.length]) //?check('constant', 7)
+
+    var callback : func(value : strslice = 'callback') -> strslice = Text
+    PrintLn('callback = {}', [callback()]) //?check('callback', 'callback')
+endfunc

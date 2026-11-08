@@ -382,7 +382,7 @@ bool OTypeFunc::AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
     OFuncParam * fparam = params[i];
     if (!fparam->IsRefLike())
     {
-      int conv_cost = g_compiler->GetAssignTypeConversionCost(fparam->ptype, callarg.expr, EXPCF_ALLOW_LAZY_EMBSTR | EXPCF_ALLOW_ARRAY_LITERAL_SLICE);
+      int conv_cost = g_compiler->GetAssignTypeConversionCost(fparam->ptype, callarg.expr, EXPCF_ALLOW_LAZY_EMBSTR | EXPCF_ALLOW_TEMP_ARRAY_SLICE);
       if (conv_cost < 0)
       {
         return false;

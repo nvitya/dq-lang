@@ -532,14 +532,14 @@ public:
   void       FoldChildren() override;
 };
 
-// Convert an array literal to a call-lifetime slice temporary.
-class OArrayLitToSliceExpr : public OExpr
+// Borrow a temporary fixed or dynamic array for the lifetime of a call.
+class OTempArrayToSliceExpr : public OExpr
 {
 public:
-  OArrayLit *  arraylit;
-  LlValue *    temporary_address = nullptr;
-  /* ctor */ OArrayLitToSliceExpr(OArrayLit * alit, OType * slicetype);
-  ~OArrayLitToSliceExpr() override;
+  OExpr *     arrayexpr;
+  LlValue *   temporary_address = nullptr;
+  /* ctor */ OTempArrayToSliceExpr(OExpr * aarray, OType * slicetype);
+  ~OTempArrayToSliceExpr() override;
   LlValue *  Generate(OScope * scope) override;
   bool       NeedsCallCleanup() const override;
   void       GenerateCallCleanup(OScope * scope) override;

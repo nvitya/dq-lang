@@ -990,26 +990,26 @@ LlValue * OTypeRoStr::GenerateGetChar(OScope * scope, OLValueExpr * receiver, Ll
       {GenerateTextInfoAddress(scope, receiver), ToNativeInt(index)});
 }
 
-OValueRoStr::OValueRoStr(OType * atype)
+OValueTextLiteral::OValueTextLiteral(OType * atype)
   : OValue(atype), literal(g_builtins->type_char->GetPointerType(), 0)
 {
   literal.has_string_literal = true;
 }
 
-LlConst * OValueRoStr::CreateLlConst()
+LlConst * OValueTextLiteral::CreateLlConst()
 {
   const string * text = literal.GetStringLiteral();
   return llvm::ConstantStruct::get(static_cast<llvm::StructType *>(ptype->GetLlType()),
       {literal.GetLlConst(), llvm::ConstantInt::get(LlU32Type(), text ? text->size() : 0)});
 }
 
-bool OValueRoStr::CalculateConstant(OExpr * expr, bool emit_errors)
+bool OValueTextLiteral::CalculateConstant(OExpr * expr, bool emit_errors)
 {
   if (auto * borrow = dynamic_cast<OTextBorrowExpr *>(expr)) expr = borrow->source;
   if (auto * ref = dynamic_cast<OLValueVar *>(expr))
   {
     auto * symbol = dynamic_cast<OValSymConst *>(ref->pvalsym);
-    auto * value = symbol ? dynamic_cast<OValueRoStr *>(symbol->pvalue) : nullptr;
+    auto * value = symbol ? dynamic_cast<OValueTextLiteral *>(symbol->pvalue) : nullptr;
     if (value)
     {
       literal.string_literal_source = &value->literal;
@@ -1018,6 +1018,11 @@ bool OValueRoStr::CalculateConstant(OExpr * expr, bool emit_errors)
     }
   }
   uint8_t ch;
+  if (auto * conv = dynamic_cast<OExprTypeConv *>(expr);
+      conv && conv->ResolvedType() == g_builtins->type_char && IsCharLiteralExpr(conv->src, ch))
+  {
+    expr = conv->src;
+  }
   if (IsCharLiteralExpr(expr, ch))
   {
     literal.has_string_literal = true;
@@ -1037,7 +1042,7 @@ bool OValueRoStr::CalculateConstant(OExpr * expr, bool emit_errors)
   return true;
 }
 
-bool OValueRoStr::WriteDqmIfValue(ODqmIfWriter & writer)
+bool OValueTextLiteral::WriteDqmIfValue(ODqmIfWriter & writer)
 {
   return literal.WriteDqmIfValue(writer);
 }

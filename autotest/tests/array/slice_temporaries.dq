@@ -1,0 +1,62 @@
+// Array results borrow storage through the consuming call, including cleanup on exceptions.
+use print
+
+var shared : [*]str
+var evaluations : int = 0
+
+func MakeItems() -> [*]str:
+    ++evaluations
+    return ['a', 'b']
+endfunc
+
+func MakeFixed() -> [2]str:
+    return ['fixed', 'items']
+endfunc
+
+func MakeEmpty() -> [*]str:
+    var items : [*]str
+    return items
+endfunc
+
+func SharedItems() -> [*]str:
+    return shared
+endfunc
+
+func JoinItems(items : []str) -> str [[overload]]:
+    return StrJoin(items, '|')
+endfunc
+
+func JoinItems(value : int) -> str [[overload]]:
+    return 'integer'
+endfunc
+
+func Inspect(items : []str, fail : bool = false) -> int:
+    result = shared.refcount
+    if fail:
+        raise Exception('slice')
+    endif
+endfunc
+
+func *Main():
+    shared = ['shared', 'items']
+    PrintLn('dynamic = {}', [JoinItems(MakeItems())]) //?check('dynamic', 'a|b')
+    PrintLn('evaluations = {}', [evaluations]) //?check('evaluations', 1)
+    PrintLn('fixed = {}', [JoinItems(MakeFixed())]) //?check('fixed', 'fixed|items')
+    var empty : str = JoinItems(MakeEmpty())
+    PrintLn('empty = {}', [empty.length]) //?check('empty', 0)
+
+    var callback : func(items : []str) -> str = JoinItems
+    PrintLn('callback = {}', [callback(MakeItems())]) //?check('callback', 'a|b')
+    var copied : [*]str
+    copied.AppendSlice(MakeItems())
+    PrintLn('append = {}', [JoinItems(copied)]) //?check('append', 'a|b')
+
+    PrintLn('during = {}', [Inspect(SharedItems())]) //?check('during', 2)
+    PrintLn('after = {}', [shared.refcount]) //?check('after', 1)
+    PrintLn('lvalue = {}', [Inspect(shared)]) //?check('lvalue', 1)
+    try:
+        Inspect(SharedItems(), true)
+    except Exception as e:
+        PrintLn('unwind = {}', [shared.refcount]) //?check('unwind', 1)
+    endtry
+endfunc

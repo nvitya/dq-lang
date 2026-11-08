@@ -3,283 +3,317 @@
 use print
 use regexp
 
-func BoolInt(avalue : bool) -> int:
-    return iif(avalue, 1, 0)
-endfunc
-
 func JoinItems(aitems : []str) -> str:
     return StrJoin(aitems, '|')
 endfunc
 
-func JoinFindAll(apattern : strslice, atext : strslice) -> str [[overload]]:
-    var items : [*]str = RegExpFindAll(apattern, atext)
-    return StrJoin(items, '|')
-endfunc
-
-func JoinFindAll(apattern : strslice, atext : strslice, aflags : strslice) -> str [[overload]]:
-    var items : [*]str = RegExpFindAll(apattern, atext, aflags)
-    return StrJoin(items, '|')
-endfunc
-
-func JoinSplit(apattern : strslice, atext : strslice) -> str [[overload]]:
-    var items : [*]str = RegExpSplit(apattern, atext)
-    return StrJoin(items, '|')
-endfunc
-
-func JoinSplit(apattern : strslice, atext : strslice, aflags : strslice, amaxsplit : int) -> str [[overload]]:
-    var items : [*]str = RegExpSplit(apattern, atext, aflags, amaxsplit)
-    return StrJoin(items, '|')
-endfunc
-
-func CheckCompileError(alabel : strslice, apattern : strslice, aflags : strslice) [[overload]]:
+func CheckPrepareError(re : ORegExp, alabel : strslice, apattern : strslice, aflags : strslice = ''):
     try:
-        var re <- ORegExp()
-        re.Compile(apattern, aflags)
+        re.Prepare(apattern, aflags)
         PrintLn('{} = no error', [alabel])
     except ERegExp as e:
         PrintLn('{} = {}', [alabel, e.message])
     endtry
 endfunc
 
-func CheckCompileError(alabel : strslice, apattern : strslice) [[overload]]:
-    CheckCompileError(alabel, apattern, '')
-endfunc
-
 func TestBasics():
-    var re <- ORegExp('hello')
-    PrintLn('basic.match.exact = {}', [BoolInt(re.Match('hello'))])
-    PrintLn('basic.match.extra = {}', [BoolInt(re.Match('hello world'))])
-    PrintLn('basic.prefix = {} {}', [BoolInt(re.PrefixMatch('hello world')), BoolInt(re.PrefixMatch('world hello'))])
-    PrintLn('basic.search = {} {} {} {}', [BoolInt(re.Search('say hello world')), re.match, re.match_start, re.match_end])
+    var re <- ORegExp()
+    PrintLn('basic.initial = {} {}', [re.Prepared(), re.prepared])
+    //?check("basic.initial", "false false")
+    re.Prepare('hello')
+    PrintLn('basic.prepared = {} {}', [re.Prepared(), re.prepared])
+    //?check("basic.prepared", "true true")
+    PrintLn('basic.match.exact = {}', [re.Match('hello')])
+    //?check("basic.match.exact", "true")
+    PrintLn('basic.match.extra = {}', [re.Match('hello world')])
+    //?check("basic.match.extra", "false")
+    PrintLn('basic.prefix = {} {}', [re.PrefixMatch('hello world'), re.PrefixMatch('world hello')])
+    //?check("basic.prefix", "true false")
+    PrintLn('basic.search = {} {} {} {}', [re.Search('say hello world'), re.match, re.match_start, re.match_end])
+    //?check("basic.search", "true hello 4 9")
 
-    var re_dot <- ORegExp('h.llo')
-    PrintLn('basic.dot = {} {} {}', [BoolInt(re_dot.Match('hello')), BoolInt(re_dot.Match('hxllo')), BoolInt(re_dot.Match('h\nllo'))])
+    re.Prepare('h.llo')
+    PrintLn('basic.dot = {} {} {}', [re.Match('hello'), re.Match('hxllo'), re.Match('h\nllo')])
+    //?check("basic.dot", "true true false")
 
-    var re_dotall <- ORegExp('h.llo', 's')
-    PrintLn('basic.dotall = {}', [BoolInt(re_dotall.Match('h\nllo'))])
+    re.Prepare('h.llo', 's')
+    PrintLn('basic.dotall = {}', [re.Match('h\nllo')])
+    //?check("basic.dotall", "true")
 
-    var re_esc <- ORegExp('a\.b\*c\+d\?e\x41\n\t\\\\')
-    PrintLn('basic.escapes = {}', [BoolInt(re_esc.Match('a.b*c+d?eA\n\t\\'))])
+    re.Prepare('a\.b\*c\+d\?e\x41\n\t\\\\')
+    PrintLn('basic.escapes = {}', [re.Match('a.b*c+d?eA\n\t\\')])
+    //?check("basic.escapes", "true")
 
     var escaped : str = RegExpEscape('a+b*c?(d)[e]{f}|g^h$i.j\\k')
-    PrintLn('basic.escape_fn = {}', [BoolInt(RegExpMatch(escaped, 'a+b*c?(d)[e]{f}|g^h$i.j\\k'))])
+    PrintLn('basic.escape_fn = {}', [re.Match(escaped, 'a+b*c?(d)[e]{f}|g^h$i.j\\k')])
+    //?check("basic.escape_fn", "true")
 endfunc
 
 func TestFlagsAndAssertions():
-    PrintLn('flags.icase = {} {}', [BoolInt(RegExpMatch('HeLLo', 'hello', 'i')), BoolInt(RegExpMatch('(?i)abc(?-i:DEF)ghi', 'AbcDEFGHI'))])
-    PrintLn('flags.icase_fail = {}', [BoolInt(RegExpMatch('(?i)abc(?-i:DEF)ghi', 'AbcdefGHI'))])
+    var re <- ORegExp()
+    PrintLn('flags.icase = {} {}', [re.Match('HeLLo', 'hello', 'i'), re.Match('(?i)abc(?-i:DEF)ghi', 'AbcDEFGHI')])
+    //?check("flags.icase", "true true")
+    PrintLn('flags.icase_fail = {}', [re.Match('(?i)abc(?-i:DEF)ghi', 'AbcdefGHI')])
+    //?check("flags.icase_fail", "false")
 
     var text : str = 'first line\nsecond line\nthird line'
-    PrintLn('assert.bol_text = {}', [JoinFindAll('^\w+', text)])
-    PrintLn('assert.bol_multi = {}', [JoinFindAll('^\w+', text, 'm')])
-    PrintLn('assert.eol_text = {}', [JoinFindAll('\w+$', text)])
-    PrintLn('assert.eol_multi = {}', [JoinFindAll('\w+$', text, 'm')])
-    PrintLn('assert.A_z = {} {}', [JoinFindAll('\A\w+', text, 'm'), JoinFindAll('\w+\z', text, 'm')])
+    PrintLn('assert.bol_text = {}', [JoinItems(re.FindAll('^\w+', text))])
+    //?check("assert.bol_text", "first")
+    PrintLn('assert.bol_multi = {}', [JoinItems(re.FindAll('^\w+', text, 'm'))])
+    //?check("assert.bol_multi", "first|second|third")
+    PrintLn('assert.eol_text = {}', [JoinItems(re.FindAll('\w+$', text))])
+    //?check("assert.eol_text", "line")
+    PrintLn('assert.eol_multi = {}', [JoinItems(re.FindAll('\w+$', text, 'm'))])
+    //?check("assert.eol_multi", "line|line|line")
+    PrintLn('assert.A_z = {} {}', [JoinItems(re.FindAll('\A\w+', text, 'm')), JoinItems(re.FindAll('\w+\z', text, 'm'))])
+    //?check("assert.A_z", "first line")
 
-    PrintLn('assert.word_bound = {}', [JoinFindAll('\bcat\b', 'cat scatter (cat) tomcat cat!')])
-    PrintLn('assert.non_word = {}', [JoinFindAll('\Bcat\B', 'cat scatter education')])
+    PrintLn('assert.word_bound = {}', [JoinItems(re.FindAll('\bcat\b', 'cat scatter (cat) tomcat cat!'))])
+    //?check("assert.word_bound", "cat|cat|cat")
+    PrintLn('assert.non_word = {}', [JoinItems(re.FindAll('\Bcat\B', 'cat scatter education'))])
+    //?check("assert.non_word", "cat|cat")
 endfunc
 
 func TestCharClasses():
-    PrintLn('class.range = {} {}', [BoolInt(RegExpMatch('[a-f0-9]+', 'deadbeef42')), BoolInt(RegExpMatch('[a-f0-9]+', 'deadbeefg'))])
-    PrintLn('class.neg = {}', [JoinFindAll('[^aeiou\s]+', 'hello world')])
-    PrintLn('class.edge_chars = {} {} {}', [BoolInt(RegExpMatch('[]a-]+', ']a-')), BoolInt(RegExpMatch('[-z]+', '-z')), BoolInt(RegExpMatch('[a-]+', 'a-'))])
-    PrintLn('class.shorthand = {} {} {}', [BoolInt(RegExpMatch('\d+\s+\w+', '123   abc_4')), BoolInt(RegExpMatch('\D+\S+\W+', 'abc!@# ')), BoolInt(RegExpMatch('[\d\s]+', '1 2 3'))])
-    PrintLn('class.icase = {}', [BoolInt(RegExpMatch('[a-c]+', 'AbCaBc', 'i'))])
-    PrintLn('class.posix = {} {} {}', [BoolInt(RegExpMatch('[[:digit:]]+', '98765')), BoolInt(RegExpMatch('[[:alpha:]]+', 'Hello')), BoolInt(RegExpMatch('[[:xdigit:]]+', 'CAFE01'))])
+    var re <- ORegExp()
+    PrintLn('class.range = {} {}', [re.Match('[a-f0-9]+', 'deadbeef42'), re.Match('[a-f0-9]+', 'deadbeefg')])
+    //?check("class.range", "true false")
+    PrintLn('class.neg = {}', [JoinItems(re.FindAll('[^aeiou\s]+', 'hello world'))])
+    //?check("class.neg", "h|ll|w|rld")
+    PrintLn('class.edge_chars = {} {} {}', [re.Match('[]a-]+', ']a-'), re.Match('[-z]+', '-z'), re.Match('[a-]+', 'a-')])
+    //?check("class.edge_chars", "true true true")
+    PrintLn('class.shorthand = {} {} {}', [re.Match('\d+\s+\w+', '123   abc_4'), re.Match('\D+\S+\W+', 'abc!@# '), re.Match('[\d\s]+', '1 2 3')])
+    //?check("class.shorthand", "true true true")
+    PrintLn('class.icase = {}', [re.Match('[a-c]+', 'AbCaBc', 'i')])
+    //?check("class.icase", "true")
+    PrintLn('class.posix = {} {} {}', [re.Match('[[:digit:]]+', '98765'), re.Match('[[:alpha:]]+', 'Hello'), re.Match('[[:xdigit:]]+', 'CAFE01')])
+    //?check("class.posix", "true true true")
 endfunc
 
 func TestQuantifiersAndAlternation():
-    PrintLn('quant.greedy_star = {}', [RegExpFind('<.*>', '<a><b><c>')])
-    PrintLn('quant.lazy_star = {}', [RegExpFind('<.*?>', '<a><b><c>')])
-    PrintLn('quant.greedy_plus = {}', [RegExpFind('a+', 'baaaab')])
-    PrintLn('quant.lazy_plus = {}', [RegExpFind('a+?', 'baaaab')])
-    PrintLn('quant.opt = {} {}', [RegExpFind('colou?r', 'color'), RegExpFind('colou?r', 'colour')])
-    PrintLn('quant.lazy_opt = {} {}', [RegExpFind('ab??', 'ab'), RegExpFind('ab?', 'ab')])
+    var re <- ORegExp()
+    PrintLn('quant.greedy_star = {}', [re.Find('<.*>', '<a><b><c>')])
+    //?check("quant.greedy_star", "<a><b><c>")
+    PrintLn('quant.lazy_star = {}', [re.Find('<.*?>', '<a><b><c>')])
+    //?check("quant.lazy_star", "<a>")
+    PrintLn('quant.greedy_plus = {}', [re.Find('a+', 'baaaab')])
+    //?check("quant.greedy_plus", "aaaa")
+    PrintLn('quant.lazy_plus = {}', [re.Find('a+?', 'baaaab')])
+    //?check("quant.lazy_plus", "a")
+    PrintLn('quant.opt = {} {}', [re.Find('colou?r', 'color'), re.Find('colou?r', 'colour')])
+    //?check("quant.opt", "color colour")
+    PrintLn('quant.lazy_opt = {} {}', [re.Find('ab??', 'ab'), re.Find('ab?', 'ab')])
+    //?check("quant.lazy_opt", "a ab")
 
-    PrintLn('quant.exact = {} {} {}', [BoolInt(RegExpMatch('a{3}', 'aa')), BoolInt(RegExpMatch('a{3}', 'aaa')), BoolInt(RegExpMatch('a{3}', 'aaaa'))])
-    PrintLn('quant.min = {} {}', [RegExpFind('a{2,}', 'baaaab'), RegExpFind('a{2,}?', 'baaaab')])
-    PrintLn('quant.bounded = {} {}', [RegExpFind('a{2,4}', 'baaaaaab'), RegExpFind('a{2,4}?', 'baaaaaab')])
-    PrintLn('quant.zero_min = {} {}', [RegExpFind('b{0,2}', 'bbbbb'), RegExpFind('a{0}b', 'b')])
+    PrintLn('quant.exact = {} {} {}', [re.Match('a{3}', 'aa'), re.Match('a{3}', 'aaa'), re.Match('a{3}', 'aaaa')])
+    //?check("quant.exact", "false true false")
+    PrintLn('quant.min = {} {}', [re.Find('a{2,}', 'baaaab'), re.Find('a{2,}?', 'baaaab')])
+    //?check("quant.min", "aaaa aa")
+    PrintLn('quant.bounded = {} {}', [re.Find('a{2,4}', 'baaaaaab'), re.Find('a{2,4}?', 'baaaaaab')])
+    //?check("quant.bounded", "aaaa aa")
+    PrintLn('quant.zero_min = {} {}', [re.Find('b{0,2}', 'bbbbb'), re.Find('a{0}b', 'b')])
+    //?check("quant.zero_min", "bb b")
 
-    PrintLn('alt.basic = {}', [JoinFindAll('cat|dog|bird', 'I have a dog, a bird, and a cat')])
-    PrintLn('alt.priority = {}', [RegExpFind('foo|foobar', 'foobar')])
-    PrintLn('alt.empty_branch = {} {}', [BoolInt(RegExpMatch('a|', '')), BoolInt(RegExpMatch('|b', 'b'))])
+    PrintLn('alt.basic = {}', [JoinItems(re.FindAll('cat|dog|bird', 'I have a dog, a bird, and a cat'))])
+    //?check("alt.basic", "dog|bird|cat")
+    PrintLn('alt.priority = {}', [re.Find('foo|foobar', 'foobar')])
+    //?check("alt.priority", "foo")
+    PrintLn('alt.empty_branch = {} {}', [re.Match('a|', ''), re.Match('|b', 'b')])
+    //?check("alt.empty_branch", "true true")
 endfunc
 
 func TestGroupsAndCaptures():
-    var re <- ORegExp('(\w+)@([\w.]+)\.([a-z]{2,})')
+    var re <- ORegExp()
+    re.Prepare('(\w+)@([\w.]+)\.([a-z]{2,})')
     var ok : bool = re.Search('Mail to user_1@sub.example.org now')
-    PrintLn('group.basic = {} {} | {} | {} | {}', [BoolInt(ok), re.group_count, re[0], re[1], re[2] + '.' + re[3]])
+    PrintLn('group.basic = {} {} | {} | {} | {}', [ok, re.group_count, re[0], re[1], re[2] + '.' + re[3]])
+    //?check("group.basic", "true 3 | user_1@sub.example.org | user_1 | sub.example.org")
     PrintLn('group.bounds = {}:{} {}:{} len={}', [re.GroupStart(1), re.GroupEnd(1), re.GroupStart(3), re.GroupEnd(3), re.GroupLength(2)])
+    //?check("group.bounds", "8:14 27:30 len=11")
     var all_groups : [*]str = re.Groups()
     PrintLn('group.all = {}', [JoinItems(all_groups)])
+    //?check("group.all", "user_1@sub.example.org|user_1|sub.example|org")
 
-    var re_opt <- ORegExp('^(\d+)(?:-([a-z]+))?-(\d+)$')
-    re_opt.Match('10-20')
-    PrintLn('group.optional_unmatched = {} {} "{}" {}', [BoolInt(re_opt.GroupMatched(1)), BoolInt(re_opt.GroupMatched(2)), re_opt[2], re_opt[3]])
+    re.Prepare('^(\d+)(?:-([a-z]+))?-(\d+)$')
+    re.Match('10-20')
+    PrintLn('group.optional_unmatched = {} {} "{}" {}', [re.GroupMatched(1), re.GroupMatched(2), re[2], re[3]])
+    //?check("group.optional_unmatched", 'true false "" 20')
 
-    var re_rep <- ORegExp('(a+){2}')
-    re_rep.Match('aaab')
-    PrintLn('group.rep_nomatch = {}', [BoolInt(re_rep.matched)])
-    re_rep.Match('aaaa')
-    PrintLn('group.rep_last = {} "{}"', [BoolInt(re_rep.matched), re_rep[1]])
+    re.Prepare('(a+){2}')
+    re.Match('aaab')
+    PrintLn('group.rep_nomatch = {}', [re.matched])
+    //?check("group.rep_nomatch", "false")
+    re.Match('aaaa')
+    PrintLn('group.rep_last = {} "{}"', [re.matched, re[1]])
+    //?check("group.rep_last", 'true "a"')
 
-    var re_empty_loop <- ORegExp('(a*)*')
-    re_empty_loop.Match('')
-    PrintLn('group.empty_loop = {} {} "{}"', [BoolInt(re_empty_loop.matched), BoolInt(re_empty_loop.GroupMatched(1)), re_empty_loop[1]])
+    re.Prepare('(a*)*')
+    re.Match('')
+    PrintLn('group.empty_loop = {} {} "{}"', [re.matched, re.GroupMatched(1), re[1]])
+    //?check("group.empty_loop", 'true true ""')
 
-    var re_named <- ORegExp('(?P<year>\d{4})-(?<month>\d{2})-(?P<day>\d{2})')
-    re_named.Search('Date: 2026-11-07')
+    re.Prepare('(?P<year>\d{4})-(?<month>\d{2})-(?P<day>\d{2})')
+    re.Search('Date: 2026-11-07')
     PrintLn('group.named = {} {} {} idx={} name={}', [
-        re_named.GroupByName('year'),
-        re_named.named_group['month'],
-        re_named.GroupByName('day'),
-        re_named.GroupIndex('month'),
-        re_named.GroupName(3)
+        re.GroupByName('year'),
+        re.named_group['month'],
+        re.GroupByName('day'),
+        re.GroupIndex('month'),
+        re.GroupName(3)
     ])
+    //?check("group.named", "2026 11 07 idx=2 name=day")
 endfunc
 
 func TestIterReplaceSplit():
-    var re <- ORegExp('(\w+)=(\d+)')
+    var re <- ORegExp()
     var items : [*]str = []
-    re.StartSearch('a=10, b=20, c=30')
+    re.StartSearch('(\w+)=(\d+)', 'a=10, b=20, c=30')
     while re.SearchNext():
         items.Append(re[1] + ':' + re[2])
     endwhile
     PrintLn('iter.pairs = {}', [JoinItems(items)])
+    //?check("iter.pairs", "a:10|b:20|c:30")
 
-    PrintLn('findall.empty_star = {}', [JoinFindAll('a*', 'aba')])
-    PrintLn('replace.all = {}', [RegExpReplace('(\w+)=(\d+)', 'a=1, b=22, c=333', '$1:[$2]')])
-    PrintLn('replace.first = {}', [RegExpReplace('\d+', '10 20 30', 'X', '', 1)])
-    PrintLn('replace.count2 = {}', [RegExpReplace('\d+', '10 20 30', 'X', '', 2)])
-    PrintLn('replace.named = {}', [RegExpReplace('(?P<k>\w+)=(?<v>\d+)', 'x=42, y=99', '${k}->${v}($$$&)')])
-    PrintLn('replace.dotstar = {}', [RegExpReplace('.*', 'hello', 'X')])
-    PrintLn('replace.empty_str = {}', [RegExpReplace('.*', '', 'X')])
+    PrintLn('findall.empty_star = {}', [JoinItems(re.FindAll('a*', 'aba'))])
+    //?check("findall.empty_star", "a|a")
+    PrintLn('replace.all = {}', [re.Replace('(\w+)=(\d+)', 'a=1, b=22, c=333', '$1:[$2]')])
+    //?check("replace.all", "a:[1], b:[22], c:[333]")
+    PrintLn('replace.first = {}', [re.Replace('\d+', '10 20 30', 'X', '', 1)])
+    //?check("replace.first", "X 20 30")
+    PrintLn('replace.count2 = {}', [re.Replace('\d+', '10 20 30', 'X', '', 2)])
+    //?check("replace.count2", "X X 30")
+    PrintLn('replace.named = {}', [re.Replace('(?P<k>\w+)=(?<v>\d+)', 'x=42, y=99', '${k}->${v}($$$&)')])
+    //?check("replace.named", "x->42($x=42), y->99($y=99)")
+    PrintLn('replace.dotstar = {}', [re.Replace('.*', 'hello', 'X')])
+    //?check("replace.dotstar", "X")
+    PrintLn('replace.empty_str = {}', [re.Replace('.*', '', 'X')])
+    //?check("replace.empty_str", "X")
 
-    PrintLn('split.ws = {}', [JoinSplit('\s*,\s*', 'one, two ,  three,four')])
-    PrintLn('split.max2 = {}', [JoinSplit('\s*,\s*', 'one, two, three, four', '', 2)])
+    PrintLn('split.ws = {}', [JoinItems(re.Split('\s*,\s*', 'one, two ,  three,four'))])
+    //?check("split.ws", "one|two|three|four")
+    PrintLn('split.max2 = {}', [JoinItems(re.Split('\s*,\s*', 'one, two, three, four', '', 2))])
+    //?check("split.max2", "one|two|three, four")
+endfunc
+
+func TestOverloadsAndReuse():
+    var re <- ORegExp()
+    PrintLn('overload.prefix = {} {} {}', [
+        re.PrefixMatch('hello', 'say hello'),
+        re.PrefixMatch('HELLO', 'say hello', 'i', 4),
+        re.PrefixMatch('say hello', 4)
+    ])
+    //?check("overload.prefix", "false true true")
+    PrintLn('overload.search = {}', [re.Search('hello', 'say hello')])
+    //?check("overload.search", "true")
+    re.Search('(A)', 'banana', 'i', 2)
+    PrintLn('overload.search_state = {} {} {} {}', [re.match_start, re[1], re.pattern, re.flags])
+    //?check("overload.search_state", "3 a (A) i")
+    PrintLn('overload.search_next = {} {}', [re.SearchNext(), re.match_start])
+    //?check("overload.search_next", "true 5")
+
+    re.StartSearch('(A)', 'banana', 'i', 2)
+    PrintLn('overload.start_search = {} {}', [re.SearchNext(), re.match_start])
+    //?check("overload.start_search", "true 3")
+    PrintLn('overload.find = {} {}', [re.Find('banana', 2), re.Find('A', 'banana', 'i', 4)])
+    //?check("overload.find", "a a")
+    PrintLn('overload.find_missing = "{}" {}', [re.Find('missing'), re.matched])
+    //?check("overload.find_missing", '"" false')
+    re.Prepare('a')
+    PrintLn('overload.findall_prepared = {}', [JoinItems(re.FindAll('banana'))])
+    //?check("overload.findall_prepared", "a|a|a")
+
+    PrintLn('overload.replace_flags = {}', [re.Replace('A', 'banana', 'X', 'i', 2)])
+    //?check("overload.replace_flags", "bXnXna")
+    PrintLn('overload.replace_prepared = {}', [re.Replace('banana', 'X', 1)])
+    //?check("overload.replace_prepared", "bXnana")
+    PrintLn('overload.replace_first = {} {} {}', [
+        re.ReplaceFirst('A', 'banana', 'X', 'i'),
+        re.ReplaceFirst('banana', 'X'),
+        re.ReplaceFirst('a', 'banana', 'X')
+    ])
+    //?check("overload.replace_first", "bXnana bXnana bXnana")
+    PrintLn('overload.split_flags = {}', [JoinItems(re.Split('A', 'banana', 'i', 1))])
+    //?check("overload.split_flags", "b|nana")
+    PrintLn('overload.split_prepared = {}', [JoinItems(re.Split('banana', 1))])
+    //?check("overload.split_prepared", "b|nana")
+
+    re.Search('(?P<letter>A)', 'banana', 'i')
+    re.Prepare('')
+    PrintLn('reuse.prepare_resets = {} {} {} {} {} {}', [
+        re.prepared, re.group_count, re.subject == '',
+        re.matched, re.flags == '', re.SearchNext()
+    ])
+    //?check("reuse.prepare_resets", "true 0 true false true false")
+    PrintLn('reuse.empty_pattern = {}', [re.Match('')])
+    //?check("reuse.empty_pattern", "true")
+    re.Clear()
+    PrintLn('reuse.clear = {} {} {}', [re.Prepared(), re.prepared, re.pattern == ''])
+    //?check("reuse.clear", "false false true")
 endfunc
 
 func TestLinearTimePikeVm():
+    var re <- ORegExp()
     // Classic pathological pattern for backtracking engines: (a?){20}a{20}
     // PikeVM executes this in linear time without backtracking blowup.
-    var re <- ORegExp('(a?){20}a{20}')
-    PrintLn('pikevm.linear = {}', [BoolInt(re.Match('aaaaaaaaaaaaaaaaaaaa'))])
+    re.Prepare('(a?){20}a{20}')
+    PrintLn('pikevm.linear = {}', [re.Match('aaaaaaaaaaaaaaaaaaaa')])
+    //?check("pikevm.linear", "true")
 
-    var re2 <- ORegExp('(a+)+b')
-    PrintLn('pikevm.nopathological = {}', [BoolInt(re2.Match('aaaaaaaaaaaaaaaaaaaaaaaaac'))])
+    re.Prepare('(a+)+b')
+    PrintLn('pikevm.nopathological = {}', [re.Match('aaaaaaaaaaaaaaaaaaaaaaaaac')])
+    //?check("pikevm.nopathological", "false")
 endfunc
 
 func TestErrors():
-    CheckCompileError('err.unclosed_group', '(abc')
-    CheckCompileError('err.extra_close', 'abc)')
-    CheckCompileError('err.unclosed_class', '[abc')
-    CheckCompileError('err.bad_range', '[z-a]')
-    CheckCompileError('err.nothing_repeat', '*abc')
-    CheckCompileError('err.assert_repeat', '^*')
-    CheckCompileError('err.multi_repeat', 'a**')
-    CheckCompileError('err.bad_bounds', 'a{4,2}')
-    CheckCompileError('err.dup_group', '(?P<a>x)(?P<a>y)')
-    CheckCompileError('err.bad_escape', '\\q')
-    CheckCompileError('err.bad_flag', 'abc', 'z')
+    var re <- ORegExp()
+    CheckPrepareError(re, 'err.unclosed_group', '(abc')
+    //?check("err.unclosed_group", "RegExp error at position 1: Unterminated group")
+    CheckPrepareError(re, 'err.extra_close', 'abc)')
+    //?check("err.extra_close", 'RegExp error at position 4: Unexpected closing ")"')
+    CheckPrepareError(re, 'err.unclosed_class', '[abc')
+    //?check("err.unclosed_class", "RegExp error at position 1: Unterminated character class")
+    CheckPrepareError(re, 'err.bad_range', '[z-a]')
+    //?check("err.bad_range", "RegExp error at position 5: Character range out of order")
+    CheckPrepareError(re, 'err.nothing_repeat', '*abc')
+    //?check("err.nothing_repeat", "RegExp error at position 1: Nothing to repeat")
+    CheckPrepareError(re, 'err.assert_repeat', '^*')
+    //?check("err.assert_repeat", "RegExp error at position 2: Nothing to repeat")
+    CheckPrepareError(re, 'err.multi_repeat', 'a**')
+    //?check("err.multi_repeat", "RegExp error at position 3: Multiple repeat quantifiers")
+    CheckPrepareError(re, 'err.bad_bounds', 'a{4,2}')
+    //?check("err.bad_bounds", "RegExp error at position 7: Repeat quantifier min greater than max")
+    CheckPrepareError(re, 'err.dup_group', '(?P<a>x)(?P<a>y)')
+    //?check("err.dup_group", "RegExp error at position 14: Duplicate group name")
+    CheckPrepareError(re, 'err.bad_escape', '\\q')
+    //?check("err.bad_escape", "RegExp error at position 3: Invalid escape sequence")
+    CheckPrepareError(re, 'err.bad_flag', 'abc', 'z')
+    //?check("err.bad_flag", 'Invalid regexp flag: "z"')
 
+    PrintLn('err.prepare_state = {} {}', [re.Prepared(), re.prepared])
+    //?check("err.prepare_state", "false false")
     try:
-        var uncompiled <- ORegExp()
-        uncompiled.Match('abc')
-        PrintLn('err.uncompiled = no error')
+        re.Match('abc')
+        PrintLn('err.unprepared = no error')
     except ERegExp as e:
-        Print('err.uncompiled = ')
+        Print('err.unprepared = ')
         e.PrintMessage()
         PrintLn('')
     endtry
+    //?check("err.unprepared", "Regular expression is not prepared")
+    PrintLn('err.recovery = {}', [re.Match('abc', 'abc')])
+    //?check("err.recovery", "true")
 endfunc
 
 func *Main():
     TestBasics()
-    //?check("basic.match.exact", 1)
-    //?check("basic.match.extra", 0)
-    //?check("basic.prefix", "1 0")
-    //?check("basic.search", "1 hello 4 9")
-    //?check("basic.dot", "1 1 0")
-    //?check("basic.dotall", 1)
-    //?check("basic.escapes", 1)
-    //?check("basic.escape_fn", 1)
-
     TestFlagsAndAssertions()
-    //?check("flags.icase", "1 1")
-    //?check("flags.icase_fail", 0)
-    //?check("assert.bol_text", "first")
-    //?check("assert.bol_multi", "first|second|third")
-    //?check("assert.eol_text", "line")
-    //?check("assert.eol_multi", "line|line|line")
-    //?check("assert.A_z", "first line")
-    //?check("assert.word_bound", "cat|cat|cat")
-    //?check("assert.non_word", "cat|cat")
-
     TestCharClasses()
-    //?check("class.range", "1 0")
-    //?check("class.neg", "h|ll|w|rld")
-    //?check("class.edge_chars", "1 1 1")
-    //?check("class.shorthand", "1 1 1")
-    //?check("class.icase", 1)
-    //?check("class.posix", "1 1 1")
-
     TestQuantifiersAndAlternation()
-    //?check("quant.greedy_star", "<a><b><c>")
-    //?check("quant.lazy_star", "<a>")
-    //?check("quant.greedy_plus", "aaaa")
-    //?check("quant.lazy_plus", "a")
-    //?check("quant.opt", "color colour")
-    //?check("quant.lazy_opt", "a ab")
-    //?check("quant.exact", "0 1 0")
-    //?check("quant.min", "aaaa aa")
-    //?check("quant.bounded", "aaaa aa")
-    //?check("quant.zero_min", "bb b")
-    //?check("alt.basic", "dog|bird|cat")
-    //?check("alt.priority", "foo")
-    //?check("alt.empty_branch", "1 1")
-
     TestGroupsAndCaptures()
-    //?check("group.basic", "1 3 | user_1@sub.example.org | user_1 | sub.example.org")
-    //?check("group.bounds", "8:14 27:30 len=11")
-    //?check("group.all", "user_1@sub.example.org|user_1|sub.example|org")
-    //?check("group.optional_unmatched", '1 0 "" 20')
-    //?check("group.rep_nomatch", 0)
-    //?check("group.rep_last", '1 "a"')
-    //?check("group.empty_loop", '1 1 ""')
-    //?check("group.named", "2026 11 07 idx=2 name=day")
-
     TestIterReplaceSplit()
-    //?check("iter.pairs", "a:10|b:20|c:30")
-    //?check("findall.empty_star", "a|a")
-    //?check("replace.all", "a:[1], b:[22], c:[333]")
-    //?check("replace.first", "X 20 30")
-    //?check("replace.count2", "X X 30")
-    //?check("replace.named", "x->42($x=42), y->99($y=99)")
-    //?check("replace.dotstar", "X")
-    //?check("replace.empty_str", "X")
-    //?check("split.ws", "one|two|three|four")
-    //?check("split.max2", "one|two|three, four")
-
+    TestOverloadsAndReuse()
     TestLinearTimePikeVm()
-    //?check("pikevm.linear", 1)
-    //?check("pikevm.nopathological", 0)
-
     TestErrors()
-    //?check("err.unclosed_group", "RegExp error at position 1: Unterminated group")
-    //?check("err.extra_close", 'RegExp error at position 4: Unexpected closing ")"')
-    //?check("err.unclosed_class", "RegExp error at position 1: Unterminated character class")
-    //?check("err.bad_range", "RegExp error at position 5: Character range out of order")
-    //?check("err.nothing_repeat", "RegExp error at position 1: Nothing to repeat")
-    //?check("err.assert_repeat", "RegExp error at position 2: Nothing to repeat")
-    //?check("err.multi_repeat", "RegExp error at position 3: Multiple repeat quantifiers")
-    //?check("err.bad_bounds", "RegExp error at position 7: Repeat quantifier min greater than max")
-    //?check("err.dup_group", "RegExp error at position 14: Duplicate group name")
-    //?check("err.bad_escape", "RegExp error at position 3: Invalid escape sequence")
-    //?check("err.bad_flag", 'Invalid regexp flag: "z"')
-    //?check("err.uncompiled", "Regular expression is not compiled")
-
     PrintLn('heap.remaining = {}', [heap_allocated_size])
     //?check("heap.remaining", 0)
 endfunc

@@ -144,6 +144,17 @@ public:
   static LlValue * GenerateConcatFromStringValue(OScope * scope, LlValue * leftvalue, OExpr * right);
 };
 
+// Literal-backed rostr and strslice constants share relocatable text storage.
+class OValueTextLiteral : public OValue
+{
+public:
+  OValuePointer literal;
+  OValueTextLiteral(OType * atype);
+  LlConst * CreateLlConst() override;
+  bool CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool WriteDqmIfValue(ODqmIfWriter & writer) override;
+};
+
 class OTypeStrSlice : public OTypeString
 {
 private:
@@ -158,20 +169,10 @@ public:
     bytesize = AlignUpU32(TARGET_PTRSIZE + 4, alignsize);
   }
 
+  OValue * CreateValue() override { return new OValueTextLiteral(this); }
   LlValue * GenerateLength(OScope * scope, LlValue * straddr) override;
   LlValue * GeneratePChar(OScope * scope, LlValue * straddr) override;
   LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) override;
-};
-
-// Literal-backed rostr constants reuse relocatable C string literal storage.
-class OValueRoStr : public OValue
-{
-public:
-  OValuePointer literal;
-  OValueRoStr(OType * atype);
-  LlConst * CreateLlConst() override;
-  bool CalculateConstant(OExpr * expr, bool emit_errors = true) override;
-  bool WriteDqmIfValue(ODqmIfWriter & writer) override;
 };
 
 class OTypeRoStr : public OTypeString
@@ -183,7 +184,7 @@ public:
     bytesize = AlignUpU32(TARGET_PTRSIZE + 4, alignsize);
   }
 
-  OValue * CreateValue() override { return new OValueRoStr(this); }
+  OValue * CreateValue() override { return new OValueTextLiteral(this); }
   int AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert) override;
   LlValue * GenerateLength(OScope * scope, LlValue * straddr) override;
   LlValue * GeneratePChar(OScope * scope, LlValue * straddr) override;

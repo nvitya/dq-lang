@@ -247,6 +247,24 @@ func *Main():
 endfunc
 ```
 
+You can also pass an array returned by a function directly to a slice parameter:
+
+```dq
+func MakeItems() -> [*]str:
+    return ["a", "b"]
+endfunc
+
+func JoinItems(items : []str) -> str:
+    return StrJoin(items, "|")
+endfunc
+
+// JoinItems(MakeItems()) returns "a|b".
+```
+
+The temporary array stays alive until the receiving call finishes, including
+when it raises an exception. A slice borrowed from that temporary must not be
+kept after the call returns. This also applies to returned fixed arrays.
+
 A slice parameter can also change the caller's elements, just like the `middle`
 slice in the previous section. For a function that adds or removes elements,
 use a dynamic array passed by reference:

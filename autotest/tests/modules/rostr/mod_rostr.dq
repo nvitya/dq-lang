@@ -11,6 +11,7 @@ endstruct
 
 func Borrow(text : TText = MODULE_TEXT) -> rostr ..
 func ReadLength(text : refin rostr) -> int ..
+func SliceDefault(text : strslice = MODULE_TEXT) -> strslice ..
 
 implementation
 
@@ -20,4 +21,8 @@ endfunc
 
 func ReadLength(text : refin rostr) -> int:
     return text.length
+endfunc
+
+func SliceDefault(text : strslice = MODULE_TEXT) -> strslice:
+    return text
 endfunc

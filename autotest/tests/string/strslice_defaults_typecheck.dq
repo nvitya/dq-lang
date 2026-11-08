@@ -1,0 +1,11 @@
+// Defaults must refer to constant text storage.
+
+func RuntimeText() -> strslice:
+    return 'runtime'
+endfunc
+
+func Nonconstant(text : strslice = RuntimeText()): //?error(ConstExprInvalid)
+endfunc
+
+func InvalidType(text : strslice = 123): //?error(TypeMismatchAssign)
+endfunc

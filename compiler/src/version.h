@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.9"
+#define DQ_COMPILER_VERSION  "0.95.10"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.10:
+  - support default values for strslice
+  - creating temporary variables for returning array slices
+  - regexp interface rework
 v0.95.9:
   - StrSplit() and StrJoin() functions
 v0.95.8:

@@ -853,7 +853,7 @@ bool ODqCompAst::SupportsFuncParamDefaultType(OType * ptype)
 
   if ((TK_INT == resolved->kind) || (TK_CHAR == resolved->kind) || (TK_WCHAR == resolved->kind) || (TK_FLOAT == resolved->kind)
       || (TK_BOOL == resolved->kind) || (TK_ARRAY == resolved->kind)
-      || (TK_POINTER == resolved->kind) || (TK_ENUM == resolved->kind) || (TK_ROSTR == resolved->kind))
+      || (TK_POINTER == resolved->kind) || (TK_ENUM == resolved->kind) || (TK_ROSTR == resolved->kind) || (TK_STRSLICE == resolved->kind))
   {
     return true;
   }
@@ -1424,7 +1424,7 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
       {
         OType * argtype = tfunc->params[pcnt]->ptype;
         if (!ConvertExprToType(argtype, &argexpr,
-                               EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR | EXPCF_ALLOW_ARRAY_LITERAL_SLICE))
+                               EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR | EXPCF_ALLOW_TEMP_ARRAY_SLICE))
         {
           bok = false;
           break;

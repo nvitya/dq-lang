@@ -56,9 +56,9 @@ private
     m_pattern           : str
     m_flags_str         : str
     m_base_flags        : uint = 0
-    m_compile_flags     : uint = 0
+    m_prepare_flags     : uint = 0
     m_parse_pos         : int = 0
-    m_compiled          : bool = false
+    m_prepared          : bool = false
 
     m_prog              : [*]SRegInst
     m_classes           : [*]SCharClass
@@ -111,7 +111,7 @@ private
     func ParseRepeatBounds(rmin : refout int, rmax : refout int) ..
     func ReadRepeatInt() -> int ..
 
-    func EnsureCompiled() ..
+    func EnsurePrepared() ..
     func PrepareVmBuffers() ..
     func NextStepId() ..
     func ResetWorkCaps() ..
@@ -122,19 +122,20 @@ private
     func SearchInSubject(astart : int) -> bool ..
 
 public
-    func *Create()                                          [[overload]] ..
-    func *Create(apattern : strslice)                       [[overload]] ..
-    func *Create(apattern : strslice, aflags : strslice)    [[overload]] ..
+    func *Create() ..
 
     func Clear() ..
-    func Compile(apattern : strslice)                       [[overload]] ..
-    func Compile(apattern : strslice, aflags : strslice)    [[overload]] ..
-    func Compiled() -> bool ..
+    func Prepare(apattern : strslice, aflags : strslice = '') ..
+    func Prepared() -> bool ..
 
-    func Match(atext : strslice) -> bool ..
-    func PrefixMatch(atext : strslice, astart : int = 0) -> bool ..
-    func Search(atext : strslice, astart : int = 0) -> bool ..
-    func StartSearch(atext : strslice, astart : int = 0) ..
+    func Match(atext : strslice) -> bool [[overload]] ..
+    func Match(apattern : strslice, atext : strslice, aflags : strslice = '') -> bool [[overload]] ..
+    func PrefixMatch(atext : strslice, astart : int = 0) -> bool [[overload]] ..
+    func PrefixMatch(apattern : strslice, atext : strslice, aflags : strslice = '', astart : int = 0) -> bool [[overload]] ..
+    func Search(atext : strslice, astart : int = 0) -> bool [[overload]] ..
+    func Search(apattern : strslice, atext : strslice, aflags : strslice = '', astart : int = 0) -> bool [[overload]] ..
+    func StartSearch(atext : strslice, astart : int = 0) [[overload]] ..
+    func StartSearch(apattern : strslice, atext : strslice, aflags : strslice = '', astart : int = 0) [[overload]] ..
     func SearchNext() -> bool ..
 
     func GetMatch() -> str ..
@@ -153,12 +154,18 @@ public
     func Groups() -> [*]str ..
 
     func Expand(areplacement : strslice) -> str ..
-    func FindAll(atext : strslice) -> [*]str ..
-    func Replace(atext : strslice, areplacement : strslice, acount : int = 0) -> str ..
-    func ReplaceFirst(atext : strslice, areplacement : strslice) -> str ..
-    func Split(atext : strslice, amaxsplit : int = 0) -> [*]str ..
+    func Find(atext : strslice, astart : int = 0) -> str [[overload]] ..
+    func Find(apattern : strslice, atext : strslice, aflags : strslice = '', astart : int = 0) -> str [[overload]] ..
+    func FindAll(atext : strslice) -> [*]str [[overload]] ..
+    func FindAll(apattern : strslice, atext : strslice, aflags : strslice = '') -> [*]str [[overload]] ..
+    func Replace(atext : strslice, areplacement : strslice, acount : int = 0) -> str [[overload]] ..
+    func Replace(apattern : strslice, atext : strslice, areplacement : strslice, aflags : strslice = '', acount : int = 0) -> str [[overload]] ..
+    func ReplaceFirst(atext : strslice, areplacement : strslice) -> str [[overload]] ..
+    func ReplaceFirst(apattern : strslice, atext : strslice, areplacement : strslice, aflags : strslice = '') -> str [[overload]] ..
+    func Split(atext : strslice, amaxsplit : int = 0) -> [*]str [[overload]] ..
+    func Split(apattern : strslice, atext : strslice, aflags : strslice = '', amaxsplit : int = 0) -> [*]str [[overload]] ..
 
-    property compiled    : bool                  read m_compiled
+    property prepared    : bool                  read m_prepared
     property pattern     : str                   read m_pattern
     property flags       : str                   read m_flags_str
     property subject     : str                   read m_subject
@@ -172,18 +179,6 @@ public
     property named_group : [aname : strslice]str read GroupByName
 endobject
 
-func RegExpMatch(apattern : strslice, atext : strslice) -> bool                                                 [[overload]] ..
-func RegExpMatch(apattern : strslice, atext : strslice, aflags : strslice) -> bool                              [[overload]] ..
-func RegExpSearch(apattern : strslice, atext : strslice) -> bool                                                [[overload]] ..
-func RegExpSearch(apattern : strslice, atext : strslice, aflags : strslice) -> bool                             [[overload]] ..
-func RegExpFind(apattern : strslice, atext : strslice) -> str                                                   [[overload]] ..
-func RegExpFind(apattern : strslice, atext : strslice, aflags : strslice) -> str                                [[overload]] ..
-func RegExpFindAll(apattern : strslice, atext : strslice) -> [*]str                                             [[overload]] ..
-func RegExpFindAll(apattern : strslice, atext : strslice, aflags : strslice) -> [*]str                          [[overload]] ..
-func RegExpReplace(apattern : strslice, atext : strslice, areplacement : strslice) -> str                       [[overload]] ..
-func RegExpReplace(apattern : strslice, atext : strslice, areplacement : strslice, aflags : strslice, acount : int = 0) -> str  [[overload]] ..
-func RegExpSplit(apattern : strslice, atext : strslice) -> [*]str                                               [[overload]] ..
-func RegExpSplit(apattern : strslice, atext : strslice, aflags : strslice, amaxsplit : int = 0) -> [*]str       [[overload]] ..
 func RegExpEscape(atext : strslice) -> str ..
 
 implementation
@@ -204,6 +199,20 @@ const MODE_PREFIX_MATCH : int = 1
 const MODE_FULL_MATCH   : int = 2
 
 const MAX_REPEAT_COUNT  : int = 1000
+
+func RegExpEscape(atext : strslice) -> str:
+    result = ''
+    result.Reserve(atext.length * 2)
+    for i : int = 0 count atext.length:
+        var ch : char = atext[i]
+        if (ch == '.' or ch == '^' or ch == '$' or ch == '*' or ch == '+' or ch == '?'
+            or ch == '(' or ch == ')' or ch == '[' or ch == ']' or ch == '{' or ch == '}'
+            or ch == '|' or ch == char(92)):
+            result.Append(char(92))
+        endif
+        result.Append(ch)
+    endfor
+endfunc
 
 func LowerAscii(ach : char) -> char:
     if 'A' <= ach <= 'Z':
@@ -366,27 +375,19 @@ func SCharClass.Contains(ach : char) -> bool:
 endfunc
 
 //------------------------------------------------------------------------------
-// ORegExp Creation & Compilation
+// ORegExp Creation & Preparation
 //------------------------------------------------------------------------------
 
-func ORegExp.*Create() [[overload]]:
-endfunc
-
-func ORegExp.*Create(apattern : strslice) [[overload]]:
-    Compile(apattern, '')
-endfunc
-
-func ORegExp.*Create(apattern : strslice, aflags : strslice) [[overload]]:
-    Compile(apattern, aflags)
+func ORegExp.*Create():
 endfunc
 
 func ORegExp.Clear():
     m_pattern = ''
     m_flags_str = ''
     m_base_flags = 0
-    m_compile_flags = 0
+    m_prepare_flags = 0
     m_parse_pos = 0
-    m_compiled = false
+    m_prepared = false
 
     m_prog.Clear()
     m_classes.Clear()
@@ -434,16 +435,12 @@ func ORegExp.ParseFlagsString(aflags : strslice) -> uint:
     endfor
 endfunc
 
-func ORegExp.Compile(apattern : strslice) [[overload]]:
-    Compile(apattern, '')
-endfunc
-
-func ORegExp.Compile(apattern : strslice, aflags : strslice) [[overload]]:
+func ORegExp.Prepare(apattern : strslice, aflags : strslice = ''):
     Clear()
     m_pattern = apattern
     m_flags_str = aflags
     m_base_flags = ParseFlagsString(aflags)
-    m_compile_flags = m_base_flags
+    m_prepare_flags = m_base_flags
     m_parse_pos = 0
 
     // Group 0 is the entire match; m_group_names[0] is reserved for it.
@@ -459,11 +456,11 @@ func ORegExp.Compile(apattern : strslice, aflags : strslice) [[overload]]:
 
     m_slot_count = (m_group_count + 1) * 2
     PrepareVmBuffers()
-    m_compiled = true
+    m_prepared = true
 endfunc
 
-func ORegExp.Compiled() -> bool:
-    return m_compiled
+func ORegExp.Prepared() -> bool:
+    return m_prepared
 endfunc
 
 func ORegExp.Emit(aop : NRegOp, aout : int = 0, aout1 : int = 0) -> int:
@@ -479,7 +476,7 @@ func ORegExp.EmitIdx(aop : NRegOp, aidx : int) -> int:
 endfunc
 
 func ORegExp.EmitChar(ach : char):
-    if (m_compile_flags & @.FLAG_ICASE) <> 0 and (('A' <= ach <= 'Z') or ('a' <= ach <= 'z')):
+    if (m_prepare_flags & @.FLAG_ICASE) <> 0 and (('A' <= ach <= 'Z') or ('a' <= ach <= 'z')):
         var inst : SRegInst = {op: riCharI, ch: @.LowerAscii(ach), idx: 0, out: 0, out1: 0}
         m_prog.Append(inst)
     else:
@@ -671,7 +668,7 @@ func ORegExp.ParseAtom(quantifiable : refout bool) -> int:
         ParseCharClass()
     elif ch == '.':
         ++m_parse_pos
-        if (m_compile_flags & @.FLAG_DOTALL) <> 0:
+        if (m_prepare_flags & @.FLAG_DOTALL) <> 0:
             Emit(riAnyDotAll, 0, 0)
         else:
             Emit(riAny, 0, 0)
@@ -679,11 +676,11 @@ func ORegExp.ParseAtom(quantifiable : refout bool) -> int:
     elif ch == '^':
         ++m_parse_pos
         quantifiable = false
-        EmitIdx(riAssert, iif((m_compile_flags & @.FLAG_MULTILINE) <> 0, @.ASSERT_BOL_LINE, @.ASSERT_BOL_TEXT))
+        EmitIdx(riAssert, iif((m_prepare_flags & @.FLAG_MULTILINE) <> 0, @.ASSERT_BOL_LINE, @.ASSERT_BOL_TEXT))
     elif ch == '$':
         ++m_parse_pos
         quantifiable = false
-        EmitIdx(riAssert, iif((m_compile_flags & @.FLAG_MULTILINE) <> 0, @.ASSERT_EOL_LINE, @.ASSERT_EOL_TEXT))
+        EmitIdx(riAssert, iif((m_prepare_flags & @.FLAG_MULTILINE) <> 0, @.ASSERT_EOL_LINE, @.ASSERT_EOL_TEXT))
     elif ch == char(92):  // '\'
         ++m_parse_pos
         if m_parse_pos >= m_pattern.length:
@@ -707,7 +704,7 @@ func ORegExp.ParseAtom(quantifiable : refout bool) -> int:
             var lit : char = ParseEscapeChar(kind)
             if kind <> char(0):
                 var cls : SCharClass = {}
-                cls.AddShorthand(kind, (m_compile_flags & @.FLAG_ICASE) <> 0)
+                cls.AddShorthand(kind, (m_prepare_flags & @.FLAG_ICASE) <> 0)
                 EmitClass(cls)
             else:
                 EmitChar(lit)
@@ -722,10 +719,10 @@ func ORegExp.ParseAtom(quantifiable : refout bool) -> int:
 endfunc
 
 func ORegExp.ParseGroupBody(aopen_pos : int, aflags : uint):
-    var saved_flags : uint = m_compile_flags
-    m_compile_flags = aflags
+    var saved_flags : uint = m_prepare_flags
+    m_prepare_flags = aflags
     ParseAlternation()
-    m_compile_flags = saved_flags
+    m_prepare_flags = saved_flags
 
     if m_parse_pos >= m_pattern.length or m_pattern[m_parse_pos] <> ')':
         ErrorAt(aopen_pos, 'Unterminated group')
@@ -739,7 +736,7 @@ func ORegExp.EmitCapturingGroup(aopen_pos : int, agname : str):
     m_group_names.Append(agname)
 
     EmitIdx(riSave, gidx * 2)
-    ParseGroupBody(aopen_pos, m_compile_flags)
+    ParseGroupBody(aopen_pos, m_prepare_flags)
     EmitIdx(riSave, gidx * 2 + 1)
 endfunc
 
@@ -792,12 +789,12 @@ func ORegExp.ParseGroup(quantifiable : refout bool):
         endif
 
         // Inline flags (?ims-ims) or non-capturing group (?:...) / (?ims:...)
-        var new_flags : uint = m_compile_flags
+        var new_flags : uint = m_prepare_flags
         ParseInlineFlags(new_flags)
 
         if m_parse_pos < m_pattern.length and m_pattern[m_parse_pos] == ')':
             ++m_parse_pos
-            m_compile_flags = new_flags
+            m_prepare_flags = new_flags
             quantifiable = false
             return
         endif
@@ -853,7 +850,7 @@ func ORegExp.ParseCharClass():
         ErrorAt(open_pos, 'Unterminated character class')
     endif
 
-    var icase : bool = (m_compile_flags & @.FLAG_ICASE) <> 0
+    var icase : bool = (m_prepare_flags & @.FLAG_ICASE) <> 0
     var negated : bool = false
     if m_pattern[m_parse_pos] == '^':
         negated = true
@@ -1053,9 +1050,9 @@ endfunc
 // PikeVM Execution
 //------------------------------------------------------------------------------
 
-func ORegExp.EnsureCompiled():
-    if not m_compiled:
-        raise ERegExp('Regular expression is not compiled')
+func ORegExp.EnsurePrepared():
+    if not m_prepared:
+        raise ERegExp('Regular expression is not prepared')
     endif
 endfunc
 
@@ -1158,7 +1155,7 @@ func ORegExp.AddThread(apc : int, atext : strslice, apos : int):
 endfunc
 
 func ORegExp.RunVm(atext : strslice, astart : int, amode : int) -> bool:
-    EnsureCompiled()
+    EnsurePrepared()
     m_matched = false
     for i : int = 0 count m_slot_count:
         m_best_caps[i] = -1
@@ -1223,14 +1220,24 @@ endfunc
 // Public Matching, Searching, and Replacement Methods
 //------------------------------------------------------------------------------
 
-func ORegExp.Match(atext : strslice) -> bool:
+func ORegExp.Match(apattern : strslice, atext : strslice, aflags : strslice = '') -> bool [[overload]]:
+    Prepare(apattern, aflags)
+    return Match(atext)
+endfunc
+
+func ORegExp.Match(atext : strslice) -> bool [[overload]]:
     m_subject = atext
     m_search_ready = false
     m_prev_nonempty_end = -1
     return RunVm(m_subject, 0, @.MODE_FULL_MATCH)
 endfunc
 
-func ORegExp.PrefixMatch(atext : strslice, astart : int = 0) -> bool:
+func ORegExp.PrefixMatch(apattern : strslice, atext : strslice, aflags : strslice = '', astart : int = 0) -> bool [[overload]]:
+    Prepare(apattern, aflags)
+    return PrefixMatch(atext, astart)
+endfunc
+
+func ORegExp.PrefixMatch(atext : strslice, astart : int = 0) -> bool [[overload]]:
     m_subject = atext
     m_search_ready = false
     m_prev_nonempty_end = -1
@@ -1271,8 +1278,13 @@ func ORegExp.SearchInSubject(astart : int) -> bool:
     return false
 endfunc
 
-func ORegExp.Search(atext : strslice, astart : int = 0) -> bool:
-    EnsureCompiled()
+func ORegExp.Search(apattern : strslice, atext : strslice, aflags : strslice = '', astart : int = 0) -> bool [[overload]]:
+    Prepare(apattern, aflags)
+    return Search(atext, astart)
+endfunc
+
+func ORegExp.Search(atext : strslice, astart : int = 0) -> bool [[overload]]:
+    EnsurePrepared()
     m_subject = atext
     if astart < 0 or astart > m_subject.length:
         m_matched = false
@@ -1284,8 +1296,13 @@ func ORegExp.Search(atext : strslice, astart : int = 0) -> bool:
     return SearchInSubject(astart)
 endfunc
 
-func ORegExp.StartSearch(atext : strslice, astart : int = 0):
-    EnsureCompiled()
+func ORegExp.StartSearch(apattern : strslice, atext : strslice, aflags : strslice = '', astart : int = 0) [[overload]]:
+    Prepare(apattern, aflags)
+    StartSearch(atext, astart)
+endfunc
+
+func ORegExp.StartSearch(atext : strslice, astart : int = 0) [[overload]]:
+    EnsurePrepared()
     m_subject = atext
     m_matched = false
     m_prev_nonempty_end = -1
@@ -1299,7 +1316,7 @@ func ORegExp.StartSearch(atext : strslice, astart : int = 0):
 endfunc
 
 func ORegExp.SearchNext() -> bool:
-    EnsureCompiled()
+    EnsurePrepared()
     if not m_search_ready:
         m_matched = false
         return false
@@ -1465,7 +1482,22 @@ func ORegExp.Expand(areplacement : strslice) -> str:
     endwhile
 endfunc
 
-func ORegExp.FindAll(atext : strslice) -> [*]str:
+func ORegExp.Find(apattern : strslice, atext : strslice, aflags : strslice = '', astart : int = 0) -> str [[overload]]:
+    Prepare(apattern, aflags)
+    return Find(atext, astart)
+endfunc
+
+func ORegExp.Find(atext : strslice, astart : int = 0) -> str [[overload]]:
+    Search(atext, astart)
+    return GetMatch()
+endfunc
+
+func ORegExp.FindAll(apattern : strslice, atext : strslice, aflags : strslice = '') -> [*]str [[overload]]:
+    Prepare(apattern, aflags)
+    return FindAll(atext)
+endfunc
+
+func ORegExp.FindAll(atext : strslice) -> [*]str [[overload]]:
     result = []
     StartSearch(atext, 0)
     while SearchNext():
@@ -1473,8 +1505,13 @@ func ORegExp.FindAll(atext : strslice) -> [*]str:
     endwhile
 endfunc
 
-func ORegExp.Replace(atext : strslice, areplacement : strslice, acount : int = 0) -> str:
-    EnsureCompiled()
+func ORegExp.Replace(apattern : strslice, atext : strslice, areplacement : strslice, aflags : strslice = '', acount : int = 0) -> str [[overload]]:
+    Prepare(apattern, aflags)
+    return Replace(atext, areplacement, acount)
+endfunc
+
+func ORegExp.Replace(atext : strslice, areplacement : strslice, acount : int = 0) -> str [[overload]]:
+    EnsurePrepared()
     result = ''
     var src : str = atext
     var last_end : int = 0
@@ -1497,12 +1534,22 @@ func ORegExp.Replace(atext : strslice, areplacement : strslice, acount : int = 0
     endif
 endfunc
 
-func ORegExp.ReplaceFirst(atext : strslice, areplacement : strslice) -> str:
+func ORegExp.ReplaceFirst(apattern : strslice, atext : strslice, areplacement : strslice, aflags : strslice = '') -> str [[overload]]:
+    Prepare(apattern, aflags)
+    return ReplaceFirst(atext, areplacement)
+endfunc
+
+func ORegExp.ReplaceFirst(atext : strslice, areplacement : strslice) -> str [[overload]]:
     return Replace(atext, areplacement, 1)
 endfunc
 
-func ORegExp.Split(atext : strslice, amaxsplit : int = 0) -> [*]str:
-    EnsureCompiled()
+func ORegExp.Split(apattern : strslice, atext : strslice, aflags : strslice = '', amaxsplit : int = 0) -> [*]str [[overload]]:
+    Prepare(apattern, aflags)
+    return Split(atext, amaxsplit)
+endfunc
+
+func ORegExp.Split(atext : strslice, amaxsplit : int = 0) -> [*]str [[overload]]:
+    EnsurePrepared()
     result = []
     var src : str = atext
     var last_end : int = 0
@@ -1521,88 +1568,4 @@ func ORegExp.Split(atext : strslice, amaxsplit : int = 0) -> [*]str:
     endwhile
 
     result.Append(src[last_end:])
-endfunc
-
-//------------------------------------------------------------------------------
-// Package-level Convenience Functions
-//------------------------------------------------------------------------------
-
-func RegExpMatch(apattern : strslice, atext : strslice) -> bool [[overload]]:
-    var re <- ORegExp(apattern)
-    return re.Match(atext)
-endfunc
-
-func RegExpMatch(apattern : strslice, atext : strslice, aflags : strslice) -> bool [[overload]]:
-    var re <- ORegExp(apattern, aflags)
-    return re.Match(atext)
-endfunc
-
-func RegExpSearch(apattern : strslice, atext : strslice) -> bool [[overload]]:
-    var re <- ORegExp(apattern)
-    return re.Search(atext)
-endfunc
-
-func RegExpSearch(apattern : strslice, atext : strslice, aflags : strslice) -> bool [[overload]]:
-    var re <- ORegExp(apattern, aflags)
-    return re.Search(atext)
-endfunc
-
-func RegExpFind(apattern : strslice, atext : strslice) -> str [[overload]]:
-    var re <- ORegExp(apattern)
-    if re.Search(atext):
-        return re.match
-    endif
-    return ''
-endfunc
-
-func RegExpFind(apattern : strslice, atext : strslice, aflags : strslice) -> str [[overload]]:
-    var re <- ORegExp(apattern, aflags)
-    if re.Search(atext):
-        return re.match
-    endif
-    return ''
-endfunc
-
-func RegExpFindAll(apattern : strslice, atext : strslice) -> [*]str [[overload]]:
-    var re <- ORegExp(apattern)
-    return re.FindAll(atext)
-endfunc
-
-func RegExpFindAll(apattern : strslice, atext : strslice, aflags : strslice) -> [*]str [[overload]]:
-    var re <- ORegExp(apattern, aflags)
-    return re.FindAll(atext)
-endfunc
-
-func RegExpReplace(apattern : strslice, atext : strslice, areplacement : strslice) -> str [[overload]]:
-    var re <- ORegExp(apattern)
-    return re.Replace(atext, areplacement)
-endfunc
-
-func RegExpReplace(apattern : strslice, atext : strslice, areplacement : strslice, aflags : strslice, acount : int = 0) -> str [[overload]]:
-    var re <- ORegExp(apattern, aflags)
-    return re.Replace(atext, areplacement, acount)
-endfunc
-
-func RegExpSplit(apattern : strslice, atext : strslice) -> [*]str [[overload]]:
-    var re <- ORegExp(apattern)
-    return re.Split(atext)
-endfunc
-
-func RegExpSplit(apattern : strslice, atext : strslice, aflags : strslice, amaxsplit : int = 0) -> [*]str [[overload]]:
-    var re <- ORegExp(apattern, aflags)
-    return re.Split(atext, amaxsplit)
-endfunc
-
-func RegExpEscape(atext : strslice) -> str:
-    result = ''
-    result.Reserve(atext.length * 2)
-    for i : int = 0 count atext.length:
-        var ch : char = atext[i]
-        if (ch == '.' or ch == '^' or ch == '$' or ch == '*' or ch == '+' or ch == '?'
-            or ch == '(' or ch == ')' or ch == '[' or ch == ']' or ch == '{' or ch == '}'
-            or ch == '|' or ch == char(92)):
-            result.Append(char(92))
-        endif
-        result.Append(ch)
-    endfor
 endfunc

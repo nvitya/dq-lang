@@ -17,8 +17,9 @@ use print
 use regexp
 
 func *Main():
-    // Compile once and reuse with ORegExp
-    var re <- ORegExp('(?P<user>[\\w.+-]+)@(?P<host>[\\w.-]+\\.[A-Za-z]{2,})')
+    // Prepare once and reuse with ORegExp
+    var re <- ORegExp()
+    re.Prepare('(?P<user>[\\w.+-]+)@(?P<host>[\\w.-]+\\.[A-Za-z]{2,})')
     if re.Search('Contact support@example.org for details'):
         PrintLn('Full match: {} ({}..{})', [re.match, re.match_start, re.match_end])
         PrintLn('User:       {}', [re.named_group['user']])
@@ -26,14 +27,13 @@ func *Main():
     endif
 
     // Iterate over all matches
-    var kv <- ORegExp('(\\w+)=(\\d+)')
-    kv.StartSearch('x=10, y=20, z=30')
-    while kv.SearchNext():
-        PrintLn('{} -> {}', [kv[1], kv[2]])
+    re.StartSearch('(\\w+)=(\\d+)', 'x=10, y=20, z=30')
+    while re.SearchNext():
+        PrintLn('{} -> {}', [re[1], re[2]])
     endwhile
 
-    // One-shot package helpers
-    PrintLn('{}', [RegExpReplace('(\\w+)=(\\d+)', 'a=1, b=2', '$1:[$2]')])
+    // Prepare and replace in one call
+    PrintLn('{}', [re.Replace('(\\w+)=(\\d+)', 'a=1, b=2', '$1:[$2]')])
 endfunc
 ```
 
@@ -99,7 +99,7 @@ Quantifiers are greedy by default. Appending `?` makes any quantifier lazy (non-
 
 ### Compilation Flags
 
-Flags can be passed as a string to `ORegExp(pattern, flags)`, `re.Compile(pattern, flags)`, or inline via `(?...)`:
+Flags can be passed as a string to `re.Prepare(pattern, flags)`, to the pattern-first method overloads, or inline via `(?...)`:
 
 - `'i'`: Case-insensitive ASCII matching.
 - `'m'`: Multiline mode (`^` and `$` match at line boundaries in addition to start/end of text).
@@ -109,18 +109,16 @@ Flags can be passed as a string to `ORegExp(pattern, flags)`, `re.Compile(patter
 
 `ORegExp` compiles a pattern into PikeVM bytecode and pre-allocates the VM execution state so repeated matching and searching perform no dynamic thread allocations.
 
-### Construction and Compilation
+### Construction and Preparation
 
 - `ORegExp()`
-  Creates an uncompiled regular expression object.
-- `ORegExp(apattern : strslice)`
-- `ORegExp(apattern : strslice, aflags : strslice)`
-  Creates and compiles a regular expression. Raises `ERegExp` if the pattern or flags are invalid.
-- `re.Compile(apattern : strslice)`
-- `re.Compile(apattern : strslice, aflags : strslice)`
-  Compiles a new pattern into `re`, replacing any previous program.
-- `re.Compiled() -> bool` / `re.compiled`
-  Returns `true` if a valid pattern is compiled.
+  Creates an empty, unprepared regular expression object without parsing a pattern or raising `ERegExp`.
+- `re.Prepare(apattern : strslice, aflags : strslice = '')`
+  Compiles a new pattern into `re`, replacing the previous program and clearing the subject, captures, and search state. Raises `ERegExp` if the pattern or flags are invalid, leaving the object unprepared.
+- `re.Prepared() -> bool` / `re.prepared`
+  Returns `true` if a valid pattern is prepared.
+- `re.Clear()`
+  Clears the pattern and all matching state, leaving the object unprepared.
 
 ### Matching and Searching
 
@@ -140,11 +138,11 @@ Flags can be passed as a string to `ORegExp(pattern, flags)`, `re.Compile(patter
  Group `0` represents the entire match; groups `1..re.group_count` represent parenthesized capturing groups in left-to-right order of their opening parentheses.
 
 - `re.matched -> bool`: Whether the last match/search succeeded.
-- `re.match -> strslice`: Full matched substring (equivalent to `re.Group(0)`).
+- `re.match -> str`: Full matched substring (equivalent to `re.Group(0)`).
 - `re.match_start -> int`: Start byte index of the full match (`-1` if unmatched).
 - `re.match_end -> int`: End byte index (exclusive) of the full match (`-1` if unmatched).
-- `re.match_length -> int`: Byte length of the full match (`0` if unmatched).
-- `re[agroup : int] -> strslice` / `re.Group(agroup : int) -> strslice`: Captured slice for group `agroup` (empty slice if unmatched).
+- `re.match_len -> int`: Byte length of the full match (`0` if unmatched).
+- `re[agroup : int] -> str` / `re.Group(agroup : int) -> str`: Captured string for group `agroup` (empty string if unmatched).
 - `re.GroupMatched(agroup : int) -> bool`: Returns `true` if group `agroup` participated in the last match.
 - `re.GroupStart(agroup : int) -> int`: Start byte index of group `agroup` (`-1` if unmatched).
 - `re.GroupEnd(agroup : int) -> int`: End byte index of group `agroup` (`-1` if unmatched).
@@ -152,13 +150,14 @@ Flags can be passed as a string to `ORegExp(pattern, flags)`, `re.Compile(patter
 - `re.Groups() -> [*]str`: Returns an array of strings `[Group(0), Group(1), ..., Group(group_count)]` for a successful match, or an empty array if unmatched.
 - `re.GroupIndex(aname : strslice) -> int`: Returns the 1-based group index for a named capture group, or `-1` if not found.
 - `re.GroupName(agroup : int) -> str`: Returns the name of capture group `agroup`, or `''` if unnamed.
-- `re.named_group[aname : strslice] -> strslice` / `re.GroupByName(aname : strslice) -> strslice`: Captured slice for named group `aname`.
-- `re.GroupMatchedByName(aname : strslice) -> bool`: Returns `true` if named group `aname` matched.
+- `re.named_group[aname : strslice] -> str` / `re.GroupByName(aname : strslice) -> str`: Captured string for named group `aname`.
 
 ### Extraction, Replacement, and Splitting
 
-- `re.FindAll(asubject : strslice, amax : int = 0) -> [*]str`
-  Returns all non-overlapping full matches in `asubject` (up to `amax` matches when `amax > 0`).
+- `re.Find(asubject : strslice, astart : int = 0) -> str`
+  Returns the first full match starting at or after `astart`, or an empty string if none is found. Updates the match and capture state just like `Search`.
+- `re.FindAll(asubject : strslice) -> [*]str`
+  Returns all non-overlapping full matches in `asubject`.
 - `re.Expand(areplacement : strslice) -> str`
   Expands a replacement template against the current match state. Supported placeholders:
   - `$$`: Literal `$`
@@ -173,26 +172,36 @@ Flags can be passed as a string to `ORegExp(pattern, flags)`, `re.Compile(patter
 - `re.Split(asubject : strslice, amaxsplit : int = 0) -> [*]str`
   Splits `asubject` around matches of the pattern. If `amaxsplit > 0`, performs at most `amaxsplit` splits.
 
-## Package-Level Convenience Functions
+### Pattern-First Overloads
 
-For quick one-off operations, the package provides helper functions (each overloaded with an optional `aflags : strslice` parameter):
+The following overloads call `Prepare(apattern, aflags)` on the same object before performing the operation. The pattern remains prepared for subsequent calls that only supply a subject, and match results and captures remain available on `re`.
 
-- `RegExpMatch(apattern : strslice, asubject : strslice [, aflags : strslice]) -> bool`
-- `RegExpSearch(apattern : strslice, asubject : strslice [, aflags : strslice]) -> bool`
-- `RegExpFind(apattern : strslice, asubject : strslice [, aflags : strslice]) -> str`
-- `RegExpFindAll(apattern : strslice, asubject : strslice [, aflags : strslice, amax : int = 0]) -> [*]str`
-- `RegExpReplace(apattern : strslice, asubject : strslice, areplacement : strslice [, aflags : strslice, acount : int = 0]) -> str`
-- `RegExpSplit(apattern : strslice, asubject : strslice [, aflags : strslice, amaxsplit : int = 0]) -> [*]str`
-- `RegExpEscape(atext : strslice) -> str`: Escapes all regular expression metacharacters in `atext` so it matches as a literal string.
+```dq
+re.Match(apattern : strslice, asubject : strslice, aflags : strslice = '') -> bool
+re.PrefixMatch(apattern : strslice, asubject : strslice, aflags : strslice = '', astart : int = 0) -> bool
+re.Search(apattern : strslice, asubject : strslice, aflags : strslice = '', astart : int = 0) -> bool
+re.StartSearch(apattern : strslice, asubject : strslice, aflags : strslice = '', astart : int = 0)
+re.Find(apattern : strslice, asubject : strslice, aflags : strslice = '', astart : int = 0) -> str
+re.FindAll(apattern : strslice, asubject : strslice, aflags : strslice = '') -> [*]str
+re.Replace(apattern : strslice, asubject : strslice, areplacement : strslice, aflags : strslice = '', acount : int = 0) -> str
+re.ReplaceFirst(apattern : strslice, asubject : strslice, areplacement : strslice, aflags : strslice = '') -> str
+re.Split(apattern : strslice, asubject : strslice, aflags : strslice = '', amaxsplit : int = 0) -> [*]str
+```
+
+For example, `re.Search('hello', text, 'i')` prepares a case-insensitive pattern and searches `text`. A subsequent `re.Search(other_text)` reuses that pattern and its flags. Each pattern-first call replaces the previous pattern and flags; omitted flags default to `''`.
+
+## Escaping Literal Text
+
+`RegExpEscape(atext : strslice) -> str` escapes all regular expression metacharacters in `atext` so it matches as a literal string. It is the package's only free-standing operation.
 
 ## Error Handling
 
-Invalid patterns, unknown flags, or attempts to execute an uncompiled `ORegExp` raise `ERegExp`:
+Invalid patterns, unknown flags, or attempts to execute an unprepared `ORegExp` raise `ERegExp`:
 
 ```dq
 try:
     var re <- ORegExp()
-    re.Compile('(?P<id>[0-9+')
+    re.Prepare('(?P<id>[0-9+')
 except ERegExp as e:
     PrintLn('Invalid regex: {}', [e.message])
 endtry

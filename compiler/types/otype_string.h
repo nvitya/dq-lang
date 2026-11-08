@@ -88,7 +88,7 @@ public:
   virtual LlValue * GeneratePChar(OScope * scope, LlValue * straddr) = 0;
   virtual LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) = 0;
   virtual LlValue * GenerateCharAddress(OScope * scope, OLValueExpr * receiver, LlValue * index);
-  virtual LlValue * GenerateMetaField(OScope * scope, OLValueExpr * receiver, EStringMetaField field);
+  virtual LlValue * GenerateMetaField(OScope * scope, LlValue * straddr, EStringMetaField field);
 
   // Slicing and UTF-8 operations share the text descriptor path, including embstr receivers.
   static LlValue * GenerateSlice(OScope * scope, OLValueExpr * receiver, OExpr * start_expr,
@@ -127,7 +127,7 @@ public:
   LlValue * GenerateLength(OScope * scope, LlValue * straddr) override;
   LlValue * GeneratePChar(OScope * scope, LlValue * straddr) override;
   LlValue * GenerateGetChar(OScope * scope, OLValueExpr * receiver, LlValue * index) override;
-  LlValue * GenerateMetaField(OScope * scope, OLValueExpr * receiver, EStringMetaField field) override;
+  LlValue * GenerateMetaField(OScope * scope, LlValue * straddr, EStringMetaField field) override;
 
   LlValue * GenerateCapacity(OScope * scope, LlValue * straddr);
   LlValue * GenerateRefCount(OScope * scope, LlValue * straddr);

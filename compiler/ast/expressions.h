@@ -919,10 +919,13 @@ class OStringMetaFieldExpr : public OExpr
 public:
   OLValueExpr *     receiver;
   EStringMetaField  field;
+  LlValue *        temporary_string_address = nullptr;
 
   /* ctor */ OStringMetaFieldExpr(OLValueExpr * areceiver, EStringMetaField afield);
   ~OStringMetaFieldExpr() override;
   LlValue * Generate(OScope * scope) override;
+  bool      NeedsCallCleanup() const override;
+  void      GenerateCallCleanup(OScope * scope) override;
   void      FoldChildren() override;
 };
 

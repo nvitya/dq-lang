@@ -1,0 +1,79 @@
+// String metadata reads property values without taking the property's address.
+//?compargs('-DHEAPCHECK')
+//?build_suffix('heapcheck')
+
+use libc/stdio
+
+object OTextProperties:
+private
+    text : str
+    borrowed : rostr = 'hello'
+    view : strslice = 'hello'
+    empty_text : str
+    calls : int = 0
+
+    func GetText() -> str:
+        ++calls
+        return text + '!'
+    endfunc
+
+    func GetBorrowed() -> rostr:
+        return borrowed
+    endfunc
+
+    func GetView() -> strslice:
+        return view
+    endfunc
+
+    func GetItem(index : int) -> str:
+        ++calls
+        return text + char(48 + index)
+    endfunc
+
+public
+    func *Create():
+        text.Append('hello')
+    endfunc
+
+    property direct : str read text
+    property calculated : str read GetText
+    property readonly_text : rostr read borrowed
+    property readonly_getter : rostr read GetBorrowed
+    property slice_text : strslice read view
+    property slice_getter : strslice read GetView
+    property empty : str read empty_text
+    property item : [index : int]str read GetItem
+    property read_count : int read calls
+endobject
+
+func CheckPointer(text : ^char) -> bool:
+    return text[0]^ == 'h' and text[5]^ == '!'
+endfunc
+
+func CheckMetadata() -> bool:
+    var obj <- OTextProperties()
+    var baseline : int64 = heap_allocated_size
+    var ok : bool = true
+    for i : int = 0 count 1000:
+        ok = ok and obj.direct.length == 5 and obj.direct.wclen == 5
+        ok = ok and obj.direct.capacity >= 5 and obj.direct.refcount == 1
+        ok = ok and obj.calculated.length == 6 and obj.calculated.wclen == 6
+        ok = ok and obj.calculated.capacity >= 6 and obj.calculated.refcount == 1
+        ok = ok and obj.readonly_text.length == 5 and obj.readonly_getter.length == 5
+        ok = ok and obj.readonly_text.wclen == 5 and obj.readonly_getter.wclen == 5
+        ok = ok and obj.slice_text.length == 5 and obj.slice_getter.length == 5
+        ok = ok and obj.slice_text.wclen == 5 and obj.slice_getter.wclen == 5
+        ok = ok and obj.empty.length == 0 and obj.empty.wclen == 0
+        ok = ok and obj.item[7].length == 6 and CheckPointer(obj.calculated.pchar)
+    endfor
+    printf('property.metadata.values = %d\n', ok) //?check('property.metadata.values', '1')
+    printf('property.metadata.calls = %d\n', obj.read_count) //?check('property.metadata.calls', '6000')
+    printf('property.metadata.heap = %d\n', heap_allocated_size == baseline) //?check('property.metadata.heap', '1')
+    return ok
+endfunc
+
+func *Main():
+    var baseline : int64 = heap_allocated_size
+    CheckMetadata()
+    printf('property.metadata.cleanup = %d\n', heap_allocated_size == baseline) //?check('property.metadata.cleanup', '1')
+endfunc

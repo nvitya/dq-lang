@@ -269,7 +269,7 @@ static LlValue * GenerateDynStringFullView(OScope * scope, OExpr * expr, LlValue
   {
     straddr = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.tmp.slot");
     ll_builder.CreateStore(llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0)), straddr);
-    if (temporary_string_address)
+    if (temporary_string_address && !expr->IsStableStorageLValue())
     {
       *temporary_string_address = straddr;
     }
@@ -358,12 +358,10 @@ LlValue * GenerateTextInfoAddress(OScope * scope, OExpr * expr, LlValue ** tempo
 
 // OTypeString
 
-LlValue * OTypeString::GenerateMetaField(OScope * scope, OLValueExpr * receiver, EStringMetaField field)
+LlValue * OTypeString::GenerateMetaField(OScope * scope, LlValue * straddr, EStringMetaField field)
 {
-  LlValue * addr = receiver->GenerateAddress(scope);
-  if (SMF_LENGTH == field) return GenerateLength(scope, addr);
-  if (SMF_PCHAR == field)  return GeneratePChar(scope, addr);
-  if (SMF_WCLEN == field)  return GenerateWcLen(scope, receiver);
+  if (SMF_LENGTH == field) return GenerateLength(scope, straddr);
+  if (SMF_PCHAR == field)  return GeneratePChar(scope, straddr);
   throw logic_error("OTypeString::GenerateMetaField: unsupported field");
 }
 
@@ -408,7 +406,14 @@ LlValue * OTypeString::GenerateSlice(OScope * scope, OLValueExpr * receiver, OEx
 
 LlValue * OTypeString::GenerateWcLen(OScope * scope, OLValueExpr * receiver)
 {
-  return CallDynStrFunc(scope, "StrfWcLen", {GenerateTextInfoValue(scope, receiver)});
+  LlValue * temporary = nullptr;
+  LlValue * text = GenerateTextInfoValue(scope, receiver, &temporary);
+  OCallLifetimeCleanup cleanup(scope, {});
+  cleanup.RegisterTemporaryDynStr(temporary);
+  cleanup.Prepare();
+  LlValue * result = CallDynStrFunc(scope, "StrfWcLen", {text});
+  cleanup.Cleanup();
+  return result;
 }
 
 LlValue * OTypeString::GenerateWCharAt(OScope * scope, OLValueExpr * receiver, OExpr * index)
@@ -503,12 +508,11 @@ void OTypeDynString::GenerateSetChar(OScope * scope, OLValueExpr * receiver, OEx
   CallDynStrFunc(scope, "DynStrSetChar", {receiver->GenerateAddress(scope), ToNativeInt(index->Generate(scope)), value->Generate(scope)});
 }
 
-LlValue * OTypeDynString::GenerateMetaField(OScope * scope, OLValueExpr * receiver, EStringMetaField field)
+LlValue * OTypeDynString::GenerateMetaField(OScope * scope, LlValue * straddr, EStringMetaField field)
 {
-  LlValue * addr = receiver->GenerateAddress(scope);
-  if (SMF_CAPACITY == field) return GenerateCapacity(scope, addr);
-  if (SMF_REFCOUNT == field) return GenerateRefCount(scope, addr);
-  return super::GenerateMetaField(scope, receiver, field);
+  if (SMF_CAPACITY == field) return GenerateCapacity(scope, straddr);
+  if (SMF_REFCOUNT == field) return GenerateRefCount(scope, straddr);
+  return super::GenerateMetaField(scope, straddr, field);
 }
 
 void OTypeDynString::GenerateCreate(OScope * scope, LlValue * straddr)
@@ -974,7 +978,8 @@ LlValue * OTypeRoStr::GeneratePChar(OScope * scope, LlValue * straddr)
 LlValue * OTypeRoStr::GenerateTextInfo(OScope * scope, OExpr * source)
 {
   LlValue * addr;
-  if (auto * lval = dynamic_cast<OLValueExpr *>(source)) addr = lval->GenerateAddress(scope);
+  if (auto * lval = dynamic_cast<OLValueExpr *>(source); lval && !dynamic_cast<OPropertyExpr *>(source))
+    addr = lval->GenerateAddress(scope);
   else
   {
     addr = CreateEntryBlockAlloca(GetLlType(), nullptr, "rostr.tmp");

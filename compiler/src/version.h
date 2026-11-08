@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.10"
+#define DQ_COMPILER_VERSION  "0.95.11"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.11:
+  - String property handling fix
 v0.95.10:
   - support default values for strslice
   - creating temporary variables for returning array slices

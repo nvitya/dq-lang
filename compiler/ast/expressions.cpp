@@ -3554,7 +3554,39 @@ LlValue * OStringMetaFieldExpr::Generate(OScope * scope)
 {
   if (SMF_WCLEN == field) return OTypeString::GenerateWcLen(scope, receiver);
   auto * strtype = static_cast<OTypeString *>(receiver->ptype->ResolveAlias());
-  return strtype->GenerateMetaField(scope, receiver, field);
+  if (!dynamic_cast<OPropertyExpr *>(receiver))
+  {
+    return strtype->GenerateMetaField(scope, receiver->GenerateAddress(scope), field);
+  }
+
+  // Properties yield values, so materialize a slot without exposing their storage.
+  LlValue * addr = CreateEntryBlockAlloca(strtype->GetLlType(), nullptr, "str.meta.tmp");
+  ll_builder.CreateStore(llvm::Constant::getNullValue(strtype->GetLlType()), addr);
+  OCallLifetimeCleanup cleanup(scope, {});
+  if (TK_DYNSTR == strtype->kind && !receiver->IsStableStorageLValue())
+  {
+    if (SMF_PCHAR == field) temporary_string_address = addr;
+    else cleanup.RegisterTemporaryDynStr(addr);
+  }
+  cleanup.Prepare();
+  ll_builder.CreateStore(receiver->Generate(scope), addr);
+  LlValue * result = strtype->GenerateMetaField(scope, addr, field);
+  cleanup.Cleanup();
+  return result;
+}
+
+bool OStringMetaFieldExpr::NeedsCallCleanup() const
+{
+  return SMF_PCHAR == field && TK_DYNSTR == receiver->ResolvedType()->kind
+      && !receiver->IsStableStorageLValue();
+}
+
+void OStringMetaFieldExpr::GenerateCallCleanup(OScope * scope)
+{
+  if (temporary_string_address)
+  {
+    g_builtins->type_str->GenerateDestroy(scope, temporary_string_address);
+  }
 }
 
 void OStringMetaFieldExpr::FoldChildren()

@@ -49,6 +49,7 @@ func StrUpper(astr : strslice) -> str ..
 func StrLower(astr : strslice) -> str ..
 func StrSplit(astr : strslice, asplitter : strslice) -> [*]str ..
 func StrJoin(astr : []str, ajoiner : strslice) -> str ..
+func StrReplace(value : strslice, old_text : strslice, new_text : strslice) -> str ..
 func StrFromWchars(chars : []wchar) -> str ..
 func StrFromUtf16(chars : []char16) -> str ..
 func StrFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -> str ..
@@ -289,6 +290,27 @@ func StrJoin(astr : []str, ajoiner : strslice) -> str:
         endif
         result.Append(astr[i])
     endfor
+endfunc
+
+func StrReplace(value : strslice, old_text : strslice, new_text : strslice) -> str:
+    result = ''
+    if old_text.length == 0:
+        StrfRuntimeError('StrReplace: old_text cannot be empty')
+        return
+    endif
+    result.Reserve(value.length)
+    var start : int = 0
+    while true:
+        var pos : int = StrIndexOf(value, old_text, start)
+        if pos < 0:
+            break
+        endif
+        result.Append(value[start:pos])
+        result.Append(new_text)
+        // Advance in the original input, without rescanning the replacement.
+        start = pos + old_text.length
+    endwhile
+    result.Append(value[start:])
 endfunc
 #endif
 

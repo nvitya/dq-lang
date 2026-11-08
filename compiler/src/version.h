@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.11"
+#define DQ_COMPILER_VERSION  "0.95.12"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.12:
+  - StrReplace() added to @sys
 v0.95.11:
   - String property handling fix
 v0.95.10:

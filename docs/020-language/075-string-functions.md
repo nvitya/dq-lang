@@ -90,6 +90,7 @@ dynamic-string support.
 | [`StrFromWchars(chars : []wchar)`](#strfromwchars) | `str` | Encode Unicode characters as UTF-8 |
 | [`StrJoin(astr : []str, ajoiner : strslice)`](#strsplit-and-strjoin) | `str` | Join strings with a separator between elements |
 | [`StrLower(text : strslice)`](#strupper-and-strlower) | `str` | Copy with ASCII letters in lowercase |
+| [`StrReplace(value : strslice, old_text : strslice, new_text : strslice)`](#strreplace) | `str` | Replace all non-overlapping occurrences of literal text |
 | [`StrSlice(data : ^char, length : int)`](#strslice) | `strslice` | Borrow a pointer and an explicit byte count |
 | [`StrSliceCmp(a : strslice, b : strslice)`](#strslicecmp) | `int` | Compare two byte ranges |
 | [`StrSplit(astr : strslice, asplitter : strslice)`](#strsplit-and-strjoin) | `[*]str` | Split text at each occurrence of a separator |
@@ -240,6 +241,28 @@ explicit byte ranges, including internal zero bytes.
 ```dq
 var parts : [*]str = StrSplit("one::two::::", "::") // ["one", "two", "", ""]
 var joined : str = StrJoin(parts, "/")             // "one/two//"
+```
+
+### StrReplace
+
+```text
+StrReplace(value : strslice, old_text : strslice, new_text : strslice) -> str
+```
+
+Returns a string with every non-overlapping occurrence of `old_text` replaced
+by `new_text`, scanning the original input from left to right. Matching is
+literal and case-sensitive; replacement text is not searched again. An empty
+`new_text` removes matches. The input is unchanged.
+
+An empty `old_text` raises `EStrError`, consistent with `StrSplit`'s empty
+separator handling. With exceptions disabled it reports a runtime error and
+returns an empty string if the error handler returns. The function requires
+dynamic-string support and accepts explicit byte ranges, including internal
+zero bytes.
+
+```dq
+var replaced : str = StrReplace("one::two::", "::", "/") // "one/two/"
+var removed : str = StrReplace("a--b--", "--", "")       // "ab"
 ```
 
 ### StrSlice

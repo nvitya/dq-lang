@@ -1,0 +1,48 @@
+use print
+
+func CheckCleanup():
+    var source : str = 'left::right::'
+    var replaced : str = StrReplace(source, '::', '/')
+    source.Clear(true)
+    PrintLn('owned = {}', [replaced]) //?check('owned', 'left/right/')
+endfunc
+
+func *Main():
+    PrintLn('all = {}', [StrReplace('one::two::three', '::', '/')]) //?check('all', 'one/two/three')
+    PrintLn('boundaries = {}', [StrReplace('::one::::two::', '::', '/')]) //?check('boundaries', '/one//two/')
+    PrintLn('overlap = {}', [StrReplace('aaaaa', 'aa', 'b')]) //?check('overlap', 'bba')
+    PrintLn('growth = {}', [StrReplace('aba', 'a', 'aaa')]) //?check('growth', 'aaabaaa')
+    PrintLn('same = {}', [StrReplace('aaa', 'a', 'a')]) //?check('same', 'aaa')
+    PrintLn('remove = {}', [StrReplace('ab--cd--', '--', '')]) //?check('remove', 'abcd')
+    PrintLn('whole = [{}]', [StrReplace('aa', 'aa', '')]) //?check('whole', '[]')
+    PrintLn('empty = [{}]', [StrReplace('', 'a', 'b')]) //?check('empty', '[]')
+    PrintLn('missing = {}', [StrReplace('abc', 'abcd', 'x')]) //?check('missing', 'abc')
+    PrintLn('case_sensitive = {}', [StrReplace('AaA', 'a', 'b')]) //?check('case_sensitive', 'AbA')
+    PrintLn('utf8 = {}', [StrReplace('árvíz☃tűrő☃', "☃", "雪")]) //?check('utf8', 'árvíz雪tűrő雪')
+    PrintLn('literal = {}', [StrReplace('a.*b.*', '.*', '$1')]) //?check('literal', 'a$1b$1')
+
+    var source : embstr(32) = 'xxone::twozz'
+    var old_text : rostr = 'x::y'
+    var new_text : embstr(8) = 'x/y'
+    PrintLn('slices = {}', [StrReplace(source[2:10], old_text[1:3], new_text[1:2])]) //?check('slices', 'one/two')
+
+    var text : str = 'ab::ab'
+    text = StrReplace(text, text[:2], text[2:4])
+    PrintLn('alias = {}', [text]) //?check('alias', '::::::')
+    var binary : str = 'a\0b\0'
+    PrintLn('binary_needle = {}', [StrReplace(binary, "\0", '|')]) //?check('binary_needle', 'a|b|')
+    PrintLn('binary_replacement = {}', [StrReplace('a|b|', '|', "\0") == binary]) //?check('binary_replacement', 'true')
+    PrintLn('binary_match = {}', [StrReplace(binary, "\0b", 'x') == 'ax\0']) //?check('binary_match', 'true')
+
+    var caught : bool = false
+    try:
+        var invalid : str = StrReplace('abc', '', '-')
+    except EStrError:
+        caught = true
+    endtry
+    PrintLn('empty_needle_error = {}', [caught]) //?check('empty_needle_error', 'true')
+
+    var baseline : int64 = heap_allocated_size
+    CheckCleanup()
+    PrintLn('cleanup = {}', [heap_allocated_size == baseline]) //?check('cleanup', 'true')
+endfunc

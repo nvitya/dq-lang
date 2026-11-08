@@ -167,6 +167,9 @@ Flags can be passed as a string to `re.Prepare(pattern, flags)`, to the pattern-
   - `${name}`: Named capture group
 - `re.Replace(asubject : strslice, areplacement : strslice, acount : int = 0) -> str`
   Replaces non-overlapping matches in `asubject` with expanded `areplacement`. If `acount > 0`, replaces at most `acount` matches; otherwise replaces all matches.
+- `re.Replace(asubject : strslice, areplacer : FRegExpReplace, acount : int = 0) -> str`
+- `re.Replace(asubject : strslice, areplacer : FRegExpReplaceMethod, acount : int = 0) -> str`
+  Calls a function or bound object method for each match and inserts its returned string literally. See [Replacement Callbacks](#replacement-callbacks).
 - `re.ReplaceFirst(asubject : strslice, areplacement : strslice) -> str`
   Shorthand for `re.Replace(asubject, areplacement, 1)`.
 - `re.Split(asubject : strslice, amaxsplit : int = 0) -> [*]str`
@@ -184,11 +187,58 @@ re.StartSearch(apattern : strslice, asubject : strslice, aflags : strslice = '',
 re.Find(apattern : strslice, asubject : strslice, aflags : strslice = '', astart : int = 0) -> str
 re.FindAll(apattern : strslice, asubject : strslice, aflags : strslice = '') -> [*]str
 re.Replace(apattern : strslice, asubject : strslice, areplacement : strslice, aflags : strslice = '', acount : int = 0) -> str
+re.Replace(apattern : strslice, asubject : strslice, areplacer : FRegExpReplace, aflags : strslice = '', acount : int = 0) -> str
+re.Replace(apattern : strslice, asubject : strslice, areplacer : FRegExpReplaceMethod, aflags : strslice = '', acount : int = 0) -> str
 re.ReplaceFirst(apattern : strslice, asubject : strslice, areplacement : strslice, aflags : strslice = '') -> str
 re.Split(apattern : strslice, asubject : strslice, aflags : strslice = '', amaxsplit : int = 0) -> [*]str
 ```
 
 For example, `re.Search('hello', text, 'i')` prepares a case-insensitive pattern and searches `text`. A subsequent `re.Search(other_text)` reuses that pattern and its flags. Each pattern-first call replaces the previous pattern and flags; omitted flags default to `''`.
+
+### Replacement Callbacks
+
+The callback types are:
+
+```dq
+type FRegExpReplace = func(amatch : ORegExp) -> str
+type FRegExpReplaceMethod = func(amatch : ORegExp) -> str of object
+```
+
+The callback receives the same `ORegExp` performing the replacement, positioned
+at the current match. It can inspect `match`, numbered and named groups, capture
+positions, and `subject`, or call `Expand` explicitly. Matches are visited from
+left to right using the same non-overlapping and empty-match rules as template
+replacement. A positive `acount` limits the number of calls; zero or a negative
+value replaces all matches. No match means the callback is not called.
+
+The returned text is inserted literally: `$1` and other template placeholders
+have no special meaning. Returning an empty string deletes the match. The
+replacement text is not searched again. A `nil` callback raises `ERegExp`, and
+exceptions raised by the callback propagate to the caller.
+
+```dq
+use print
+use regexp
+
+func Square(amatch : ORegExp) -> str:
+    var number : int = amatch[1].ToInt()
+    return Format('{}', [number * number])
+endfunc
+
+func *Main():
+    var re <- ORegExp()
+    re.Prepare('(\\d+)')
+    PrintLn('{}', [re.Replace('2 3 4', Square)]) // 4 9 16
+endfunc
+```
+
+Pass a bound method such as `converter.ConvertMatch` in the same way to access
+application state. Calls are synchronous; the callback object must remain alive
+throughout `Replace`. The callback must not change the supplied regexp's pattern
+or search state (including by calling `Search`, `StartSearch`, `SearchNext`, or
+`Replace` on it). Use a separate `ORegExp` for nested searches or replacements.
+The supplied regexp's current captures change as replacement proceeds; copy any
+match data needed afterwards.
 
 ## Escaping Literal Text
 

@@ -52,6 +52,11 @@ struct SCharClass:
     func Contains(ach : char) -> bool ..
 endstruct
 
+object ORegExp ..
+
+type FRegExpReplace = func(amatch : ORegExp) -> str
+type FRegExpReplaceMethod = func(amatch : ORegExp) -> str of object
+
 object ORegExp:
 private
     m_pattern           : str
@@ -161,6 +166,10 @@ public
     func FindAll(apattern : strslice, atext : strslice, aflags : strslice = '') -> [*]str [[overload]] ..
     func Replace(atext : strslice, areplacement : strslice, acount : int = 0) -> str [[overload]] ..
     func Replace(apattern : strslice, atext : strslice, areplacement : strslice, aflags : strslice = '', acount : int = 0) -> str [[overload]] ..
+    func Replace(atext : strslice, areplacer : FRegExpReplace, acount : int = 0) -> str [[overload]] ..
+    func Replace(apattern : strslice, atext : strslice, areplacer : FRegExpReplace, aflags : strslice = '', acount : int = 0) -> str [[overload]] ..
+    func Replace(atext : strslice, areplacer : FRegExpReplaceMethod, acount : int = 0) -> str [[overload]] ..
+    func Replace(apattern : strslice, atext : strslice, areplacer : FRegExpReplaceMethod, aflags : strslice = '', acount : int = 0) -> str [[overload]] ..
     func ReplaceFirst(atext : strslice, areplacement : strslice) -> str [[overload]] ..
     func ReplaceFirst(apattern : strslice, atext : strslice, areplacement : strslice, aflags : strslice = '') -> str [[overload]] ..
     func Split(atext : strslice, amaxsplit : int = 0) -> [*]str [[overload]] ..
@@ -183,6 +192,20 @@ endobject
 func RegExpEscape(atext : strslice) -> str ..
 
 implementation
+
+// Adapt templates and free functions to the method callback used by the shared
+// replacement loop. This object lives only for the duration of Replace().
+object ORegExpReplacement:
+    template : str
+    callback : FRegExpReplace = nil
+
+    func Apply(amatch : ORegExp) -> str:
+        if callback <> nil:
+            return callback(amatch)
+        endif
+        return amatch.Expand(template)
+    endfunc
+endobject
 
 const FLAG_ICASE     : uint = 1   // 'i': ASCII case-insensitive matching
 const FLAG_MULTILINE : uint = 2   // 'm': ^ and $ match line boundaries
@@ -1512,9 +1535,37 @@ func ORegExp.Replace(apattern : strslice, atext : strslice, areplacement : strsl
 endfunc
 
 func ORegExp.Replace(atext : strslice, areplacement : strslice, acount : int = 0) -> str [[overload]]:
-    EnsurePrepared()
+    var replacement <- ORegExpReplacement()
+    replacement.template = areplacement
+    return Replace(atext, replacement.Apply, acount)
+endfunc
+
+func ORegExp.Replace(apattern : strslice, atext : strslice, areplacer : FRegExpReplace, aflags : strslice = '', acount : int = 0) -> str [[overload]]:
+    Prepare(apattern, aflags)
+    return Replace(atext, areplacer, acount)
+endfunc
+
+func ORegExp.Replace(atext : strslice, areplacer : FRegExpReplace, acount : int = 0) -> str [[overload]]:
+    var replacement <- ORegExpReplacement()
+    if areplacer == nil:
+        raise ERegExp('Replacement callback cannot be nil')
+    endif
+    replacement.callback = areplacer
+    return Replace(atext, replacement.Apply, acount)
+endfunc
+
+func ORegExp.Replace(apattern : strslice, atext : strslice, areplacer : FRegExpReplaceMethod, aflags : strslice = '', acount : int = 0) -> str [[overload]]:
+    Prepare(apattern, aflags)
+    return Replace(atext, areplacer, acount)
+endfunc
+
+func ORegExp.Replace(atext : strslice, areplacer : FRegExpReplaceMethod, acount : int = 0) -> str [[overload]]:
     result = ''
     var src : str = atext
+    EnsurePrepared()
+    if areplacer == nil:
+        raise ERegExp('Replacement callback cannot be nil')
+    endif
     var last_end : int = 0
     var replaced : int = 0
 
@@ -1525,7 +1576,7 @@ func ORegExp.Replace(atext : strslice, areplacement : strslice, acount : int = 0
         if s > last_end:
             result.Append(src[last_end:s])
         endif
-        result.Append(Expand(areplacement))
+        result.Append(areplacer(self))
         last_end = e
         ++replaced
     endwhile

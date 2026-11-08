@@ -1,0 +1,162 @@
+use print
+use regexp
+
+var callback_calls : int = 0
+
+func Square(amatch : ORegExp) -> str:
+    ++callback_calls
+    var number : int = amatch[1].ToInt()
+    return Format('{}', [number * number])
+endfunc
+
+func Literal(amatch : ORegExp) -> str:
+    return '$1${name}$$'
+endfunc
+
+func DeleteMatch(amatch : ORegExp) -> str:
+    return ''
+endfunc
+
+func Marker(amatch : ORegExp) -> str:
+    return 'X'
+endfunc
+
+func Fail(amatch : ORegExp) -> str:
+    raise Exception('callback failed')
+    return ''
+endfunc
+
+object OReplacer:
+    prefix : str = '#'
+    calls : int = 0
+    expected : ORegExp
+    positions : str
+    inner <- ORegExp()
+
+    func Apply(amatch : ORegExp) -> str:
+        if amatch <> expected or not amatch.matched:
+            raise Exception('callback must receive the matching regexp')
+        endif
+        ++calls
+        positions.AddFmt('{}:{}:{}|', [amatch.match_start, amatch.match_end, amatch.GroupMatched(2)])
+        // A separate regexp may be used without disturbing the outer captures.
+        var key : str = inner.Replace('a', amatch.named_group['key'], 'A', 'i')
+        return prefix + key + amatch[2]
+    endfunc
+endobject
+
+func TestFunctions():
+    var re <- ORegExp()
+    PrintLn('function.pattern = {}', [re.Replace('(\\d+)', '2 3 4', Square)])
+    //?check('function.pattern', '4 9 16')
+    var callback : FRegExpReplace = Square
+    PrintLn('function.prepared = {}', [re.Replace('2 3 4', callback, 2)])
+    //?check('function.prepared', '4 9 4')
+    PrintLn('function.count = {}', [callback_calls])
+    //?check('function.count', '5')
+    PrintLn('function.first = {}', [re.Replace('2 3', callback, 1)])
+    //?check('function.first', '4 3')
+    PrintLn('function.negative_count = {}', [re.Replace('2 3', callback, -1)])
+    //?check('function.negative_count', '4 9')
+    callback_calls = 0
+    PrintLn('function.no_match = {} {}', [re.Replace('abc', callback), callback_calls])
+    //?check('function.no_match', 'abc 0')
+    PrintLn('function.literal = {}', [re.Replace('a', 'ab', Literal)])
+    //?check('function.literal', '$1${name}$$b')
+    PrintLn('function.delete = {}', [re.Replace('a', 'banana', DeleteMatch)])
+    //?check('function.delete', 'bnn')
+    PrintLn('function.flags = {}', [re.Replace('A', 'banana', Marker, 'i', 2)])
+    //?check('function.flags', 'bXnXna')
+    PrintLn('function.reuse = {} {}', [re.pattern, re.flags])
+    //?check('function.reuse', 'A i')
+
+    var source : embstr(16) = 'xx2 3zz'
+    PrintLn('function.slice = {}', [re.Replace('(\\d+)', source[2:5], Square)])
+    //?check('function.slice', '4 9')
+    var text : str = '2 3'
+    text = re.Replace(text, Square)
+    PrintLn('function.alias = {}', [text])
+    //?check('function.alias', '4 9')
+    var binary : str = 'a'
+    binary.Append(char(0))
+    binary.Append('b')
+    PrintLn('function.binary = {}', [re.Replace('\\0', binary, Marker) == 'aXb'])
+    //?check('function.binary', 'true')
+endfunc
+
+func TestMethods():
+    var re <- ORegExp()
+    var replacer <- OReplacer()
+    replacer.expected = re
+    var callback : FRegExpReplaceMethod = replacer.Apply
+    PrintLn('method.pattern = {}', [re.Replace('(?P<key>[a-z]+)([0-9]+)?', 'a1 b22 c', callback, 'i', 2)])
+    //?check('method.pattern', '#A1 #b22 c')
+    PrintLn('method.count = {} {}', [replacer.calls, replacer.positions])
+    //?check('method.count', '2 0:2:true|3:6:true|')
+    PrintLn('method.subject = {}', [re.subject])
+    //?check('method.subject', 'a1 b22 c')
+    PrintLn('method.current = {} {} {}', [re.match, re.GroupStart(2), re.GroupEnd(2)])
+    //?check('method.current', 'b22 4 6')
+    replacer.prefix = '!'
+    replacer.positions.Clear()
+    PrintLn('method.prepared = {}', [re.Replace('a1 c', replacer.Apply)])
+    //?check('method.prepared', '!A1 !c')
+    PrintLn('method.optional = {} {}', [replacer.calls, replacer.positions])
+    //?check('method.optional', '4 0:2:true|3:4:false|')
+endfunc
+
+func TestEmptyMatches():
+    var re <- ORegExp()
+    PrintLn('empty.pattern = {}', [re.Replace('', 'ab', Marker)])
+    //?check('empty.pattern', 'XaXbX')
+    PrintLn('empty.limited = {}', [re.Replace('ab', Marker, 2)])
+    //?check('empty.limited', 'XaXb')
+    PrintLn('empty.input = {}', [re.Replace('', Marker)])
+    //?check('empty.input', 'X')
+    PrintLn('empty.after_nonempty = {}', [re.Replace('.*', 'hello', Marker)])
+    //?check('empty.after_nonempty', 'X')
+    PrintLn('empty.mixed = {}', [re.Replace('a*', 'aba', Marker)])
+    //?check('empty.mixed', 'XbX')
+endfunc
+
+func TestErrors():
+    var re <- ORegExp()
+    try:
+        re.Replace('2', Square)
+    except ERegExp as e:
+        PrintLn('error.unprepared = {}', [e.message])
+    endtry
+    //?check('error.unprepared', 'Regular expression is not prepared')
+    re.Prepare('a')
+    var callback : FRegExpReplace = nil
+    try:
+        re.Replace('a', callback)
+    except ERegExp as e:
+        PrintLn('error.nil_function = {}', [e.message])
+    endtry
+    //?check('error.nil_function', 'Replacement callback cannot be nil')
+    var method : FRegExpReplaceMethod = nil
+    try:
+        re.Replace('a', method)
+    except ERegExp as e:
+        PrintLn('error.nil_method = {}', [e.message])
+    endtry
+    //?check('error.nil_method', 'Replacement callback cannot be nil')
+    try:
+        re.Replace('a', 'a', Fail)
+    except Exception as e:
+        PrintLn('error.callback = {}', [e.message])
+    endtry
+    //?check('error.callback', 'callback failed')
+    PrintLn('error.recovery = {}', [re.Replace('(\\d+)', '2', Square)])
+    //?check('error.recovery', '4')
+endfunc
+
+func *Main():
+    TestFunctions()
+    TestMethods()
+    TestEmptyMatches()
+    TestErrors()
+    PrintLn('heap.remaining = {}', [heap_allocated_size])
+    //?check('heap.remaining', '0')
+endfunc

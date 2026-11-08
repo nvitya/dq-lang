@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.12"
+#define DQ_COMPILER_VERSION  "0.95.13"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.13:
+  - Callback function variant added to regexp .Replace()
 v0.95.12:
   - StrReplace() added to @sys
 v0.95.11:

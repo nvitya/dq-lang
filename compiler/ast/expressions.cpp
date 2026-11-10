@@ -227,19 +227,20 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
   if (VSK_CONST == pvalsym->kind)
   {
     OType * resolved_type = pvalsym->ResolvedType();
-    if (resolved_type && (TK_EMBSTR == resolved_type->kind || TK_ROSTR == resolved_type->kind || TK_STRSLICE == resolved_type->kind))
+    bool aggregate = resolved_type && (TK_ARRAY == resolved_type->kind || TK_STRUCT == resolved_type->kind);
+    if (aggregate)
     {
-      // Text metadata needs addressable descriptor storage, even for constants.
-      LlValue * embstraddr = CreateEntryBlockAlloca(pvalsym->ptype->GetLlType(), nullptr, "embstr.const.tmp");
-      ll_builder.CreateStore(Generate(scope), embstraddr);
-      return embstraddr;
-    }
-    if (resolved_type && (TK_ARRAY == resolved_type->kind || TK_STRUCT == resolved_type->kind))
-    {
-      if (auto * global = dyn_cast<llvm::GlobalVariable>(pvalsym->ll_value))
+      if (auto * global = dyn_cast_or_null<llvm::GlobalVariable>(pvalsym->ll_value))
       {
         return global;
       }
+    }
+    if (resolved_type && (aggregate || TK_EMBSTR == resolved_type->kind || TK_ROSTR == resolved_type->kind || TK_STRSLICE == resolved_type->kind))
+    {
+      // Local aggregates and text descriptors need addressable storage for member access.
+      LlValue * constaddr = CreateEntryBlockAlloca(pvalsym->ptype->GetLlType(), nullptr, "const.tmp");
+      ll_builder.CreateStore(Generate(scope), constaddr);
+      return constaddr;
     }
 
     throw logic_error(std::format("Constant \"{}\" has no addressable storage", pvalsym->name));

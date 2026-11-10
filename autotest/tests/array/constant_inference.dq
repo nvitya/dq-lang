@@ -1,0 +1,19 @@
+use libc/stdio
+
+const lookup : [?]uint8 = [
+    0x00,
+    0x29,
+    0x3B
+]
+
+const([?]int16):
+    first = [30000]
+    second = [-1234, 42]
+endconst
+
+func *Main():
+    const local : [?]uint8 = [7, 255]
+    printf("global = %li %li %d %d %d\n", lookup.length, SizeOf(lookup), int(lookup[0]), int(lookup[1]), int(lookup[2])) //?check("global", "3 3 0 41 59")
+    printf("local = %li %li %d %d\n", local.length, SizeOf(local), int(local[0]), int(local[1])) //?check("local", "2 2 7 255")
+    printf("group = %li %li %d %d %d\n", first.length, second.length, int(first[0]), int(second[0]), int(second[1])) //?check("group", "1 2 30000 -1234 42")
+endfunc

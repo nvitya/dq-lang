@@ -126,6 +126,22 @@ OType * ODqCompParserStmt::GetAutoFreeInferredType(OType * type)
   return type->GetAutoFreeType();
 }
 
+bool ODqCompParserStmt::InferArrayLength(OType *& rtype, OExpr * initexpr)
+{
+  auto * arrtype = dynamic_cast<OTypeArray *>(rtype ? rtype->ResolveAlias() : nullptr);
+  if (!arrtype || arrtype->arraylength != 0)
+  {
+    return true;
+  }
+  auto * arrlit = dynamic_cast<OArrayLit *>(initexpr);
+  if (!arrlit || arrlit->elements.empty())
+  {
+    return false;
+  }
+  rtype = arrtype->elemtype->GetArrayType(arrlit->elements.size());
+  return true;
+}
+
 OValSym * ODqCompParserStmt::CreateRefLocal(OScPosition & scpos, const string & name, OType * type)
 {
   OValSym * result = type->CreateValSym(scpos, name);
@@ -292,17 +308,11 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     }
   }
 
-  if (auto * inferred_arr = dynamic_cast<OTypeArray *>(ptype ? ptype->ResolveAlias() : nullptr);
-      inferred_arr && inferred_arr->arraylength == 0)
+  if (!InferArrayLength(ptype, initexpr))
   {
-    auto * arrlit = dynamic_cast<OArrayLit *>(initexpr);
-    if (!arrlit || arrlit->elements.empty())
-    {
-      StatementError(DQERR_ARRAY_SIZESPEC);
-      delete initexpr;
-      return;
-    }
-    ptype = inferred_arr->elemtype->GetArrayType(uint32_t(arrlit->elements.size()));
+    StatementError(DQERR_ARRAY_SIZESPEC);
+    delete initexpr;
+    return;
   }
 
   CheckStatementClose();
@@ -706,6 +716,13 @@ void ODqCompParserStmt::ParseConstDecl(bool arootstmt, OType * asharedtype, bool
       delete valueexpr;
       return;
     }
+  }
+
+  if (!InferArrayLength(ptype, valueexpr))
+  {
+    emit_error(DQERR_ARRAY_SIZESPEC);
+    delete valueexpr;
+    return;
   }
 
   OValue * pvalue = ptype->CreateValue();

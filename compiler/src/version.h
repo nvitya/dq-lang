@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.15"
+#define DQ_COMPILER_VERSION  "0.95.16"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.16:
+  - Fixed array count inference with [?] for constant arrays
 v0.95.15:
   - Improved error diagnostic position reporting
 v0.95.14:

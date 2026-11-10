@@ -89,12 +89,13 @@ size inside brackets before the element type:
 var readings : [7]float = {}              // seven readings, initially all zero
 var header : [3]byte = [0x44, 0x51, 0x01] // exactly three bytes
 var colors : [?]str = ["red", "green", "blue"] // the compiler infers [3]str
+const lookup : [?]uint8 = [0x00, 0x29, 0x3B] // the compiler infers [3]uint8
 ```
 
-`[?]T` needs an array literal as its initializer so the compiler can count the
-elements. The length is part of a fixed array's type: `[3]int` and `[4]int` are
-different types. You can replace individual elements, but cannot add or remove
-any.
+`[?]T` works for variables and constants and needs a nonempty array literal as
+its initializer so the compiler can count the elements. The length is part of
+a fixed array's type: `[3]int` and `[4]int` are different types. You can replace
+individual elements in array variables, but cannot add or remove any.
 
 Assigning a fixed array to another compatible fixed array copies its elements:
 

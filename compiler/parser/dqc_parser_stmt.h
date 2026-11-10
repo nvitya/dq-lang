@@ -47,6 +47,7 @@ protected:
   bool ParseTypeSpecOrInference(OType *& rtype, bool & rinfer_type, bool & rinfer_autofree);
   OType * GetInferredDeclType(OExpr * ainitexpr, OType *& rdetectedtype);
   OType * GetAutoFreeInferredType(OType * type);
+  bool InferArrayLength(OType *& rtype, OExpr * initexpr);
   OValSym * CreateRefLocal(OScPosition & scpos, const string & name, OType * type);
   void WarnLocalVarObjectMemberCollision(const string & name, OScPosition & scpos);
 

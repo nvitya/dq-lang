@@ -1,0 +1,45 @@
+//?exitcode(0)
+
+use dqautotest
+use file
+
+var run <- OTestRun()
+
+func ExpectDiagnostic(source : strslice, diagnostic : strslice):
+    var source_path : str = TempPath('.dq')
+    var output_path : str = TempPath('.o')
+    FileWriteText(source_path, source)
+    run.RunCompiler(['-c', '-o', output_path, source_path])
+    if run.exitcode == 0:
+        Fail('compiler unexpectedly accepted an invalid expression')
+    endif
+    run.ExpectOutputContains(diagnostic)
+    RemoveTemp(output_path)
+    RemoveTemp(source_path)
+endfunc
+
+func *Main():
+    // A trailing comma leaves the closing bracket where an expression is expected.
+    ExpectDiagnostic(
+        'const values : [1]int = [\n' +
+        '    1, // trailing comma\n' +
+        '    /* comment before the unexpected symbol */\n' +
+        '    ]\n',
+        '(4,5) ERROR(ExprUnexpectedChar): Unexpected character "]" in expression')
+
+    ExpectDiagnostic(
+        'const value : int = 1 +\n' +
+        '    )\n',
+        '(2,5) ERROR(ExprUnexpectedChar): Unexpected character ")" in expression')
+
+    ExpectDiagnostic(
+        'const value : int = 1 + )\n',
+        '(1,25) ERROR(ExprUnexpectedChar): Unexpected character ")" in expression')
+
+    // A missing operand at EOF should still point back to its statement.
+    ExpectDiagnostic(
+        'const value : int = 1 +\n',
+        '(1,1) ERROR(Expression)')
+
+    exit_code = TestResult()
+endfunc

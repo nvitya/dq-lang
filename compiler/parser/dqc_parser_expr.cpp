@@ -3705,7 +3705,8 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   {
     if (!scf->Eof())
     {
-      Error(DQERR_EXPR_UNEXPECTED_CHAR, string(1, *scf->curp));
+      // Report the offending character even after whitespace look-ahead crossed a line.
+      Error(DQERR_EXPR_UNEXPECTED_CHAR, string(1, *scf->curp), &scpos_sid);
       ++scf->curp;
     }
     else

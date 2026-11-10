@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.14"
+#define DQ_COMPILER_VERSION  "0.95.15"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.15:
+  - Improved error diagnostic position reporting
 v0.95.14:
   - Language server and VSCode plugin handles symlinks and project files better
 v0.95.13:

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.16"
+#define DQ_COMPILER_VERSION  "0.95.17"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.17:
+  - Supporting unnamed unions
 v0.95.16:
   - Fixed array count inference with [?] for constant arrays
 v0.95.15:

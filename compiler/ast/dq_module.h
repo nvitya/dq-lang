@@ -101,7 +101,7 @@ public:
 
   virtual ~OModule();
 
-  ODecl * DeclareType(bool apublic, OType * atype);
+  ODecl * DeclareType(bool apublic, OType * atype, OType * abefore = nullptr);
   ODecl * DeclareValSym(bool apublic, OValSym * avalsym);
   ODecl * DeclareHiddenValSym(bool apublic, OValSym * avalsym);
   void DiscardTypeDeclaration(OType * atype);

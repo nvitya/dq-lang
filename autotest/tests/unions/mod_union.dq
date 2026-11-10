@@ -17,3 +17,34 @@ endstruct
 func MakeModuleWord(value : uint32) -> UModuleWord:
     result.unsigned_value = value
 endfunc
+
+struct SModuleAnonymous:
+    tag : uint32
+    union:
+        raw : uint32
+        signed_value : int32
+        RO : [[regro]] uint32
+        WO : [[regwo]] uint32
+    endunion
+endstruct
+
+object OModuleAnonymous:
+private
+    union:
+        raw : uint32
+        signed_value : int32
+    endunion
+public
+    property value : uint32 read raw write raw
+    union:
+        visible : uint32
+        alias_value : int32
+    endunion
+    func Set(value : uint32):
+        raw = value
+        visible = value
+    endfunc
+    func Get() -> int32:
+        return signed_value
+    endfunc
+endobject

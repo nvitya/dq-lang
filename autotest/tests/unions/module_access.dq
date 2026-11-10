@@ -9,4 +9,15 @@ func *Main():
     printf("union module = %li %li %li %lu\n", SizeOf(UModuleWord),
            OffsetOf(UModuleWord, signed_value), int(word.signed_value), nested.value.whole)
     //?check("union module", "4 0 -1 17")
+    var anonymous : SModuleAnonymous = {tag: 2, raw: 0xFFFFFFFF}
+    printf("anonymous module = %li %li %u %i\n", SizeOf(SModuleAnonymous),
+           OffsetOf(SModuleAnonymous, signed_value), anonymous.tag, anonymous.signed_value)
+    //?check("anonymous module", "8 4 2 -1")
+    var obj <- OModuleAnonymous()
+    obj.Set(0xFFFFFFFF)
+    printf("anonymous module object = %i %i\n", obj.Get(), obj.alias_value)
+    //?check("anonymous module object", "-1 -1")
+    obj.value = 42
+    printf("anonymous module property = %u %i\n", obj.value, obj.Get())
+    //?check("anonymous module property", "42 42")
 endfunc

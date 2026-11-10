@@ -187,7 +187,15 @@ void AddCompoundMembers(TJsonNode & json_parent, const OCompoundType & compound)
 
   for (const OValSym * member : compound.member_order)
   {
-    if (member) add_member(member, ValSymKind(member->kind));
+    if (!member) continue;
+    if (member->is_anonymous_union)
+    {
+      for (const OValSym * alternative : static_cast<const OCompoundType *>(member->ptype)->member_order)
+      {
+        add_member(alternative, ValSymKind(alternative->kind));
+      }
+    }
+    else add_member(member, ValSymKind(member->kind));
   }
   for (const OValSymProperty * property : compound.properties)
   {
@@ -315,9 +323,20 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
         for (const auto & [name, valsym] : ctype->member_scope.valsyms)
         {
           if (!valsym || valsym->member_visibility != MV_PUBLIC || name.empty() || name.starts_with("__dq_")) continue;
-          TJsonNode & json_symbol = json_symbols.Add().GetAsObject();
-          json_symbol.Add("name", name);
-          json_symbol.Add("kind", ValSymKind(valsym->kind));
+          auto add_value = [&](const OValSym * symbol)
+          {
+            TJsonNode & json_symbol = json_symbols.Add().GetAsObject();
+            json_symbol.Add("name", symbol->name);
+            json_symbol.Add("kind", ValSymKind(symbol->kind));
+          };
+          if (valsym->is_anonymous_union)
+          {
+            for (const OValSym * alternative : static_cast<const OCompoundType *>(valsym->ptype)->member_order)
+            {
+              add_value(alternative);
+            }
+          }
+          else add_value(valsym);
         }
       }
     }

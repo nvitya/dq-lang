@@ -1,0 +1,9 @@
+use ./mod_union
+
+func Test():
+    var value : SModuleAnonymous = {}
+    value.RO = 1 //?error(AccessNoWrite)
+    var bad : uint32 = value.WO //?error(AccessNoRead)
+    var obj <- OModuleAnonymous()
+    obj.raw = 1 //?error(MemberUnknown)
+endfunc

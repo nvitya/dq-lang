@@ -1448,6 +1448,7 @@ void ODqCompParser::ParseStructDecl()
     ctype->AddMember(mvsym);
   }
 
+  ctype->CheckAnonymousUnionMembers();
   ctype->EnsureLayout();
   ctype->layout_ready = true;
   header.Finish();
@@ -1573,7 +1574,14 @@ bool ODqCompParser::ParseNestedUnionField(OCompoundType * owner_type,
   scf->SkipWhite();
   scf->SaveCurPos(field_pos);
   string field_name;
-  if (!scf->ReadIdentifier(field_name))
+  bool anonymous = scf->CheckSymbol(":", false) || scf->CheckSymbol("{", false);
+  if (anonymous)
+  {
+    // '$' cannot occur in a source identifier, so these storage fields cannot
+    // collide with named fields or be accessed explicitly.
+    field_name = "$union" + to_string(owner_type->member_order.size());
+  }
+  else if (!scf->ReadIdentifier(field_name))
   {
     StatementError(DQERR_ID_EXP_AFTER, "union");
     return false;
@@ -1588,7 +1596,7 @@ bool ODqCompParser::ParseNestedUnionField(OCompoundType * owner_type,
 
   auto * union_type = new OCompoundType(nested_name, cur_mod_scope, TK_UNION);
   union_type->incomplete = true;
-  g_module->DeclareType(section_public, union_type);
+  g_module->DeclareType(section_public, union_type, owner_type);
   if (!ParseUnionMembers(union_type))
   {
     g_module->DiscardTypeDeclaration(union_type);
@@ -1597,6 +1605,7 @@ bool ODqCompParser::ParseNestedUnionField(OCompoundType * owner_type,
   }
 
   OValSym * field = union_type->CreateValSym(field_pos, field_name);
+  field->is_anonymous_union = anonymous;
   field->initialized = true;
   field->member_visibility = avisibility;
   field->ApplyAttributes(&field_attr, ATGT_STRUCT_MEMBER);
@@ -2612,6 +2621,7 @@ void ODqCompParser::ParseObjectDecl()
     AddGeneratedObjectDestructor(object_type, inherited_dtor, scpos_statement_start);
   }
 
+  object_type->CheckAnonymousUnionMembers();
   object_type->UpdateObjectInheritanceFlags();
   object_type->EnsureLayout();
   header.Finish();

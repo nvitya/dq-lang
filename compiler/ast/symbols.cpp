@@ -826,6 +826,7 @@ bool OValSym::WriteDqmIfAttributes(ODqmIfWriter & writer, uint64_t aextra_flags)
   if (attr_no_read)          flags |= DQMIF_ATTRF_NOREAD;
   if (attr_no_write)         flags |= DQMIF_ATTRF_NOWRITE;
   if (attr_is_used)          flags |= DQMIF_ATTRF_USED;
+  if (is_anonymous_union)    flags |= DQMIF_ATTRF_ANONYMOUS_UNION;
 
   if (flags && !writer.AddRecU64(DQMIF_ATTR_FLAGS, flags)) return false;
   if (attr_align && !writer.AddRecI32(DQMIF_ATTR_ALIGN_VALUE, int32_t(attr_align))) return false;

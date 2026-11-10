@@ -3261,24 +3261,21 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
       return EPostfixResult::Continue;
     }
 
-    decl_type = ctype;
-    int midx = ctype->FindFieldIndex(membername, &decl_type);
-    if (midx < 0)
+    if (!objsym)
     {
       Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
       return EPostfixResult::Stop;
     }
-    OType * mtype = decl_type->member_order[midx]->ptype;
-    if (!ObjectMemberAccessAllowed(decl_type, decl_type->member_order[midx]))
+    if (!ObjectMemberAccessAllowed(decl_type, objsym))
     {
       Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
       delete result;
       result = nullptr;
       return EPostfixResult::Stop;
     }
-    auto * member_expr = new OLValueMember(memberbase, decl_type, midx, mtype);
+    auto * member_expr = ctype->CreateFieldAccess(memberbase, membername);
     result = member_expr;
-    CheckNoReadAccess(member_expr, decl_type->member_order[midx], scpos_statement_start);
+    CheckNoReadAccess(member_expr, objsym, scpos_statement_start);
     return EPostfixResult::Continue;
   }
 
@@ -3811,10 +3808,8 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
           return new OLValueVar(member);
         }
 
-        int midx = decl_type->FindMemberIndex(sid);
-        if (midx >= 0)
+        if (auto * member_expr = owner_type->CreateFieldAccess(new OLValueVar(curvsfunc->receiver_arg), sid))
         {
-          auto * member_expr = new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, member->ptype);
           CheckNoReadAccess(member_expr, member, scpos_statement_start);
           return member_expr;
         }
@@ -5470,12 +5465,12 @@ OExpr * ODqCompParserExpr::ParseBuiltinSizeof()
       if (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg)
       {
         OCompoundType * decl_type = nullptr;
-        int midx = curvsfunc->owner_compound_type->FindFieldIndex(sarg, &decl_type);
-        if (midx >= 0 && ObjectMemberAccessAllowed(decl_type, decl_type->member_order[midx]))
+        OValSym * member = curvsfunc->owner_compound_type->FindMemberSymbol(sarg, &decl_type);
+        if (member && ObjectMemberAccessAllowed(decl_type, member))
         {
-          sizetype = decl_type->member_order[midx]->ptype;
+          sizetype = member->ptype;
         }
-        else if (midx >= 0)
+        else if (member)
         {
           Error(DQERR_MEMBER_UNKNOWN, sarg, curvsfunc->owner_compound_type->name);
           return nullptr;
@@ -5557,7 +5552,8 @@ OExpr * ODqCompParserExpr::ParseBuiltinOffsetof()
   }
 
   ctype->EnsureLayout();
-  int midx = ctype->FindMemberIndex(membername);
+  OCompoundType * declaring_type = nullptr;
+  int midx = ctype->FindFieldIndex(membername, &declaring_type);
   if (midx < 0)
   {
     Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
@@ -5571,7 +5567,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinOffsetof()
     return nullptr;
   }
 
-  return new OIntLit(ctype->member_order[midx]->field_offset);
+  return new OIntLit(declaring_type->member_order[midx]->field_offset);
 }
 
 bool ODqCompParserExpr::CheckStatementClose(bool emit_error)

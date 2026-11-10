@@ -1035,7 +1035,7 @@ vector<LlValue *> OPropertyExpr::GenerateCallArgs(OScope * scope, OValSymFunc * 
 LlValue * OPropertyExpr::GenerateFieldAddress(OScope * scope, OValSym * accessor,
                                               OCompoundType * decl_type, LlValue * ll_receiver)
 {
-  int field_index = (decl_type ? decl_type->FindMemberIndex(accessor->name) : -1);
+  int field_index = (decl_type ? decl_type->FindFieldIndex(accessor->name) : -1);
   if (field_index < 0)
   {
     throw logic_error("Property field accessor is not in its declaring type");

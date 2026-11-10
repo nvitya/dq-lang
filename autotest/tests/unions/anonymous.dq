@@ -1,0 +1,171 @@
+// Anonymous union alternatives are direct members but occupy one storage field.
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+struct SAnonymous:
+    lead : byte
+    union:
+        raw : uint32
+        signed_value : int32
+        bytes : [4]byte
+    endunion
+    union:
+        count : uint16
+        short_value : int16
+    endunion
+    tail : byte
+
+    func Signed() -> int32:
+        return signed_value
+    endfunc
+endstruct
+
+struct SPacked [[packed]]:
+    lead : byte
+    union:
+        raw : uint32
+        bytes : [4]byte
+    endunion
+    tail : byte
+endstruct
+
+struct SBrace {
+    union {
+        whole : uint64
+        bytes : [8]byte
+    }
+}
+
+struct UART_REG:
+    union:
+        RBR : [[regro]] uint32
+        DLL : [[regrw]] uint32
+        THR : [[regwo]] uint32
+    endunion
+    union:
+        DLH : [[regrw]] uint32
+        IER : [[regrw]] uint32
+    endunion
+    union:
+        FCR : [[regwo]] uint32
+        IIR : [[regro]] uint32
+    endunion
+    LCR : [[regrw]] uint32
+    MCR : [[regrw]] uint32
+    LSR : [[regro]] uint32
+    MSR : [[regro]] uint32
+    SCR : [[regrw]] uint32
+    RESERVED0020 : [4]uint32
+    union:
+        SRBR : [[regro]] uint32
+        STHR : [[regwo]] uint32
+    endunion
+    RESERVED0034 : [15]uint32
+    FAR : [[regrw]] uint32
+    TFR : [[regro]] uint32
+endstruct
+
+const UART : ^UART_REG = ^UART_REG(0x40000000)
+const UART_IER : ^uint32 = %UART.IER
+
+struct SDerived(SAnonymous):
+    extra : uint32
+endstruct
+
+object OAnonymous:
+private
+    union:
+        raw : uint32
+        signed_value : int32
+    endunion
+protected
+    union:
+        protected_raw : uint32
+        protected_signed : int32
+    endunion
+public
+    property value : uint32 read raw write raw
+    union:
+        visible : uint32
+        visible_signed : int32
+    endunion
+    func Set(value : uint32):
+        raw = value
+        self.protected_raw = value
+        visible = value
+    endfunc
+    func Get() -> int32:
+        return self.signed_value
+    endfunc
+    func FieldSize() -> int:
+        return SizeOf(raw)
+    endfunc
+endobject
+
+object ODerived(OAnonymous):
+    func GetProtected() -> int32:
+        return protected_signed
+    endfunc
+endobject
+
+func Copy(value : SAnonymous) -> SAnonymous:
+    return value
+endfunc
+
+func Pick(value : SAnonymous) -> int [[overload]]:
+    return value.signed_value
+endfunc
+
+func Pick(value : SBrace) -> int [[overload]]:
+    return int(value.whole)
+endfunc
+
+func SetRaw(value : ref uint32):
+    value = 27
+endfunc
+
+func *Main():
+    printf("anonymous layout = %li %li %li %li %li\n", SizeOf(SAnonymous),
+           OffsetOf(SAnonymous, raw), OffsetOf(SAnonymous, signed_value),
+           OffsetOf(SAnonymous, count), OffsetOf(SAnonymous, tail))
+    //?check("anonymous layout", "12 4 4 8 10")
+    printf("anonymous packed = %li %li %li\n", SizeOf(SPacked),
+           OffsetOf(SPacked, bytes), OffsetOf(SPacked, tail))
+    //?check("anonymous packed", "6 1 5")
+    printf("anonymous UART = %li %li %li %li %li %li %li %li %lX\n",
+           SizeOf(UART_REG), OffsetOf(UART_REG, RBR), OffsetOf(UART_REG, THR),
+           OffsetOf(UART_REG, IER), OffsetOf(UART_REG, IIR), OffsetOf(UART_REG, LCR),
+           OffsetOf(UART_REG, STHR), OffsetOf(UART_REG, FAR), uint(UART_IER))
+    //?check("anonymous UART", "120 0 0 4 8 12 48 112 40000004")
+
+    var value : SAnonymous = {lead: 1, raw: 0xFFFFFFFF, count: 7, tail: 2}
+    var copy : SAnonymous = Copy(value)
+    printf("anonymous literal = %u %i %u %u\n", copy.lead, copy.Signed(), copy.count, copy.tail)
+    //?check("anonymous literal", "1 -1 7 2")
+    value = {signed_value: -2, ?}
+    printf("anonymous fill = %i %u %u\n", value.signed_value, value.count, value.tail)
+    //?check("anonymous fill", "-2 0 0")
+    value = {1, {raw: 42}, {count: 3}, 2}
+    var ptr : ^SAnonymous = %value
+    ptr.raw = 17
+    printf("anonymous pointer = %u %li\n", value.raw, int(uint(%value.raw) - uint(%value.bytes)))
+    //?check("anonymous pointer", "17 0")
+    SetRaw(value.raw)
+    printf("anonymous ref = %u\n", value.raw) //?check("anonymous ref", 27)
+    printf("anonymous overload = %li %li\n", Pick({signed_value: -3, ?}), Pick({whole: 11}))
+    //?check("anonymous overload", "-3 11")
+
+    var brace : SBrace = {whole: 42}
+    printf("anonymous brace = %lu\n", brace.whole) //?check("anonymous brace", 42)
+    var derived : SDerived = {raw: 23, count: 4, lead: 1, tail: 2, extra: 9}
+    printf("anonymous inherited = %u %u\n", derived.raw, derived.extra)
+    //?check("anonymous inherited", "23 9")
+
+    var obj <- ODerived()
+    obj.Set(0xFFFFFFFF)
+    printf("anonymous object = %i %i %i %li\n", obj.Get(), obj.GetProtected(),
+           obj.visible_signed, obj.FieldSize())
+    //?check("anonymous object", "-1 -1 -1 4")
+    obj.value = 42
+    printf("anonymous property = %u %i\n", obj.value, obj.Get())
+    //?check("anonymous property", "42 42")
+endfunc

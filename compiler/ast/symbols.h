@@ -751,6 +751,7 @@ public:
   bool         ref_nullable = false;
   uint32_t     field_offset = 0;
   uint32_t     ll_field_index = 0;
+  bool         is_anonymous_union = false;
 
   uint32_t     attr_align = 0;
   string       attr_section_name = "";

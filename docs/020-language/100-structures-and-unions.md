@@ -275,6 +275,61 @@ maintain this field automatically. `data.integer: 42` is a shorter spelling of
 `data: {integer: 42}`. Select only one alternative for each union field in an
 initializer; alternatives may themselves contain nested structures or unions.
 
+### Unnamed Union Fields
+
+Omit the field name to expose the alternatives directly on the containing
+structure or object:
+
+```dq
+struct UART_REG:
+    union:
+        RBR : [[regro]] uint32
+        DLL : [[regrw]] uint32
+        THR : [[regwo]] uint32
+    endunion
+    union:
+        DLH : [[regrw]] uint32
+        IER : [[regrw]] uint32
+    endunion
+    LCR : [[regrw]] uint32
+endstruct
+
+var uart : ^UART_REG = ^UART_REG(0x40000000)
+uart.DLL = 1
+var received : uint32 = uart.RBR
+```
+
+`RBR`, `DLL`, and `THR` share offset zero; `DLH` and `IER` share offset four;
+`LCR` starts at offset eight. Each unnamed union occupies one field's storage,
+with the same size and alignment rules as a named union field. `OffsetOf()`
+accepts the exposed names, for example `OffsetOf(UART_REG, IER)` is `4`.
+The brace spelling is `union { ... }`.
+
+Named initializers also use the exposed names and may select only one
+alternative from each unnamed union:
+
+```dq
+struct SValue:
+    tag : int
+    union:
+        integer : int32
+        real : float32
+    endunion
+endstruct
+
+var value : SValue = {tag: 1, integer: 42}
+var positional : SValue = {1, {integer: 42}}
+```
+
+In a positional initializer, the unnamed union takes one entry containing a
+union initializer. `{}` zeroes all storage as usual.
+
+Exposed names must be unique among the containing type's fields, methods,
+properties, other unnamed unions, and inherited members. Inside object or
+structure methods, the exposed fields can be used without `self.`. An unnamed
+union in an object follows the current `public`, `protected`, or `private`
+section, and register access attributes on each alternative remain in effect.
+
 ## Structure Field Alignment and Padding
 
 Fields are stored in declaration order. Each field normally starts at an offset

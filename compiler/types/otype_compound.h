@@ -18,6 +18,8 @@
 class OValSymFunc;
 class OStructLit;
 class OTypeObject;
+class OLValueExpr;
+class OLValueMember;
 
 struct SStructInitField
 {
@@ -78,7 +80,11 @@ public:
   OValSymProperty * FindDefaultProperty(OCompoundType ** rdecl_type = nullptr) const;
   int  FindMemberIndex(const string & aname);
   virtual OValSym * FindMemberSymbol(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
+  // Promoted names return the index of their containing union storage field.
   virtual int FindFieldIndex(const string & aname, OCompoundType ** rdecl_type = nullptr) const;
+  OValSym * FindAnonymousUnionField(const string & aname) const;
+  OLValueMember * CreateFieldAccess(OLValueExpr * abase, const string & aname);
+  void CheckAnonymousUnionMembers();
   virtual bool IsObject() const { return false; }
   bool IsUnion() const { return TK_UNION == kind; }
   virtual bool IsSameOrDerivedFrom(OCompoundType * abase) const;

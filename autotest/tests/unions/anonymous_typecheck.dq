@@ -1,0 +1,77 @@
+struct SFieldBefore:
+    value : int
+    union:
+        value : uint32 //?error(VsAlreadyDecl)
+    endunion
+endstruct
+
+struct SBase:
+    inherited : uint32
+endstruct
+
+struct SInheritedConflict(SBase):
+    union:
+        inherited : int32 //?error(VsAlreadyDecl)
+    endunion
+endstruct
+
+struct SFieldAfter:
+    union:
+        value : uint32 //?error(VsAlreadyDecl)
+    endunion
+    value : int
+endstruct
+
+struct STwoUnions:
+    union:
+        value : uint32
+    endunion
+    union:
+        value : int32 //?error(VsAlreadyDecl)
+    endunion
+endstruct
+
+struct SMethodConflict:
+    union:
+        Value : uint32 //?error(VsAlreadyDecl)
+    endunion
+    func Value() -> int:
+        return 0
+    endfunc
+endstruct
+
+struct SRegisters:
+    union:
+        RO : [[regro]] uint32
+        RW : [[regrw]] uint32
+        WO : [[regwo]] uint32
+    endunion
+    tag : int
+endstruct
+
+object OPrivate:
+private
+    union:
+        raw : uint32
+        signed_value : int32
+    endunion
+public
+    func Set(value : uint32):
+        raw = value
+    endfunc
+endobject
+
+func Test():
+    var regs : SRegisters = {}
+    regs.RO = 1 //?error(AccessNoWrite)
+    var bad : uint32 = regs.WO //?error(AccessNoRead)
+    regs.WO += 1 //?error(AccessNoRead)
+    regs = {RO: 1, RW: 2, tag: 0} //?error(StructInitDuplicateField)
+    regs = {RW: 1} //?error(StructInitMissing)
+    regs = {RW: 1, tag: 0, ?} //?error(StructInitFillRedundant)
+    regs = {RW: "bad", tag: 0} //?error(TypeMismatchAssign)
+    regs = {missing: 1, tag: 0} //?error(StructInitUnknownField)
+    var obj <- OPrivate()
+    obj.raw = 1 //?error(MemberUnknown)
+    var hidden : int32 = obj.signed_value //?error(MemberUnknown)
+endfunc

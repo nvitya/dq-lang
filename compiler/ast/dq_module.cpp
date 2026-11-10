@@ -70,7 +70,7 @@ LlDiScope * OModule::GetDiScope()
   return di_scope;
 }
 
-ODecl * OModule::DeclareType(bool apublic, OType * atype)
+ODecl * OModule::DeclareType(bool apublic, OType * atype, OType * abefore)
 {
   ODecl * result = new ODecl(apublic, atype);
   declarations.push_back(result);
@@ -80,6 +80,17 @@ ODecl * OModule::DeclareType(bool apublic, OType * atype)
     if (AddPublicType(atype))
     {
       scope_local->typesyms[atype->name] = atype;
+      if (abefore)
+      {
+        // Nested union definitions must precede their owner in the interface:
+        // properties may resolve promoted field accessors while importing it.
+        auto & exported = OModuleBase::declarations;
+        auto before = find_if(exported.begin(), exported.end(), [&](OIntfDecl * decl)
+        {
+          return IDK_TYPE == decl->kind && decl->ptype == abefore && !decl->is_forward;
+        });
+        if (before != exported.end()) rotate(before, exported.end() - 1, exported.end());
+      }
     }
   }
   else

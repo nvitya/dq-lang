@@ -201,7 +201,7 @@ static bool ReadDocumentSymbol(const TJsonNode & json_symbol, SDocumentSymbol & 
   string path;
   if (json_symbol.GetKind() != nkObject || !JsonString(json_symbol, "path", path)
       || !JsonString(json_symbol, "name", rsymbol.name)) return false;
-  rsymbol.path = AbsNormPath(path).string();
+  rsymbol.path = SourcePathIdentity(path).string();
   rsymbol.kind = int(JsonInteger(JsonChild(json_symbol, "kind"), 13));
   rsymbol.line = int(JsonInteger(JsonChild(json_symbol, "line"), 1));
   rsymbol.column = int(JsonInteger(JsonChild(json_symbol, "column"), 1));
@@ -352,12 +352,14 @@ static string InferVariableType(const SDocument & document, const string & name,
 
 static string SymbolUri(const SDocumentSymbol & symbol, const unordered_map<string, SDocument> & documents)
 {
-  string symbol_path = AbsNormPath(symbol.path).string();
+  string symbol_path = SourcePathIdentity(symbol.path).string();
+  const SDocument * latest = nullptr;
   for (const auto & [uri, document] : documents)
   {
-    if (AbsNormPath(document.path).string() == symbol_path) return uri;
+    if ((SourcePathIdentity(document.path).string() == symbol_path)
+        && (!latest || (latest->revision < document.revision))) latest = &document;
   }
-  return FileUri(symbol.path);
+  return latest ? latest->uri : FileUri(symbol.path);
 }
 
 static void AddDocumentSymbol(TJsonNode & symbols, const SDocument & document, const SDocumentSymbol & document_symbol)
@@ -436,15 +438,24 @@ bool ODqLanguageServer::StageDocuments(filesystem::path & rmanifest, filesystem:
 
   TJsonNode manifest(nkObject);
   TJsonNode & files = manifest.Add("files").GetAsArray();
-  size_t index = 0;
+  // URI aliases share an overlay. LSP document versions are per URI, so use
+  // arrival order to select the latest buffer when both aliases are open.
+  unordered_map<string, const SDocument *> sources;
   for (const auto & [uri, document] : documents)
   {
+    const SDocument * & latest = sources[SourcePathIdentity(document.path).string()];
+    if (!latest || (latest->revision < document.revision)) latest = &document;
+  }
+  size_t index = 0;
+  for (const auto & [identity, latest] : sources)
+  {
+    const SDocument & document = *latest;
     filesystem::path staged = job_dir / "sources" / format("{}-{}{}", index++, document.version, document.path.extension().string());
     ofstream output(staged, ios::binary);
     output.write(document.text.data(), static_cast<streamsize>(document.text.size()));
     if (!output) return false;
     TJsonNode & file = files.Add().GetAsObject();
-    file.Add("source", AbsNormPath(document.path).string());
+    file.Add("source", identity);
     file.Add("staged", staged.string());
   }
   rmanifest = job_dir / "overlay.json";
@@ -496,7 +507,7 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
     string message;
     if (!JsonString(object, "path", path) || !JsonString(object, "message", message)) continue;
     SDiagnostic diagnostic;
-    diagnostic.path = AbsNormPath(path).string();
+    diagnostic.path = SourcePathIdentity(path).string();
     JsonString(object, "severity", diagnostic.severity);
     if (diagnostic.severity.empty()) diagnostic.severity = "ERROR";
     JsonString(object, "code", diagnostic.code);
@@ -589,7 +600,7 @@ void ODqLanguageServer::PublishDiagnostics(const SDocument & document, const vec
 TJsonNode ODqLanguageServer::DocumentSymbolsJson(const SDocument & document) const
 {
   TJsonNode result(nkArray);
-  auto it = document_symbols.find(AbsNormPath(document.path).string());
+  auto it = document_symbols.find(SourcePathIdentity(document.path).string());
   if (it != document_symbols.end())
   {
     for (const SDocumentSymbol & symbol : it->second)
@@ -603,7 +614,7 @@ TJsonNode ODqLanguageServer::DocumentSymbolsJson(const SDocument & document) con
 TJsonNode ODqLanguageServer::DefinitionJson(const SDocument & document, int line, int character) const
 {
   TJsonNode result(nkArray);
-  auto document_it = document_symbols.find(AbsNormPath(document.path).string());
+  auto document_it = document_symbols.find(SourcePathIdentity(document.path).string());
   if (document_it == document_symbols.end()) return result;
 
   string name;
@@ -685,13 +696,13 @@ TJsonNode ODqLanguageServer::DefinitionJson(const SDocument & document, int line
 
   const SDocument * target_document = nullptr;
   SDocument closed_document;
-  string target_path = AbsNormPath(target->path).string();
+  string target_path = SourcePathIdentity(target->path).string();
   for (const auto & [uri, open_document] : documents)
   {
-    if (AbsNormPath(open_document.path).string() == target_path)
+    if ((SourcePathIdentity(open_document.path).string() == target_path)
+        && (!target_document || (target_document->revision < open_document.revision)))
     {
       target_document = &open_document;
-      break;
     }
   }
   if (!target_document)
@@ -739,7 +750,7 @@ void ODqLanguageServer::Reanalyze()
     unordered_set<string> analysis_paths;
     for (const auto & [uri, document] : documents)
     {
-      if ((document.path.extension() == ".dq") && analysis_paths.insert(AbsNormPath(document.path).string()).second)
+      if ((document.path.extension() == ".dq") && analysis_paths.insert(SourcePathIdentity(document.path).string()).second)
       {
         analysis_sources.push_back(document.path);
       }
@@ -760,7 +771,7 @@ void ODqLanguageServer::Reanalyze()
       {
         if ((ns_name == ".") || (ns_name == ".."))
         {
-          all_document_local_namespaces[AbsNormPath(analysis_sources[source_index]).string()][ns_name] = ns_symbols;
+          all_document_local_namespaces[SourcePathIdentity(analysis_sources[source_index]).string()][ns_name] = ns_symbols;
         }
         all_namespaces[ns_name] = std::move(ns_symbols);
       }
@@ -769,7 +780,7 @@ void ODqLanguageServer::Reanalyze()
       {
         for (const filesystem::path & source : worker_result.used_module_sources)
         {
-          filesystem::path normalized_source = AbsNormPath(source);
+          filesystem::path normalized_source = SourcePathIdentity(source);
           if ((normalized_source.extension() == ".dq") && analysis_paths.insert(normalized_source.string()).second)
           {
             analysis_sources.push_back(std::move(normalized_source));
@@ -784,7 +795,7 @@ void ODqLanguageServer::Reanalyze()
   module_namespaces = std::move(all_module_namespaces);
   for (const auto & [uri, document] : documents)
   {
-    auto it = all_diagnostics.find(AbsNormPath(document.path).string());
+    auto it = all_diagnostics.find(SourcePathIdentity(document.path).string());
     PublishDiagnostics(document, it == all_diagnostics.end() ? vector<SDiagnostic>() : it->second);
   }
 }
@@ -979,7 +990,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     }
     
     TJsonNode result(nkArray);
-    const auto local_namespaces = document_local_namespaces.find(AbsNormPath(document.path).string());
+    const auto local_namespaces = document_local_namespaces.find(SourcePathIdentity(document.path).string());
     auto find_namespace = [&](const string & ns_name) -> const vector<SDocumentSymbol> *
     {
       if ((ns_name == ".") || (ns_name == ".."))
@@ -1087,6 +1098,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
   document.uri = uri;
   document.path = filesystem::path(path);
   document.text = text_value->GetAsString();
+  document.revision = ++document_revision;
   document.version = JsonInteger(JsonChild(*text_document, "version"), document.version + 1);
   Reanalyze();
 }

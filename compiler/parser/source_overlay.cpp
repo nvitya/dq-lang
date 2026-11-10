@@ -52,14 +52,15 @@ bool OSourceOverlay::Load(const string & manifest_filename, string & rerror)
     const TJsonNode * logical = entry.Child("source");
     const TJsonNode * staged = entry.Child("staged");
     if (!logical || !staged || logical->GetKind() != nkString || staged->GetKind() != nkString) continue;
-    staged_paths[AbsNormPath(logical->GetAsString()).string()] = filesystem::path(staged->GetAsString());
+    staged_paths[SourcePathIdentity(logical->GetAsString()).string()] = filesystem::path(staged->GetAsString());
   }
   return true;
 }
 
 filesystem::path OSourceOverlay::PhysicalPath(const filesystem::path & logical_path) const
 {
-  auto it = staged_paths.find(AbsNormPath(logical_path).string());
+  if (staged_paths.empty()) return logical_path;
+  auto it = staged_paths.find(SourcePathIdentity(logical_path).string());
   if (it != staged_paths.end()) return it->second;
   return logical_path;
 }

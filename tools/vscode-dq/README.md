@@ -21,9 +21,32 @@ Rainbow bracket coloring is limited to `(` and `)`. Square brackets still match 
 
 ## Language server
 
-The extension starts one stdio `dq-comp --langserver` process for each workspace
-folder. By default it resolves `dq-comp` from `PATH`. Configure
-`dq.languageServerPath` when using a local build, for example:
+The extension detects a folder's project automatically when it contains one
+`.dqproj` file. With several projects, click the **DQ** project name in the
+status bar or run **DQ: Select Active Project**. The picker lists projects
+across the workspace, so it also works while editing a library.
+
+Library folders without their own project follow the application you last
+edited. Selecting an application source file makes that folder's project active;
+opening a library keeps the last application context. The choice is remembered
+for this workspace. Files opened outside the workspace follow the same rule.
+The status bar shows which project libraries are using.
+
+Folders with their own project keep their settings. Files using the same project
+share a language server, including application and library buffers, so unsaved
+library edits are visible when checking the application. Compiler path, extra
+arguments, package search paths, target and defines come from the application.
+There is no need to add a project mapping for each library folder. Remove any
+old library-folder mapping if you want that folder to follow the active project.
+
+The compiler resolves symlinks when comparing source identities: a library
+opened through a workspace symlink and through `~/.dq/packages` is the same
+source. Unsaved overlays, diagnostics, symbols and navigation share that identity
+while editor URIs and logical package roots are preserved. If both aliases have
+open buffers, the latest received edit supplies the shared source text. This
+requires the updated compiler as well as the extension.
+
+By default the extension resolves `dq-comp` from `PATH`. To use a local compiler:
 
 ```json
 {
@@ -31,35 +54,33 @@ folder. By default it resolves `dq-comp` from `PATH`. Configure
 }
 ```
 
-Use `dq.languageServerArgs` for semantic compiler options such as `--target`
-or `--pkg-path`. To load a specific project in a single-folder workspace, set
-`dq.languageServerProject` to its `.dqproj` filename. Relative paths are
-resolved from that workspace folder; when a project is selected, `dq-comp` is
-started with the `.dqproj` parent directory as its working directory.
-
-For a multi-root workspace, put the active projects in the shared
-`.code-workspace` file. Keys are the workspace-folder names:
+Use `dq.languageServerArgs` for options such as `--target` or `--pkg-path`.
+Relative argument paths use the selected project's parent directory.
+To select projects explicitly, existing settings remain supported:
 
 ```jsonc
 {
   "folders": [
+    { "name": "blinkled_linux", "path": "blinkled_linux" },
     { "name": "uart", "path": "uart" },
-    { "name": "blinkled", "path": "blinkled" }
+    { "name": "vihal", "path": "vihal" }
   ],
   "settings": {
-    "dq.languageServerPath": "/path/to/dq-lang/build/dq-comp",
     "dq.languageServerProjects": {
-      "uart": "uart_nucleo_f746.dqproj",
-      "blinkled": "blinkled_nucleo_f746.dqproj"
+      "blinkled_linux": "blinkled_luckfox_lyra_ultra.dqproj",
+      "uart": "uart_nucleo_f746.dqproj"
     }
   }
 }
 ```
 
-Run **DQ: Select Language Server Project** to choose a `.dqproj` for the
-active folder. The extension updates this map and restarts only that folder's
-language server. A map entry overrides the folder-local
-`dq.languageServerProject` fallback.
+Here `vihal` follows whichever application you last edited. A map entry overrides
+`dq.languageServerProject`, the folder-local fallback. Relative project paths
+use their workspace folder. **DQ: Select Active Project** updates only the
+selected application's entry and restarts clients whose context changed.
+
+Run extension tests with `npm test`. Test compiler symlink handling with
+`python3 tools/test-langserver.py --compiler build/dq-comp` from the repository root.
 
 ## Running the current file
 

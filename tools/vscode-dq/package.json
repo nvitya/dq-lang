@@ -2,12 +2,12 @@
   "name": "dq-syntax",
   "displayName": "DQ Language Support",
   "description": "DQ editing, language-server, build, and debug support.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "local",
   "license": "UNLICENSED",
   "scripts": {
     "package": "vsce package",
-    "test": "node test/block-closer.test.js"
+    "test": "node --test test/*.test.js"
   },
   "repository": {
     "type": "git",
@@ -24,6 +24,7 @@
   },
   "files": [
     "extension.js",
+    "language-servers.js",
     "block-closer.js",
     "language-configuration.json",
     "package.json",
@@ -52,7 +53,7 @@
       },
       {
         "command": "dq.selectLanguageServerProject",
-        "title": "Select Language Server Project",
+        "title": "Select Active Project",
         "category": "DQ"
       }
     ],
@@ -92,7 +93,7 @@
           "type": "string",
           "default": "",
           "scope": "resource",
-          "description": "Fallback .dqproj file for this workspace folder. Relative paths use the workspace folder."
+          "description": "Active .dqproj file for this workspace folder. Relative paths use the workspace folder. A single project is detected automatically; library folders follow the active application project."
         },
         "dq.languageServerProjects": {
           "type": "object",

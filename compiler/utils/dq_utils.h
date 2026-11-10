@@ -31,6 +31,8 @@ inline int HexDigitValue(char c)
 
 string JsonEscape(string_view text);
 filesystem::path AbsNormPath(const filesystem::path & path);
+// Compare source identities without changing logical package roots or import paths.
+filesystem::path SourcePathIdentity(const filesystem::path & path);
 int64_t FileTimeTicks(filesystem::file_time_type filetime);
 
 #if defined(_WIN32)

@@ -33,6 +33,7 @@ struct SDocument
   filesystem::path path;
   string text;
   int64_t version = 0;
+  uint64_t revision = 0;
 };
 
 struct SDiagnostic
@@ -90,6 +91,7 @@ private:
   unordered_map<string, vector<SDocumentSymbol>> namespaces;
   unordered_map<string, unordered_map<string, vector<SDocumentSymbol>>> document_local_namespaces;
   unordered_set<string> module_namespaces;
+  uint64_t document_revision = 0;
   bool initialize_received = false;
   bool initialized = false;
   bool shutdown_requested = false;

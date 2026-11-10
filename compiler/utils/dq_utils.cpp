@@ -51,6 +51,15 @@ filesystem::path AbsNormPath(const filesystem::path & path)
   return result.lexically_normal();
 }
 
+filesystem::path SourcePathIdentity(const filesystem::path & path)
+{
+  error_code ec;
+  filesystem::path result = filesystem::absolute(path, ec);
+  if (ec) return AbsNormPath(path);
+  result = filesystem::weakly_canonical(result, ec);
+  return ec ? AbsNormPath(path) : result;
+}
+
 int64_t FileTimeTicks(filesystem::file_time_type filetime)
 {
   return int64_t(chrono::duration_cast<chrono::nanoseconds>(filetime.time_since_epoch()).count());

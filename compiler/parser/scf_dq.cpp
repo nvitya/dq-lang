@@ -171,20 +171,24 @@ bool OScFeederDq::ResolveSourcePath(const string & source_text, filesystem::path
   }
   else
   {
-    candidate = filesystem::path(curfile->fullpath).parent_path() / raw_path;
-    error_code ec;
-    if (!g_source_overlay.Exists(candidate))
+    size_t separator = source_text.find('/');
+    if (separator == string::npos || separator == 0) return false;
+    string package_name = source_text.substr(0, separator);
+    OModulePath package_path;
+    string path_error;
+    if (!package_path.ParseUsePath(package_name, path_error)) return false;
+    filesystem::path relative_path(source_text.substr(separator + 1));
+    if (relative_path.empty() || relative_path.is_absolute()) return false;
+    for (const auto & component : relative_path)
     {
-      for (auto it = g_opt.package_paths.rbegin(); it != g_opt.package_paths.rend(); ++it)
-      {
-        filesystem::path package_candidate = filesystem::path(*it) / raw_path;
-        if (g_source_overlay.Exists(package_candidate))
-        {
-          candidate = package_candidate;
-          break;
-        }
-      }
+      if (component == ".." || component == ".") return false;
     }
+    filesystem::path package_root;
+    if (!OModulePath::ResolvePackageRoot(package_name, g_opt.package_paths, package_root))
+    {
+      return false;
+    }
+    candidate = package_root / relative_path;
   }
 
   rpath = AbsNormPath(candidate);
@@ -780,6 +784,11 @@ void OScFeederDq::ParseDirectiveInclude()
     }
     include_path = header_source_path;
     sfname = include_path.string();
+  }
+  else if (sfname.find('/') == string::npos)
+  {
+    PreprocError2(DQERR_CDIR_INC_LOCAL_PREFIX);
+    return;
   }
   else if (!ResolveSourcePath(sfname, include_path))
   {

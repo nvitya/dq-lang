@@ -1,2 +1,2 @@
 implementation
-#srcdep "srcdep_basic_impl.dqi" //?error(CDirSrcDepPlacement)
+#srcdep "./srcdep_basic_impl.dqi" //?error(CDirSrcDepPlacement)

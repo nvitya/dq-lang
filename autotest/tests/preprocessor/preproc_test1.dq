@@ -59,11 +59,11 @@ var globvar3 : int = @def.GLOBVAR3_VALUE
 
     */  var globvar4 : int = 44
 
-#{include "preproc_inc1.dqi"}
+#{include "./preproc_inc1.dqi"}
 
 // include once more, with the other quotes
 
-#{include 'preproc_inc1.dqi' }
+#{include './preproc_inc1.dqi' }
 
 var globvar6 : int = 66
 

@@ -1,4 +1,4 @@
-#include "nested_outer.dqi"
+#include "./nested_outer.dqi"
 
 func printf(fmt : ^char, ...) -> int [[external]] ..
 

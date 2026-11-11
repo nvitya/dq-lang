@@ -15,18 +15,18 @@
 
 use rtl/rtlint
 
-#include "embstrs.dqh"
-#srcdep  "embstrs.dqi"
+#include "./embstrs.dqh"
+#srcdep  "./embstrs.dqi"
 
-#include "textinfo.dqh"
-#srcdep  "textinfo.dqi"
+#include "./textinfo.dqh"
+#srcdep  "./textinfo.dqi"
 
-#include "strmethods.dqh"
-#srcdep  "strmethods.dqi"
+#include "./strmethods.dqh"
+#srcdep  "./strmethods.dqi"
 
 #ifdef DYNSTRINGS
-#include "dynstr.dqh"
-#srcdep  "dynstr.dqi"
+#include "./dynstr.dqh"
+#srcdep  "./dynstr.dqi"
 #endif
 
 
@@ -87,15 +87,15 @@ use rtl/exception
 #endif
 func libc_pow(x : float64, y : float64) -> float64 [[external('pow')]] ..
 
-#include "embstrs.dqi"
+#include "./embstrs.dqi"
 
-#include "textinfo.dqi"
+#include "./textinfo.dqi"
 
 #ifdef DYNSTRINGS
-#include "dynstr.dqi"
+#include "./dynstr.dqi"
 #endif
 
-#include "strmethods.dqi"
+#include "./strmethods.dqi"
 
 #ifdef DYNSTRINGS
 func Format(afmt : strslice, aargs : []anyvalue) -> str:

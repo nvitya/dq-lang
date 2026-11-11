@@ -128,11 +128,11 @@ public
 
 endobject
 
-#include "dbrows.dqh"
-#srcdep  "dbrows.dqi"
+#include "./dbrows.dqh"
+#srcdep  "./dbrows.dqi"
 
-#include "sqluis.dqh"
-#srcdep  "sqluis.dqi"
+#include "./sqluis.dqh"
+#srcdep  "./sqluis.dqi"
 
 
 implementation
@@ -218,7 +218,7 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-#include "dbrows.dqi"
+#include "./dbrows.dqi"
 
-#include "sqluis.dqi"
+#include "./sqluis.dqi"
 

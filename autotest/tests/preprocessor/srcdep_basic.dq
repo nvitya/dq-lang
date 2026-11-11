@@ -1,11 +1,11 @@
-#srcdep "srcdep_basic_impl.dqi"
+#srcdep "./srcdep_basic_impl.dqi"
 
 func SrcDepValue() -> int ..
 func printf(fmt : ^char, ...) -> int [[external]] ..
 
 implementation
 
-#include "srcdep_basic_impl.dqi"
+#include "./srcdep_basic_impl.dqi"
 
 func *Main():
     printf("srcdep value = %d\n", SrcDepValue()) //?check("srcdep value", 44)

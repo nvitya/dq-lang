@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.22"
+#define DQ_COMPILER_VERSION  "0.95.23"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.23:
+  - `#include` path handling matches the `use` statement. Local includes must use "./" prefix.
 v0.95.22:
   - `#include "^/..."` matches the `use ^/...` behaviour searching package roots relative to the current file
 v0.95.21:

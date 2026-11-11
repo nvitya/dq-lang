@@ -13,7 +13,7 @@ object EShellResult(Exception):
 endobject
 
 #ifdef WINDOWS
-#include "shell_windows.dqh"
+#include "./shell_windows.dqh"
 #endif
 
 object OShellRunner(OThread):
@@ -78,9 +78,9 @@ func GetEnv(name : rostr, default_value : rostr) -> str ..
 func SetEnv(name : rostr, value : rostr) ..
 
 #ifdef WINDOWS
-#srcdep "shell_windows.dqi"
+#srcdep "./shell_windows.dqi"
 #else
-#srcdep "shell_posix.dqi"
+#srcdep "./shell_posix.dqi"
 #endif
 
 implementation
@@ -99,9 +99,9 @@ endfunc
 //-----------------------------------------------------------------------------
 
 #ifdef WINDOWS
-#include "shell_windows.dqi"
+#include "./shell_windows.dqi"
 #else
-#include "shell_posix.dqi"
+#include "./shell_posix.dqi"
 #endif
 
 func OShellRunner.ExecuteCommand(acmd : rostr, ainput : strslice, with_input : bool,

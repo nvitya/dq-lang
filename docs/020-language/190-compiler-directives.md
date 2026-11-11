@@ -121,15 +121,19 @@ for exception support.
 `#include` inserts another file's source at that point:
 
 ```dq
-#include "shared.dqi"
+#include "./shared.dqi"
 ```
 
 Single quotes are also accepted. Use an include for a source fragment; use
 [`use`](170-modules-and-packages.md) when you want a module with its own public
 interface and namespace.
 
-Plain include paths search the current source file's directory and then the
-package search roots. `./` and `../` are relative to the source file; `^/`
+Local include paths must start with `./` or `../`; bare filenames are rejected.
+A path such as `platform/config.dqi` selects the highest-priority `platform`
+package directory first, then looks for `config.dqi` inside it. A missing file
+is an error; lookup does not fall back to another version of the package or
+search the current directory. Include paths retain their filename extensions.
+`./` and `../` are relative to the source file; `^/`
 is relative to the configured package containing the current source file, just
 like `use ^/`. Inside an included fragment from another package, this is the
 fragment's package root; returning to the including file restores its context.
@@ -246,20 +250,21 @@ If an implementation include affects the compiled module, declare it before
 `implementation` with `#srcdep`:
 
 ```dq
-#srcdep "somefunc_impl.dqi"
+#srcdep "./somefunc_impl.dqi"
 
 func Calculate(value : int) -> int ..
 
 implementation
 
-#include "somefunc_impl.dqi"
+#include "./somefunc_impl.dqi"
 ```
 
 Here `somefunc_impl.dqi` contains the body of `Calculate`. `#include` inserts
 that body where it belongs, while the earlier `#srcdep` tells the build system
 that a change to the fragment can require recompiling the module.
 
-`#srcdep` records the dependency without inserting its contents there. It
+`#srcdep` uses the same explicit local and package path rules as `#include`.
+It records the dependency without inserting its contents there. It
 uses the same path lookup as `#include` and records only the named file; it does
 not parse that file or discover its dependencies.
 

@@ -1,0 +1,1 @@
+#include "preproc_inc2.dqi" //?error(CDirIncLocalPrefix)

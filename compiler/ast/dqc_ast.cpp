@@ -1344,18 +1344,11 @@ OExpr * ODqCompAst::CreateImplicitObjectMemberExpr(const string & sid, OValSym *
     return nullptr;
   }
 
-  return new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, vs->ptype);
+  return new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, vs);
 }
 
 bool ODqCompAst::ObjectMemberAccessAllowed(OCompoundType * decl_type, OValSym * member) const
 {
-  if (decl_type && member)
-  {
-    if (OValSym * field = decl_type->FindAnonymousUnionField(member->name))
-    {
-      if (!ObjectMemberAccessAllowed(decl_type, field)) return false;
-    }
-  }
   if (!member || MV_PUBLIC == member->member_visibility)
   {
     return true;

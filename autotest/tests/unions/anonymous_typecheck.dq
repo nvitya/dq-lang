@@ -17,9 +17,9 @@ endstruct
 
 struct SFieldAfter:
     union:
-        value : uint32 //?error(VsAlreadyDecl)
+        value : uint32
     endunion
-    value : int
+    value : int //?error(VsAlreadyDecl)
 endstruct
 
 struct STwoUnions:
@@ -33,9 +33,9 @@ endstruct
 
 struct SMethodConflict:
     union:
-        Value : uint32 //?error(VsAlreadyDecl)
+        Value : uint32
     endunion
-    func Value() -> int:
+    func Value() -> int: //?error(VsAlreadyDecl)
         return 0
     endfunc
 endstruct

@@ -185,30 +185,22 @@ void AddCompoundMembers(TJsonNode & json_parent, const OCompoundType & compound)
     }
   };
 
-  for (const OValSym * member : compound.member_order)
+  for (const auto & [name, member] : compound.member_scope.valsyms)
   {
+    (void)name;
     if (!member) continue;
-    if (member->is_anonymous_union)
-    {
-      for (const OValSym * alternative : static_cast<const OCompoundType *>(member->ptype)->member_order)
-      {
-        add_member(alternative, ValSymKind(alternative->kind));
-      }
-    }
-    else add_member(member, ValSymKind(member->kind));
-  }
-  for (const OValSymProperty * property : compound.properties)
-  {
-    if (property) add_member(property, ValSymKind(property->kind));
-  }
-  for (const auto & entry : compound.member_scope.valsyms)
-  {
-    const OValSym * member = entry.second;
     if (const auto * overload_set = dynamic_cast<const OValSymOverloadSet *>(member))
     {
       for (const OValSymFunc * function : overload_set->funcs) add_function(function);
     }
-    else add_function(dynamic_cast<const OValSymFunc *>(member));
+    else if (const auto * function = dynamic_cast<const OValSymFunc *>(member))
+    {
+      add_function(function);
+    }
+    else
+    {
+      add_member(member, ValSymKind(member->kind));
+    }
   }
   if (members.empty()) return;
 
@@ -323,20 +315,9 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
         for (const auto & [name, valsym] : ctype->member_scope.valsyms)
         {
           if (!valsym || valsym->member_visibility != MV_PUBLIC || name.empty() || name.starts_with("__dq_")) continue;
-          auto add_value = [&](const OValSym * symbol)
-          {
-            TJsonNode & json_symbol = json_symbols.Add().GetAsObject();
-            json_symbol.Add("name", symbol->name);
-            json_symbol.Add("kind", ValSymKind(symbol->kind));
-          };
-          if (valsym->is_anonymous_union)
-          {
-            for (const OValSym * alternative : static_cast<const OCompoundType *>(valsym->ptype)->member_order)
-            {
-              add_value(alternative);
-            }
-          }
-          else add_value(valsym);
+          TJsonNode & json_symbol = json_symbols.Add().GetAsObject();
+          json_symbol.Add("name", name);
+          json_symbol.Add("kind", ValSymKind(valsym->kind));
         }
       }
     }

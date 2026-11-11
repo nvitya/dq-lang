@@ -127,7 +127,8 @@ public:
   OLValueExpr *  base;
   OType *        structtype;
   uint32_t       memberindex;
-  /* ctor */ OLValueMember(OLValueExpr * abase, OType * astype, uint32_t aidx, OType * amembertype);
+  OValSym *      membersym;
+  /* ctor */ OLValueMember(OLValueExpr * abase, OType * astype, uint32_t aidx, OValSym * amember);
   ~OLValueMember() override;
   OValSym *  MemberSymbol() const;
   LlValue *  GenerateAddress(OScope * scope) override;

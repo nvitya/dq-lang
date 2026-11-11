@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.18"
+#define DQ_COMPILER_VERSION  "0.95.19"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.19:
+  - Compiler code refactoring: unnamed union handling improvement (handled as normal fields)
 v0.95.18:
   - Supporting `use ${MODULE_NAME} ...` syntax and proper dependency checking
 v0.95.17:

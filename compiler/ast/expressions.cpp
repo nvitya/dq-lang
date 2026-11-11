@@ -456,18 +456,18 @@ OLValueDeref::~OLValueDeref()
   delete ptrexpr;
 }
 
-/* ctor */ OLValueMember::OLValueMember(OLValueExpr * abase, OType * astype, uint32_t aidx, OType * amembertype)
+/* ctor */ OLValueMember::OLValueMember(OLValueExpr * abase, OType * astype, uint32_t aidx, OValSym * amember)
 {
   base        = abase;
   structtype  = astype;
   memberindex = aidx;
-  ptype       = amembertype;
+  membersym   = amember;
+  ptype       = amember ? amember->ptype : nullptr;
 }
 
 OValSym * OLValueMember::MemberSymbol() const
 {
-  auto * ctype = dynamic_cast<OCompoundType *>(structtype ? structtype->ResolveAlias() : nullptr);
-  return ctype && memberindex < ctype->member_order.size() ? ctype->member_order[memberindex] : nullptr;
+  return membersym;
 }
 
 LlValue * OLValueMember::GenerateAddress(OScope * scope)
@@ -488,12 +488,12 @@ LlValue * OLValueMember::GenerateAddress(OScope * scope)
 
 bool OLValueMember::TryCalculateConstantAddress(uint64_t & raddress) const
 {
-  OValSym * member = MemberSymbol();
-  if (!member || !base->TryCalculateConstantAddress(raddress))
+  auto * ctype = dynamic_cast<OCompoundType *>(structtype ? structtype->ResolveAlias() : nullptr);
+  if (!ctype || memberindex >= ctype->member_order.size() || !base->TryCalculateConstantAddress(raddress))
   {
     return false;
   }
-  raddress += member->field_offset;
+  raddress += ctype->member_order[memberindex]->field_offset;
   return true;
 }
 
@@ -580,7 +580,7 @@ OLValueExpr * OLValueMember::Clone() const
   {
     return nullptr;
   }
-  return new OLValueMember(new_base, structtype, memberindex, ptype);
+  return new OLValueMember(new_base, structtype, memberindex, membersym);
 }
 
 /* ctor */ OLValueIndex::OLValueIndex(OLValueExpr * abase, OType * acontainertype, OExpr * aindex)
@@ -1035,7 +1035,7 @@ vector<LlValue *> OPropertyExpr::GenerateCallArgs(OScope * scope, OValSymFunc * 
 LlValue * OPropertyExpr::GenerateFieldAddress(OScope * scope, OValSym * accessor,
                                               OCompoundType * decl_type, LlValue * ll_receiver)
 {
-  int field_index = (decl_type ? decl_type->FindFieldIndex(accessor->name) : -1);
+  int field_index = (decl_type ? decl_type->FindMemberIndex(accessor->name) : -1);
   if (field_index < 0)
   {
     throw logic_error("Property field accessor is not in its declaring type");

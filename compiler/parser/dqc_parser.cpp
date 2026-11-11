@@ -1478,7 +1478,6 @@ void ODqCompParser::ParseStructDecl()
     ctype->AddMember(mvsym);
   }
 
-  ctype->CheckAnonymousUnionMembers();
   ctype->EnsureLayout();
   ctype->layout_ready = true;
   header.Finish();
@@ -2651,7 +2650,6 @@ void ODqCompParser::ParseObjectDecl()
     AddGeneratedObjectDestructor(object_type, inherited_dtor, scpos_statement_start);
   }
 
-  object_type->CheckAnonymousUnionMembers();
   object_type->UpdateObjectInheritanceFlags();
   object_type->EnsureLayout();
   header.Finish();

@@ -3261,7 +3261,8 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
       return EPostfixResult::Continue;
     }
 
-    if (!objsym)
+    int midx = (objsym && decl_type) ? decl_type->FindMemberIndex(membername) : -1;
+    if (midx < 0)
     {
       Error(DQERR_MEMBER_UNKNOWN, membername, ctype->name);
       return EPostfixResult::Stop;
@@ -3273,7 +3274,7 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
       result = nullptr;
       return EPostfixResult::Stop;
     }
-    auto * member_expr = ctype->CreateFieldAccess(memberbase, membername);
+    auto * member_expr = new OLValueMember(memberbase, decl_type, midx, objsym);
     result = member_expr;
     CheckNoReadAccess(member_expr, objsym, scpos_statement_start);
     return EPostfixResult::Continue;
@@ -3808,8 +3809,10 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
           return new OLValueVar(member);
         }
 
-        if (auto * member_expr = owner_type->CreateFieldAccess(new OLValueVar(curvsfunc->receiver_arg), sid))
+        int midx = decl_type->FindMemberIndex(sid);
+        if (midx >= 0)
         {
+          auto * member_expr = new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, member);
           CheckNoReadAccess(member_expr, member, scpos_statement_start);
           return member_expr;
         }

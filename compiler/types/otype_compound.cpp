@@ -909,7 +909,30 @@ void OVsObject::GenerateCleanup(OScope * scope, LlValue * addr)
 
 void OCompoundType::AddMember(OValSym * amember)
 {
-  member_scope.DefineValSym(amember);
+  if (amember->is_anonymous_union)
+  {
+    for (OValSym * member : static_cast<OCompoundType *>(amember->ptype)->member_order)
+    {
+      member->member_visibility = amember->member_visibility;
+      member->attr_is_volatile |= amember->attr_is_volatile;
+      member->attr_no_read     |= amember->attr_no_read;
+      member->attr_no_write    |= amember->attr_no_write;
+      if (member_scope.FindValSym(member->name, nullptr, false)
+          || (base_type && base_type->FindMemberSymbol(member->name)))
+      {
+        g_compiler->Error(DQERR_VS_ALREADY_DECL_SCOPE, member->name,
+                          member_scope.debugname, &member->scpos);
+      }
+      else
+      {
+        member_scope.DefineValSym(member);
+      }
+    }
+  }
+  else
+  {
+    member_scope.DefineValSym(amember);
+  }
   member_order.push_back(amember);
   layout_ready = false;
 }
@@ -945,11 +968,17 @@ OValSymProperty * OCompoundType::FindDefaultProperty(OCompoundType ** rdecl_type
   return nullptr;
 }
 
-int OCompoundType::FindMemberIndex(const string & aname)
+int OCompoundType::FindMemberIndex(const string & aname) const
 {
   for (int i = 0; i < (int)member_order.size(); ++i)
   {
-    if (member_order[i]->name == aname)  return i;
+    OValSym * member = member_order[i];
+    if (member->is_anonymous_union
+        ? static_cast<OCompoundType *>(member->ptype)->FindMemberIndex(aname) >= 0
+        : member->name == aname)
+    {
+      return i;
+    }
   }
   return -1;
 }
@@ -959,13 +988,6 @@ OValSym * OCompoundType::FindMemberSymbol(const string & aname, OCompoundType **
   for (const OCompoundType * cur = this; cur; cur = cur->base_type)
   {
     OValSym * vs = const_cast<OCompoundType *>(cur)->member_scope.FindValSym(aname, nullptr, false);
-    if (!vs)
-    {
-      if (OValSym * field = cur->FindAnonymousUnionField(aname))
-      {
-        vs = static_cast<OCompoundType *>(field->ptype)->FindMemberSymbol(aname);
-      }
-    }
     if (vs)
     {
       if (rdecl_type)
@@ -978,76 +1000,11 @@ OValSym * OCompoundType::FindMemberSymbol(const string & aname, OCompoundType **
   return nullptr;
 }
 
-OValSym * OCompoundType::FindAnonymousUnionField(const string & aname) const
-{
-  for (OValSym * field : member_order)
-  {
-    if (field->is_anonymous_union
-        && static_cast<OCompoundType *>(field->ptype)->FindMemberSymbol(aname))
-    {
-      return field;
-    }
-  }
-  return nullptr;
-}
-
-OLValueMember * OCompoundType::CreateFieldAccess(OLValueExpr * abase, const string & aname)
-{
-  OCompoundType * declaring_type = nullptr;
-  OValSym * member = FindMemberSymbol(aname, &declaring_type);
-  if (!member)
-  {
-    delete abase;
-    return nullptr;
-  }
-
-  if (OValSym * field = declaring_type->FindAnonymousUnionField(aname))
-  {
-    auto * union_type = static_cast<OCompoundType *>(field->ptype);
-    auto * storage = new OLValueMember(abase, declaring_type,
-        declaring_type->FindMemberIndex(field->name), union_type);
-    return union_type->CreateFieldAccess(storage, aname);
-  }
-  int index = declaring_type->FindMemberIndex(aname);
-  if (index < 0)
-  {
-    delete abase;
-    return nullptr;
-  }
-  return new OLValueMember(abase, declaring_type, index, member->ptype);
-}
-
-void OCompoundType::CheckAnonymousUnionMembers()
-{
-  unordered_set<string> promoted_names;
-  for (OValSym * field : member_order)
-  {
-    if (!field->is_anonymous_union) continue;
-    for (OValSym * member : static_cast<OCompoundType *>(field->ptype)->member_order)
-    {
-      if (member_scope.FindValSym(member->name, nullptr, false)
-          || !promoted_names.insert(member->name).second
-          || (base_type && base_type->FindMemberSymbol(member->name)))
-      {
-        g_compiler->Error(DQERR_VS_ALREADY_DECL_SCOPE, member->name,
-                          member_scope.debugname, &member->scpos);
-      }
-    }
-  }
-}
-
 int OCompoundType::FindFieldIndex(const string & aname, OCompoundType ** rdecl_type) const
 {
   for (const OCompoundType * cur = this; cur; cur = cur->base_type)
   {
-    int idx = const_cast<OCompoundType *>(cur)->FindMemberIndex(aname);
-    if (idx < 0)
-    {
-      if (OValSym * field = cur->FindAnonymousUnionField(aname))
-      {
-        idx = const_cast<OCompoundType *>(cur)->FindMemberIndex(field->name);
-      }
-    }
+    int idx = cur->FindMemberIndex(aname);
     if (idx >= 0)
     {
       if (rdecl_type)
@@ -1082,10 +1039,6 @@ bool OCompoundType::IsAccessorVisible(OValSym * accessor, OTypeObject * context_
   if (!context_owner || !accessor)
   {
     return false;
-  }
-  if (OValSym * field = FindAnonymousUnionField(accessor->name))
-  {
-    if (!IsAccessorVisible(field, context_owner)) return false;
   }
   if (context_owner == this || MV_PUBLIC == accessor->member_visibility)
   {
@@ -1599,7 +1552,6 @@ int OCompoundType::AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool co
       return -1;
     }
     size_t field_index = fields.size();
-    OValSym * anonymous_field = nullptr;
     if (entry.name.empty())
     {
       field_index = cursor;
@@ -1626,10 +1578,6 @@ int OCompoundType::AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool co
         return -1;
       }
       OValSym * named_field = declaring_type->member_order[size_t(local_index)];
-      if (named_field->is_anonymous_union && entry.name != named_field->name)
-      {
-        anonymous_field = named_field;
-      }
       for (size_t i = 0; i < fields.size(); ++i)
       {
         if (fields[i].field == named_field)
@@ -1650,38 +1598,27 @@ int OCompoundType::AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool co
       return -1;
     }
 
-    OType * field_type = fields[field_index].field->ptype;
-    // Treat a promoted selection as an initializer for its hidden union field.
-    // Keeping that field intact reuses union conversion and duplicate checks.
-    vector<OStructLitEntry> selected_entries;
-    if (anonymous_field)
-    {
-      OStructLitEntry selected;
-      selected.name = entry.name;
-      selected.value = entry.value;
-      selected_entries.push_back(std::move(selected));
-    }
-    OStructLit selection(std::move(selected_entries), false);
+    OValSym * field = fields[field_index].field;
+    bool promoted_union_entry = field->is_anonymous_union && !entry.name.empty();
     if (convert)
     {
-      if (anonymous_field)
+      if (promoted_union_entry)
       {
-        entry.name = anonymous_field->name;
-        entry.value = new OStructLit(std::move(selection.entries), false);
+        entry.value = new OStructLit({{entry.name, entry.value}}, false);
       }
-      if (!g_compiler->ConvertExprToType(field_type, &entry.value,
+      if (!g_compiler->ConvertExprToType(field->ptype, &entry.value,
                                          aflags | EXPCF_ALLOW_LAZY_EMBSTR))
       {
         return -1;
       }
-      entry.field = fields[field_index].field;
+      entry.field = field;
       entry.ll_path = fields[field_index].ll_path;
     }
     else
     {
+      OType * target_type = promoted_union_entry ? FindMemberSymbol(entry.name)->ptype : field->ptype;
       int cost = g_compiler->GetAssignTypeConversionCost(
-          field_type, anonymous_field ? &selection : entry.value, aflags | EXPCF_ALLOW_LAZY_EMBSTR);
-      selection.entries.clear(); // Cost analysis borrows the original expression.
+          target_type, entry.value, aflags | EXPCF_ALLOW_LAZY_EMBSTR);
       if (cost < 0)
       {
         return -1;

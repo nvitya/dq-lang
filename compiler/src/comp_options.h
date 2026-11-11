@@ -146,7 +146,6 @@ public:
   bool     diagnostic_json = false;  // internal JSON-lines diagnostics
   bool     no_use_sys = false;  // --no-use-sys
   bool     regen_if_stale = false;  // internal child module regeneration mode
-  int      module_root_depth = 0;
 
   string   compiler_executable;
   string   compiler_executable_dir;

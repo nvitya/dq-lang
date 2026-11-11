@@ -130,7 +130,8 @@ interface and namespace.
 
 Plain include paths search the current source file's directory and then the
 package search roots. `./` and `../` are relative to the source file; `^/`
-is relative to the module root.
+is relative to the module root: the discovered package directory for a package
+module, or the main source file's directory for a standalone file.
 
 ### Include-Once Fragments
 
@@ -174,23 +175,6 @@ func zlibVersion() -> ^char [[external]] ..
 The library must be installed and available to the target's linker. See
 [C Interoperability](200-c-interoperability.md#linking-and-native-ownership)
 for the full example and setup links.
-
-## Source Root Option
-
-`#opt module_root_depth` sets how many parent levels above the main source
-file's directory form the module root:
-
-```dq
-#opt module_root_depth = 1
-```
-
-For `project/src/main.dq`, a value of `1` uses `project` as the root. A value
-of `0` uses `project/src`. This affects local module identity and root-relative
-includes. It does not enable `use ^/`: root-relative imports require a configured
-package, whose root is discovered independently. Relative imports can traverse
-parents without this option. The value
-must be a nonnegative integer literal; place the option before paths that
-need the selected root.
 
 ## Existence Tests and Defined
 

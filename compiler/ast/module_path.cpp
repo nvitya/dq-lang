@@ -287,40 +287,26 @@ bool OModulePath::InitCurrent(const filesystem::path & asource_path, string & re
     }
     package_name = idparts[0];
     local_path = (idparts.size() == 1 ? package_name : Join(idparts, 1));
-    artifact_path = BuildArtifactPathForModule(package_name, local_path, root_dir, false);
-    interface_artifact_path = BuildArtifactPathForModule(package_name, local_path, root_dir, true);
-    namespace_name = Split(local_path).back();
-    return true;
   }
-
-  if (!FindPackage(source_path, package_name, root_dir))
+  else
   {
-    root_dir = source_path.parent_path();
-    for (int i = 0; i < g_opt.module_root_depth; ++i)
+    if (!FindPackage(source_path, package_name, root_dir))
     {
-      root_dir = root_dir.parent_path();
+      root_dir = source_path.parent_path();
+      package_name = root_dir.filename().string();
     }
-    package_name = root_dir.filename().string();
-  }
-  root_dir = root_dir.lexically_normal();
+    if (package_name.empty())
+    {
+      rerror = format("can not determine package name from module root \"{}\"", root_dir.string());
+      return false;
+    }
 
-  if (package_name.empty())
-  {
-    rerror = format("can not determine package name from module root \"{}\"", root_dir.string());
-    return false;
-  }
-
-  filesystem::path source_no_ext = source_path;
-  source_no_ext.replace_extension();
-  filesystem::path rel = source_no_ext.lexically_relative(root_dir);
-  local_path = rel.generic_string();
-  if (local_path.empty() || local_path.starts_with(".."))
-  {
-    rerror = format("source file \"{}\" is outside module root \"{}\"", source_path.string(), root_dir.string());
-    return false;
+    filesystem::path source_no_ext = source_path;
+    source_no_ext.replace_extension();
+    local_path = source_no_ext.lexically_relative(root_dir).generic_string();
+    module_id = ModuleIdFromPackageLocal(package_name, local_path);
   }
 
-  module_id = ModuleIdFromPackageLocal(package_name, local_path);
   artifact_path = BuildArtifactPathForModule(package_name, local_path, root_dir, false);
   interface_artifact_path = BuildArtifactPathForModule(package_name, local_path, root_dir, true);
   namespace_name = Split(local_path).back();

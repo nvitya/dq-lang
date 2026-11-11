@@ -163,7 +163,7 @@ No source-root option is needed for parent traversal.
 server resolve source and package paths through symlinks and search package roots
 in reverse configuration order. Symlinked package directories are supported; a
 shadowed package copy does not acquire the active package identity. Standalone
-files outside configured packages cannot use `^/`, even with `module_root_depth`.
+files outside configured packages cannot use `^/`.
 
 Bare imports such as `use json` search for installed packages. The root module
 conventionally has the package name, for example `json/json.dq`.
@@ -264,18 +264,13 @@ is an error; the diagnostic shows the dependency chain.
 The compiler saves public information in `.dqm_if` files and compiled code in
 `.o` files. These are generated build artifacts, not files to import in source.
 
-## Package Root and Source Options
+## Package Roots and Module Identity
 
 The compiler identifies each module by its package or module root and relative
 path. Importing the same module through another alias or reexport does not
 create another runtime instance. Two different source files cannot claim the
 same module identity with different contents. Repeated imports must also use
 consistent, unambiguous aliases and selections.
-
-For a standalone main file whose module identity should include parent directories,
-`#opt module_root_depth = N` selects how many parent levels form the root.
-Place it before imports that depend on the root. See
-[Compiler Directives](190-compiler-directives.md#source-root-option).
 
 `.dqbuild`, `.o`, and `.dqm_if` files are generated caches and may change between
 compiler versions. For cache locations and rebuilding, see

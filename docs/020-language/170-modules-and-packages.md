@@ -37,6 +37,31 @@ The import connects two separate scopes. `Add` belongs to `math_extra.dq`;
 `Main` belongs to `main.dq`. The alias `math` is the name the importing file
 uses to reach the other module, not a rename of its source file.
 
+## Module Paths from Constants
+
+A `use` path can come from a compile-time string constant visible at that point:
+
+```dq
+use hwconfig
+use ${UART_MODULE} reexport
+```
+
+For example, the project-selected `hwconfig` package can declare:
+
+```dq
+const UART_MODULE : rostr = 'hwimpl/uart_a'
+```
+
+The expanded value must be a complete module path, without a `.dq` extension.
+Normal `use` modifiers, including `as`, `only`, `exclude`, and `reexport`, apply.
+Relative paths resolve from the importing module, not the constant's declaration.
+Runtime strings cannot select modules.
+
+The configuration module and selected implementation are ordinary dependencies.
+Changing the constant or resolving the configuration package from a different
+source invalidates affected cached interfaces. Use different build tags for
+concurrent configurations sharing a package build root.
+
 ## Public and Private Declarations
 
 Declarations before `implementation` are public: other modules can use them.

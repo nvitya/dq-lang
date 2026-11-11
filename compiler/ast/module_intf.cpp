@@ -1452,6 +1452,10 @@ public:
     root(aroot),
     source_dependencies(root_sources)
   {
+    // A configuration package may resolve to a different source in another
+    // project even when the old source still exists and has not changed.
+    if (!root_sources.empty()) AddModuleSource(root->name, root_sources.front().filename);
+
     for (OIntfDecl * decl : root->declarations)
     {
       CollectDeclarationDependencies(decl, root->name);

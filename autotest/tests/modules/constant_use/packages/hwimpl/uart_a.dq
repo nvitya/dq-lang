@@ -1,0 +1,9 @@
+//?notest
+const PLATFORM_VALUE : int = 17
+object OHwUart_impl:
+    func *Create():
+    endfunc
+    func Value() -> int:
+        return @.PLATFORM_VALUE
+    endfunc
+endobject

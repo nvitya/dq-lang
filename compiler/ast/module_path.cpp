@@ -17,6 +17,7 @@
 
 #include "comp_options.h"
 #include "dq_utils.h"
+#include "strparse.h"
 
 using namespace std;
 
@@ -327,12 +328,27 @@ bool OModulePath::ParseUsePath(const string & apath_text, string & rerror)
     kind = EKind::ROOT_RELATIVE;
   }
 
-  vector<string> parts = Split(apath_text);
-  if (parts.empty())
+  // Expanded paths must obey the same grammar as paths written in source.
+  TStrParseObj parser(source_text.data(), source_text.size());
+  if (!parser.CheckSymbol("^/") && !parser.CheckSymbol("./"))
+  {
+    while (parser.CheckSymbol("../")) {}
+  }
+  string component;
+  do
+  {
+    if (!parser.ReadIdentifier(component))
+    {
+      rerror = apath_text;
+      return false;
+    }
+  } while (parser.CheckSymbol("/"));
+  if (parser.readptr != parser.bufend)
   {
     rerror = apath_text;
     return false;
   }
+  vector<string> parts = Split(apath_text);
   namespace_name = parts.back();
   return true;
 }

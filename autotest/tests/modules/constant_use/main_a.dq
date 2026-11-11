@@ -1,0 +1,8 @@
+//?compargs('--build-suffix', 'constant-use-a', '--pkg-path', 'autotest/tests/modules/constant_use/packages', '--pkg-path', 'autotest/tests/modules/constant_use/config_a')
+use hwapi/uart
+use libc/stdio
+func *Main():
+    var uart <- OHwUart()
+    printf("selected = %d\n", uart.Value()) //?check('selected', 17)
+    printf("reexport = %d\n", PLATFORM_VALUE) //?check('reexport', 17)
+endfunc

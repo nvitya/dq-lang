@@ -540,50 +540,80 @@ bool ODqCompParser::ParseUseModulePath(OModulePath & rpath)
   string sid;
 
   scf->SkipWhite();
-  if (scf->CheckSymbol("^/"))
+  if (scf->CheckSymbol("${"))
   {
-    path_text = "^/";
+    OExpr * expr = ParseExpression();
+    if (!expr)
+    {
+      SkipToModuleStatementStart();
+      return false;
+    }
+    OValueTextLiteral value(g_builtins->type_rostr);
+    bool valid = value.CalculateConstant(expr, false);
+    if (valid && value.literal.GetStringLiteral())
+    {
+      path_text = *value.literal.GetStringLiteral();
+    }
+    delete expr;
+    if (!valid)
+    {
+      RootStatementError(DQERR_CONSTEXPR_INVALID_FOR, "use module path");
+      return false;
+    }
+    scf->SkipWhite();
+    if (!scf->CheckSymbol("}"))
+    {
+      RootStatementError(DQERR_USE_PATH_CLOSE);
+      return false;
+    }
   }
   else
   {
-    while (scf->CheckSymbol("../"))
+    if (scf->CheckSymbol("^/"))
     {
-      path_text += "../";
+      path_text = "^/";
     }
-    if (path_text.empty() && scf->CheckSymbol("./"))
+    else
     {
-      path_text = "./";
-    }
-  }
-
-  if (!scf->ReadIdentifier(sid))
-  {
-    RootStatementError(DQERR_ID_EXP_AFTER, "use");
-    return false;
-  }
-  path_text += sid;
-
-  while (true)
-  {
-    // A directive on the next line may depend on symbols imported by this use.
-    // Leave it for ParseModule(), after the module has populated the scope.
-    if (scf->LineEndsBeforeNextToken())
-    {
-      break;
-    }
-    scf->SkipWhite();
-    if (!scf->CheckSymbol("/"))
-    {
-      break;
+      while (scf->CheckSymbol("../"))
+      {
+        path_text += "../";
+      }
+      if (path_text.empty() && scf->CheckSymbol("./"))
+      {
+        path_text = "./";
+      }
     }
 
     if (!scf->ReadIdentifier(sid))
     {
-      RootStatementError(DQERR_ID_EXP_AFTER, "/");
+      RootStatementError(DQERR_ID_EXP_AFTER, "use");
       return false;
     }
+    path_text += sid;
 
-    path_text += "/" + sid;
+    while (true)
+    {
+      // A directive on the next line may depend on symbols imported by this use.
+      // Leave it for ParseModule(), after the module has populated the scope.
+      if (scf->LineEndsBeforeNextToken())
+      {
+        break;
+      }
+      scf->SkipWhite();
+      if (!scf->CheckSymbol("/"))
+      {
+        break;
+      }
+
+      if (!scf->ReadIdentifier(sid))
+      {
+        RootStatementError(DQERR_ID_EXP_AFTER, "/");
+        return false;
+      }
+
+      path_text += "/" + sid;
+    }
   }
 
   string path_error;

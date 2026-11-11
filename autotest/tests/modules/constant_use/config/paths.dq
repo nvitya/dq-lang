@@ -1,0 +1,3 @@
+//?notest
+// Relative to the importer, not this configuration file.
+const MODULE : rostr = './leaf'

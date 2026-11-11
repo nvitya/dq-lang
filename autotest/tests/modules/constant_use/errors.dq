@@ -1,0 +1,12 @@
+const NUMBER : int = 42
+var runtime_path : rostr = './leaf'
+use ${NUMBER} //?error(ConstExprInvalid)
+use ${runtime_path} //?error(ConstExprInvalid)
+use ${'./leaf' //?error(UsePathClose)
+use ${''} //?error(ModulePathInvalid)
+use ${'hwimpl//uart_a'} //?error(ModulePathInvalid)
+use ${'./leaf.dq'} //?error(ModulePathInvalid)
+use ${'./leaf\0oops'} //?error(ModulePathInvalid)
+use ${UNKNOWN_MODULE} //?error(VsUnknown)
+func *Main():
+endfunc

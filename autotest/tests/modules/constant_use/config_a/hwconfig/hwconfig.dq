@@ -1,0 +1,2 @@
+//?notest
+const UART_MODULE : rostr = 'hwimpl/uart_a'

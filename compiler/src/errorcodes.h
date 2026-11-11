@@ -121,6 +121,7 @@ DEF_DQ_ERR(DQERR_USE_CYCLE,                        "UseCycle",               "Mo
 DEF_DQ_ERR(DQERR_PACKAGE_NOT_FOUND,                "PackageNotFound",        "Package \"$1\" was not found in package search roots");
 DEF_DQ_ERR(DQERR_MODULE_NOT_FOUND,                 "ModuleNotFound",         "Module \"$1\" source file \"$2\" was not found");
 DEF_DQ_ERR(DQERR_MODULE_PATH_ABOVE_ROOT,           "ModulePathAboveRoot",    "Module path \"$1\" escapes above module root \"$2\"");
+DEF_DQ_ERR(DQERR_USE_PATH_CLOSE,                 "UsePathClose",           "Closing brace missing after use module path expression");
 DEF_DQ_ERR(DQERR_MODULE_PATH_INVALID,              "ModulePathInvalid",      "Invalid module path \"$1\"");
 DEF_DQ_ERR(DQERR_MODULE_ROOT_INVALID,              "ModuleRootInvalid",      "Invalid module root: $1");
 

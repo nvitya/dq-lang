@@ -161,13 +161,13 @@ bool OScFeederDq::ResolveSourcePath(const string & source_text, filesystem::path
   }
   else if (source_text.starts_with("^/"))
   {
-    OModulePath current_module;
-    string path_error;
-    if (!current_module.InitCurrent(main_source_path, path_error))
+    string package_name;
+    filesystem::path package_root;
+    if (!OModulePath::FindPackage(curfile->fullpath, package_name, package_root))
     {
       return false;
     }
-    candidate = current_module.root_dir / source_text.substr(2);
+    candidate = package_root / source_text.substr(2);
   }
   else
   {

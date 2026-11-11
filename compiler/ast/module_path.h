@@ -63,6 +63,8 @@ public:
                                      const filesystem::path & recorded_source, filesystem::path & rsource_path);
   static bool ResolvePackageRoot(const string & package_name, const vector<string> & package_paths,
                                  filesystem::path & rroot_dir);
+  // Discover the selected package containing a source file, including an include fragment.
+  static bool FindPackage(const filesystem::path & source, string & rpackage, filesystem::path & rroot);
   static filesystem::path BuildRootDir();
   static filesystem::path BuildTagDir();
   static filesystem::path PackageBuildRootDir();
@@ -79,5 +81,4 @@ private:
   static bool IsPackageRoot(const string & package_name, const filesystem::path & root_dir);
   static string ModuleIdFromPackageLocal(const string & package_name, const string & local_path);
   static filesystem::path LocalRootForSource(const filesystem::path & source);
-  static bool FindPackage(const filesystem::path & source, string & rpackage, filesystem::path & rroot);
 };

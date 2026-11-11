@@ -130,8 +130,10 @@ interface and namespace.
 
 Plain include paths search the current source file's directory and then the
 package search roots. `./` and `../` are relative to the source file; `^/`
-is relative to the module root: the discovered package directory for a package
-module, or the main source file's directory for a standalone file.
+is relative to the configured package containing the current source file, just
+like `use ^/`. Inside an included fragment from another package, this is the
+fragment's package root; returning to the including file restores its context.
+A `^/` path requires the current source file to belong to a configured package.
 
 ### Include-Once Fragments
 

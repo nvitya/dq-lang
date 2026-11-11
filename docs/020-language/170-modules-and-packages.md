@@ -179,6 +179,11 @@ directory, and directories supplied with `--pkg-path`. An explicit package
 path can override an installed package. If several `--pkg-path` options are
 given, the last takes precedence.
 
+These same package search paths configure [include discovery](190-compiler-directives.md#include)
+for `#include "package/file.dqi"`; projects do not need a separate include-directory
+list. The project-file `packagepath` setting likewise applies to both module
+imports and package-qualified includes.
+
 ## Namespace and Symbol Conflicts
 
 If two imported modules expose the same name, qualify it or restrict which

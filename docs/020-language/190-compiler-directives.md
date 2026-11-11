@@ -185,7 +185,10 @@ file's directory form the module root:
 ```
 
 For `project/src/main.dq`, a value of `1` uses `project` as the root. A value
-of `0` uses `project/src`. This affects `^/` imports and includes. The value
+of `0` uses `project/src`. This affects local module identity and root-relative
+includes. It does not enable `use ^/`: root-relative imports require a configured
+package, whose root is discovered independently. Relative imports can traverse
+parents without this option. The value
 must be a nonnegative integer literal; place the option before paths that
 need the selected root.
 

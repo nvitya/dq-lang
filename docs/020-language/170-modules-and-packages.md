@@ -138,11 +138,11 @@ Use these forms to find files within your project:
 | --- | --- |
 | `use ./child` | The importing file's directory. |
 | `use ../sibling` | Its parent directory. |
-| `use ^/root_child` | The module or package root. |
+| `use ^/root_child` | The containing package root (packages only). |
 
-A path cannot go above the established root. To put a main file in a
-subdirectory while importing siblings from a shared project root, see
-[Source Root Option](190-compiler-directives.md#source-root-option).
+Relative imports may contain any number of `../` components, including paths
+outside the original module or package root. A missing destination produces
+`ModuleNotFound`.
 
 For example, consider this project layout:
 
@@ -156,9 +156,14 @@ project/
 
 From `main.dq`, `use ./helpers` imports `helpers.dq`, and `use ./tools/report`
 imports `report.dq`. From `tools/report.dq`, `use ../helpers` reaches the same
-helper module, provided `project` is the established root. If `report.dq` is
-compiled as the main file itself, set `#opt module_root_depth = 1` before its
-imports so that its parent directory is included in the root.
+helper module, including when `report.dq` is compiled or edited directly.
+No source-root option is needed for parent traversal.
+
+`^/` imports require membership in a configured package. The compiler and language
+server resolve source and package paths through symlinks and search package roots
+in reverse configuration order. Symlinked package directories are supported; a
+shadowed package copy does not acquire the active package identity. Standalone
+files outside configured packages cannot use `^/`, even with `module_root_depth`.
 
 Bare imports such as `use json` search for installed packages. The root module
 conventionally has the package name, for example `json/json.dq`.
@@ -267,7 +272,7 @@ create another runtime instance. Two different source files cannot claim the
 same module identity with different contents. Repeated imports must also use
 consistent, unambiguous aliases and selections.
 
-For a main file whose root needs to include parent directories,
+For a standalone main file whose module identity should include parent directories,
 `#opt module_root_depth = N` selects how many parent levels form the root.
 Place it before imports that depend on the root. See
 [Compiler Directives](190-compiler-directives.md#source-root-option).

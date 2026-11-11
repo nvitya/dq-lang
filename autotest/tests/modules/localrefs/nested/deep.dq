@@ -2,7 +2,7 @@
 
 use ../child
 use ./sibling
-use ^/root_child
+use ../root_child
 
 func deep_value() -> int:
     result = CHILD_VAL + SIBLING_VAL + ROOT_VAL - 5

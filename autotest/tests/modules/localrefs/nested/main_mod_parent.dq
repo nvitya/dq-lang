@@ -1,0 +1,4 @@
+use ../child
+func *Main():
+    printf("parent value = %d\n", CHILD_VAL)  //?check('parent value', 10)
+endfunc

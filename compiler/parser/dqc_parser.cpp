@@ -810,7 +810,7 @@ void ODqCompParser::ParseUseStatement()
       errpos.RecalcLineCol();
       if (use_path.IsLocalReference())
       {
-        Error(DQERR_MODULE_PATH_ABOVE_ROOT, use_path.source_text, current_module.root_dir.string(), &errpos);
+        Error(DQERR_MODULE_ROOT_PACKAGE_REQUIRED, use_path.source_text, &errpos);
       }
       else
       {

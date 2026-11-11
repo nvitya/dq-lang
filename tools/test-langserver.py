@@ -18,15 +18,17 @@ def run(compiler):
         workspace = root / 'workspace'
         (workspace / 'lib').symlink_to(root / 'physical', target_is_directory=True)
         (root / 'packages/lib').symlink_to(root / 'physical', target_is_directory=True)
-        original = 'const VALUE : int = 7\nimplementation\n'
-        edited = 'const UNSAVED : int = 9\nimplementation\n'
-        (root / 'physical/lib.dq').write_text(original)
-        (workspace / 'main.dq').write_text('use lib\nvar result : int = UNSAVED\n')
+        (root / 'physical/nested').mkdir()
+        (root / 'physical/helper.dq').write_text('const ROOT_VALUE : int = 7\n')
+        original = 'use ^/helper\nconst VALUE : int = ROOT_VALUE\nimplementation\n'
+        edited = 'use ^/helper\nconst UNSAVED : int = ROOT_VALUE + 2\nimplementation\n'
+        (root / 'physical/nested/editor.dq').write_text(original)
+        (workspace / 'main.dq').write_text('use lib/nested/editor\nvar result : int = UNSAVED\n')
         project = workspace / 'app.dqproj'
         project.write_text("main = 'main.dq'\ntarget = 'x86_64-linux'\npackagepath = '../packages'\nlink = false\n")
         main = (workspace / 'main.dq').as_uri()
-        alias = (workspace / 'lib/lib.dq').as_uri()
-        package = (root / 'packages/lib/lib.dq').as_uri()
+        alias = (workspace / 'lib/nested/editor.dq').as_uri()
+        package = (root / 'packages/lib/nested/editor.dq').as_uri()
         messages = []
         def send(method, params=None, request=None):
             message = {'jsonrpc': '2.0', 'method': method, 'params': params}
@@ -42,6 +44,8 @@ def run(compiler):
         open_document(main, (workspace / 'main.dq').read_text())
         open_document(alias, edited)
         send('textDocument/documentSymbol', {'textDocument': {'uri': alias}}, 2)
+        send('textDocument/definition', {'textDocument': {'uri': alias},
+             'position': {'line': 1, 'character': edited.splitlines()[1].index('ROOT_VALUE')}}, 11)
         send('textDocument/definition', {'textDocument': {'uri': main}, 'position': {'line': 1, 'character': 21}}, 3)
         # A second URI for the same physical file must share the source identity.
         open_document(package, original)
@@ -81,6 +85,7 @@ def run(compiler):
                 replies[message['id']] = message['result']
                 snapshots[message['id']] = dict(diagnostics)
         assert any(s['name'] == 'UNSAVED' for s in replies[2]), replies[2]
+        assert replies[11] and replies[11][0]['uri'] == (root / 'physical/helper.dq').as_uri(), replies[11]
         assert replies[3] and replies[3][0]['uri'] == alias, replies[3]
         assert not snapshots[2][main] and not snapshots[2][alias], snapshots[2]
         assert any(s['name'] == 'UNSAVED' for s in replies[4]), replies[4]
@@ -91,7 +96,7 @@ def run(compiler):
         assert all(not errors for errors in snapshots[7].values()), snapshots[7]
         assert replies[9] and replies[9][0]['uri'] == alias, replies[9]
         assert replies[10] and replies[10][0]['uri'] == package, replies[10]
-        assert (root / 'physical/lib.dq').read_text() == original
+        assert (root / 'physical/nested/editor.dq').read_text() == original
         print('PASS: symlink identity, unsaved imports, alias symbols/completion/definition, diagnostics, and latest edit wins')
 
 

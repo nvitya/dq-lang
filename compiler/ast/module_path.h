@@ -60,7 +60,7 @@ public:
   static bool ResolveCanonicalSource(const string & module_id, const string & context_module_id,
                                      const filesystem::path & context_artifact,
                                      const filesystem::path & context_source,
-                                     filesystem::path & rsource_path);
+                                     const filesystem::path & recorded_source, filesystem::path & rsource_path);
   static bool ResolvePackageRoot(const string & package_name, const vector<string> & package_paths,
                                  filesystem::path & rroot_dir);
   static filesystem::path BuildRootDir();
@@ -78,6 +78,6 @@ private:
                                                      const filesystem::path & root_dir, bool interface_only);
   static bool IsPackageRoot(const string & package_name, const filesystem::path & root_dir);
   static string ModuleIdFromPackageLocal(const string & package_name, const string & local_path);
-  static bool NormalizeLocalPath(vector<string> & stack, const vector<string> & suffix,
-                                 const string & source_text, string & rerror);
+  static filesystem::path LocalRootForSource(const filesystem::path & source);
+  static bool FindPackage(const filesystem::path & source, string & rpackage, filesystem::path & rroot);
 };

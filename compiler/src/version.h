@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.19"
+#define DQ_COMPILER_VERSION  "0.95.20"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.95.20:
+  - the `use ^/...` can be used within the package only. The relative `use ../../../` depth is not limited/checked
+  - Package discovery for `use ^/...` implemented by traversing through the configured search path
 v0.95.19:
   - Compiler code refactoring: unnamed union handling improvement (handled as normal fields)
 v0.95.18:

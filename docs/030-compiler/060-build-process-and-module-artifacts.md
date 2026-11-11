@@ -22,6 +22,11 @@ artifacts under `.dqbuild`.
 Each module has a normal native `.o` object and a standalone `.dqm_if` interface.
 Both are generated artifacts, not source package contents.
 
+Local imports outside the build root are stored under
+`.dqbuild/<build-tag>/external/`, using their absolute source path below that
+directory (and a drive identifier on Windows). This keeps parent-relative imports
+inside the build cache and distinguishes sources with identical filenames.
+
 By default the build root is the directory containing the main `.dq` file. The
 default build tag is `<target-arch>-<target-rtl>`, for example
 `x86_64-linux`.

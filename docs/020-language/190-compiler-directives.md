@@ -27,13 +27,22 @@ what to execute while the program is running.
 ## Definitions and Namespaces
 
 `#define NAME` defines a name with the value `true`. Add `= expression` to
-supply a constant boolean or integer value:
+supply a constant value, or add `: Type = expression` to specify its type:
 
 ```dq
 #define LOGGING
 #define BUFFER_SIZE = 256
 #define DOUBLE_BUFFER_SIZE = BUFFER_SIZE * 2
+#define BOARD_NAME : rostr = "PowerLogger-Lite"
+#define MCU_RK3506 : bool = false
+#define EXTERNAL_XTAL_HZ : uint = 24000000
 ```
+
+Typed definitions follow the same type, conversion, and constant-initializer
+rules as `const`; the resulting name belongs to `@def`. Types and initializer
+names resolve in the surrounding scope. Without a type annotation, the type
+is taken from the constant expression. The bare flag form is equivalent to
+`#define NAME : bool = true`.
 
 You can use earlier definitions in later ones. Definitions can also come from
 compiler options such as `-DLOGGING` or `-DBUFFER_SIZE=512`, project files, and

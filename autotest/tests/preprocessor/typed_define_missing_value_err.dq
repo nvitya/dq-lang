@@ -1,0 +1,6 @@
+// An annotated flag must supply an initializer.
+#define MISSING_VALUE : bool //?error(MissingAssign)
+#define RECOVERED : int = 1
+
+func *Main():
+endfunc

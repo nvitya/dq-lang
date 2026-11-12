@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.2"
+#define DQ_COMPILER_VERSION  "0.96.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.3:
+  - `#define` supports the fully typed `const` syntax: `#define MYDEF : int = 200`
 v0.96.2:
   - added `--pkg=pkgname:path` options, and `pkg = 'pkgname:path'`
 v0.96.1:

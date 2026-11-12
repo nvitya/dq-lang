@@ -2851,55 +2851,31 @@ OValSymConst * ODqCompParser::ParseDefineConst(const OScPosition & scpos, const 
 {
   OScPosition    saved_stmtpos = scpos_statement_start;
   OScPosition *  saved_errorpos = errorpos;
-  OScope *       saved_scope = curscope;
   OStmtBlock *   saved_block = curblock;
 
   scpos_statement_start = scpos;
   errorpos = &scpos_statement_start;
-  curscope = g_defines;
+  // Resolve types and initializers in the surrounding scope, as for const.
+  // The feeder registers only the resulting declaration in @def.
   curblock = nullptr;
   scf->SetDirectiveExprMode(true);
 
-  OValSymConst *  result = nullptr;
-  OExpr *         valueexpr = nullptr;
-
   scf->SkipWhite();
-  valueexpr = ParseExpression();
-  if (!valueexpr)
+  OType * ptype = nullptr;
+  OValue * value = nullptr;
+  if (scf->CheckSymbol(":", false) || scf->CheckSymbol("=", false))
   {
-    goto cleanup;
+    value = ParseConstInitializer(sid, ptype, true);
   }
-
-  if (!valueexpr->ptype)
+  else
   {
-    ErrorTxt(DQERR_CDIR_EXPR_TYPE, "Unable to determine the type of #define \"$1\"", sid);
-    goto cleanup;
+    ptype = g_builtins->type_bool;
+    value = new OValueBool(ptype, true);
   }
-
-  {
-    OType *   valuetype = valueexpr->ResolvedType();
-    OValue *  value = valuetype->CreateValue();
-    if (!value)
-    {
-      ErrorTxt(DQERR_CDIR_EXPR_TYPE, "Unsupported #define value type: \"$1\"", valuetype->name);
-      goto cleanup;
-    }
-
-    if (!value->CalculateConstant(valueexpr))
-    {
-      delete value;
-      goto cleanup;
-    }
-
-    result = new OValSymConst(scpos_statement_start, sid, valuetype, value);
-  }
-
-cleanup:
-  delete valueexpr;
+  OValSymConst * result = value ? new OValSymConst(scpos_statement_start, sid, ptype, value) : nullptr;
 
   scpos_statement_start = saved_stmtpos;
   errorpos = saved_errorpos;
-  curscope = saved_scope;
   curblock = saved_block;
   scf->SetDirectiveExprMode(false);
 

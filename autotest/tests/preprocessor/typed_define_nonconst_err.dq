@@ -1,0 +1,6 @@
+var runtime_value : int = 42
+#define NONCONST : int = runtime_value //?error(ConstExprNonConstVs), error(ConstExprInvalid)
+#define RECOVERED : bool = true
+
+func *Main():
+endfunc

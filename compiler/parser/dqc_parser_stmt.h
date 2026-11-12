@@ -43,6 +43,7 @@ public: // statement blocks
   EBinOp ParseAssignOp();
 
 protected:
+  OValue * ParseConstInitializer(const string & sid, OType *& ptype, bool aallow_untyped = false);
   void ParseConstDecl(bool arootstmt, OType * asharedtype, bool agroupmember);
   bool ParseTypeSpecOrInference(OType *& rtype, bool & rinfer_type, bool & rinfer_autofree);
   OType * GetInferredDeclType(OExpr * ainitexpr, OType *& rdetectedtype);

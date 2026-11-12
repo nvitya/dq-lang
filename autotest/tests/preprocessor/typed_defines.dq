@@ -1,0 +1,54 @@
+use libc/stdio
+
+const BOARD_NAME : rostr = "module-board"
+const BASE_HZ : uint = 12000000
+type TClock = uint32
+struct SConfig:
+    rate : uint
+    enabled : bool
+endstruct
+
+#define BOARD_NAME : rostr = "PowerLogger-Lite"
+#define MCU_RK3506 : bool = false
+#define EXTERNAL_XTAL_HZ : uint = BASE_HZ * 2
+#define SIGNED_HZ : int = 24000000
+#define CLOCK : TClock = @def.EXTERNAL_XTAL_HZ
+#define FRACTION : float32 = 3 / 2
+#define BYTES : [?]uint8 = [0, 41, 255]
+#define CONFIG : SConfig = {rate: EXTERNAL_XTAL_HZ, enabled: false}
+#define POINTER : ^uint8 = nil
+#define INFERRED_POINTER : ? = POINTER
+#define INFERRED_NAME = "inferred-board"
+#define BARE_FLAG
+#define UNTYPED_NUMBER = 7
+#{define INLINE_VALUE : int16 = -12}
+#define COMMENTED /* type */ : /* value */ int = /* initializer */ 23 // comment
+
+func *Main():
+    const LOCAL_HZ : int = 100
+    #define FROM_LOCAL : int = LOCAL_HZ + 1
+
+    #ifdef MCU_RK3506
+        printf("exists = yes\n") //?check("exists", "yes")
+    #endif
+    #if MCU_RK3506
+        printf("enabled = yes\n")
+    #else
+        printf("enabled = no\n") //?check("enabled", "no")
+    #endif
+    #if BARE_FLAG and @def.EXTERNAL_XTAL_HZ == 24000000
+        printf("condition = yes\n") //?check("condition", "yes")
+    #endif
+
+    printf("board = %s\n", @def.BOARD_NAME.pchar) //?check("board", "PowerLogger-Lite")
+    printf("module = %s\n", BOARD_NAME.pchar) //?check("module", "module-board")
+    printf("inferred = %s\n", INFERRED_NAME) //?check("inferred", "inferred-board")
+    printf("frequency = %lu %li %u\n", EXTERNAL_XTAL_HZ, SIGNED_HZ, CLOCK) //?check("frequency", "24000000 24000000 24000000")
+    printf("types = %li %li %li\n", SizeOf(CLOCK), SizeOf(FRACTION), SizeOf(INLINE_VALUE)) //?check("types", "4 4 2")
+    printf("fraction = %.1f\n", FRACTION) //?check("fraction", "1.5")
+    printf("array = %li %u\n", BYTES.length, uint(BYTES[2])) //?check("array", "3 255")
+    printf("struct = %lu %d\n", CONFIG.rate, int(CONFIG.enabled)) //?check("struct", "24000000 0")
+    printf("pointer = %d\n", int(INFERRED_POINTER == nil)) //?check("pointer", 1)
+    printf("local = %li\n", FROM_LOCAL) //?check("local", 101)
+    printf("other = %li %li %li\n", int(INLINE_VALUE), COMMENTED, UNTYPED_NUMBER) //?check("other", "-12 23 7")
+endfunc

@@ -1,0 +1,6 @@
+// Typed defines must reject the same incompatible initializer as const.
+const BAD_CONST : uint = "text" //?error(IntConstExpr), error(ConstExprInvalid)
+#define BAD_DEFINE : uint = "text" //?error(IntConstExpr), error(ConstExprInvalid)
+
+func *Main():
+endfunc

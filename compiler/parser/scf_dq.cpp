@@ -663,31 +663,12 @@ void OScFeederDq::ParseDirectiveDefine()
 
   // Override the source code position, to point to the #define ... statement start
   g_compiler->errorpos = &scpos_start_directive;
-  SkipSpaces(false);
-  if (CheckSymbol("="))
+  OValSymConst * defineval = g_compiler->ParseDefineConst(scpos_start_directive, sid);
+  if (defineval)
   {
-    OValSymConst * defineval = g_compiler->ParseDefineConst(scpos_start_directive, sid);
-    if (defineval)
-    {
-      g_defines->DefineValSym(defineval);
-    }
-
-    if (not FindDirectiveEnd())
-    {
-      g_compiler->errorpos = nullptr;  // return to the default error position (statement start)
-      return;
-    }
+    g_defines->DefineValSym(defineval);
   }
-  else
-  {
-    if (not FindDirectiveEnd())
-    {
-      g_compiler->errorpos = nullptr;  // return to the default error position (statement start)
-      return;
-    }
-
-    g_defines->DefineValSym(g_builtins->type_bool->CreateConst(scpos_start_directive, sid, true));
-  }
+  FindDirectiveEnd();
   g_compiler->errorpos = nullptr;  // return to the default error position (statement start)
 }
 

@@ -604,6 +604,121 @@ void ODqCompParserStmt::ParseStmtConst(bool arootstmt)
   Error(DQERR_STMTBLK_CLOSE_MISSING, "endconst");
 }
 
+OValue * ODqCompParserStmt::ParseConstInitializer(const string & sid, OType *& ptype, bool aallow_untyped)
+{
+  bool infer_type = false;
+  OScPosition expos;
+
+  if (!ptype)
+  {
+    scf->SkipWhite();
+    if (!scf->CheckSymbol(":"))
+    {
+      if (!aallow_untyped)
+      {
+        Error(DQERR_TYPE_SPECIFIER_EXP_AFTER, sid);
+        return nullptr;
+      }
+    }
+    else
+    {
+      scf->SkipWhite();
+      if (scf->CheckSymbol("?"))
+      {
+        infer_type = true;
+      }
+      else
+      {
+        ptype = ParseTypeSpec();
+        if (not ptype)
+        {
+          return nullptr;
+        }
+        if (TK_DYN_ARRAY == ptype->ResolveAlias()->kind)
+        {
+          Error(DQERR_NOT_SUPPORTED, "dynamic array constant");
+          return nullptr;
+        }
+      }
+    }
+  }
+
+  scf->SkipWhite();
+  if (not scf->CheckSymbol("="))
+  {
+    Error(infer_type ? DQERR_TYPE_INFER_INIT_REQUIRED : DQERR_MISSING_ASSIGN_FOR, sid);
+    return nullptr;
+  }
+
+  scf->SkipWhite();
+  scf->SaveCurPos(expos);
+  OExpr * valueexpr = ParseExpression();
+  if (not valueexpr)
+  {
+    delete valueexpr;
+    Error(DQERR_EXPR_WRONG_VALUE_FOR, sid, "", &expos);
+    return nullptr;
+  }
+
+  if (!ptype && !infer_type)
+  {
+    ptype = valueexpr->ResolvedType();
+    if (!ptype)
+    {
+      ErrorTxt(DQERR_CDIR_EXPR_TYPE, "Unable to determine the type of #define \"$1\"", sid);
+      delete valueexpr;
+      return nullptr;
+    }
+  }
+
+  if (infer_type)
+  {
+    OType * detected_type = nullptr;
+    ptype = GetInferredDeclType(valueexpr, detected_type);
+    if (!ptype)
+    {
+      if (dynamic_cast<OStructLit *>(valueexpr))
+      {
+        Error(DQERR_STRUCT_INIT_CONTEXT, "", "", &expos);
+      }
+      else
+      {
+        Error(DQERR_TYPE_INFER_UNSUPPORTED, sid, detected_type ? detected_type->name : "?", &expos);
+      }
+      delete valueexpr;
+      return nullptr;
+    }
+  }
+
+  if (!InferArrayLength(ptype, valueexpr))
+  {
+    Error(DQERR_ARRAY_SIZESPEC);
+    delete valueexpr;
+    return nullptr;
+  }
+
+  OValue * pvalue = ptype->CreateValue();
+  if (!pvalue)
+  {
+    Error((TK_DYNSTR == ptype->ResolveAlias()->kind) ? DQERR_CONST_DYNSTR : DQERR_CONSTEXPR_INVALID_FOR,
+          sid, "", &expos);
+    delete valueexpr;
+    return nullptr;
+  }
+  if (not pvalue->CalculateConstant(valueexpr))
+  {
+    Error(DQERR_CONSTEXPR_INVALID_FOR, sid, "", &expos);
+
+    delete valueexpr;
+    delete pvalue;
+    return nullptr;
+  }
+
+  delete valueexpr;
+
+  return pvalue;
+}
+
 void ODqCompParserStmt::ParseConstDecl(bool arootstmt, OType * asharedtype, bool agroupmember)
 {
   // "const" or the grouped declaration header is already consumed.
@@ -611,8 +726,6 @@ void ODqCompParserStmt::ParseConstDecl(bool arootstmt, OType * asharedtype, bool
   string       sid;
   OValSym *    pvalsym;
   OType *      ptype = asharedtype;
-  bool         infer_type = false;
-  OScPosition  expos;
 
   auto emit_error = [&](const TDiagDefErr & adiag, string_view par1 = "", string_view par2 = "",
                         OScPosition * scpos = nullptr, bool atryrecover = true)
@@ -653,96 +766,19 @@ void ODqCompParserStmt::ParseConstDecl(bool arootstmt, OType * asharedtype, bool
     return;
   }
 
-  if (!ptype)
+  OValue * pvalue = ParseConstInitializer(sid, ptype);
+  if (!pvalue)
   {
-    scf->SkipWhite();
-    if (not scf->CheckSymbol(":"))
+    if (arootstmt && !agroupmember)
     {
-      emit_error(DQERR_TYPE_SPECIFIER_EXP_AFTER, sid);
-      return;
-    }
-
-    scf->SkipWhite();
-    if (scf->CheckSymbol("?"))
-    {
-      infer_type = true;
+      SkipToModuleStatementStart();
     }
     else
     {
-      ptype = ParseTypeSpec();
-      if (not ptype)
-      {
-        return;
-      }
-      if (TK_DYN_ARRAY == ptype->ResolveAlias()->kind)
-      {
-        emit_error(DQERR_NOT_SUPPORTED, "dynamic array constant");
-        return;
-      }
+      SkipToStatementEnd();
     }
-  }
-
-  scf->SkipWhite();
-  if (not scf->CheckSymbol("="))  // variable initializer specified
-  {
-    emit_error(infer_type ? DQERR_TYPE_INFER_INIT_REQUIRED : DQERR_MISSING_ASSIGN_FOR, sid);
     return;
   }
-
-  scf->SkipWhite();
-  scf->SaveCurPos(expos);
-  OExpr * valueexpr = ParseExpression();
-  if (not valueexpr)
-  {
-    delete valueexpr;
-    emit_error(DQERR_EXPR_WRONG_VALUE_FOR, sid, "", &expos);
-    return;
-  }
-
-  if (infer_type)
-  {
-    OType * detected_type = nullptr;
-    ptype = GetInferredDeclType(valueexpr, detected_type);
-    if (!ptype)
-    {
-      if (dynamic_cast<OStructLit *>(valueexpr))
-      {
-        emit_error(DQERR_STRUCT_INIT_CONTEXT, "", "", &expos);
-      }
-      else
-      {
-        emit_error(DQERR_TYPE_INFER_UNSUPPORTED, sid, detected_type ? detected_type->name : "?", &expos);
-      }
-      delete valueexpr;
-      return;
-    }
-  }
-
-  if (!InferArrayLength(ptype, valueexpr))
-  {
-    emit_error(DQERR_ARRAY_SIZESPEC);
-    delete valueexpr;
-    return;
-  }
-
-  OValue * pvalue = ptype->CreateValue();
-  if (!pvalue)
-  {
-    emit_error((TK_DYNSTR == ptype->ResolveAlias()->kind) ? DQERR_CONST_DYNSTR : DQERR_CONSTEXPR_INVALID_FOR,
-               sid, "", &expos);
-    delete valueexpr;
-    return;
-  }
-  if (not pvalue->CalculateConstant(valueexpr))
-  {
-    emit_error(DQERR_CONSTEXPR_INVALID_FOR, sid, "", &expos);
-
-    delete valueexpr;
-    delete pvalue;
-    return;
-  }
-
-  delete valueexpr;
 
   if (arootstmt)
   {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compiler/LSP regression for package symlinks and unsaved source aliases.
+"""Compiler/LSP regressions for import diagnostics and unsaved source aliases.
 
 Run: python3 tools/test-langserver.py --compiler build/dq-comp
 """
@@ -23,6 +23,8 @@ def run(compiler):
         original = 'use ^/helper\nconst VALUE : int = ROOT_VALUE\nimplementation\n'
         edited = 'use ^/helper\nconst UNSAVED : int = ROOT_VALUE + 2\nimplementation\n'
         (root / 'physical/nested/editor.dq').write_text(original)
+        (root / 'physical/broken.dq').write_text('use missing_board_package\n')
+        broken = (workspace / 'broken.dq').as_uri()
         (workspace / 'main.dq').write_text('use lib/nested/editor\nvar result : int = UNSAVED\n')
         project = workspace / 'app.dqproj'
         project.write_text("main = 'main.dq'\ntarget = 'x86_64-linux'\npackagepath = '../packages'\nlink = false\n")
@@ -41,6 +43,9 @@ def run(compiler):
             send('textDocument/didChange', {'textDocument': {'uri': uri, 'version': version}, 'contentChanges': [{'text': text}]})
         send('initialize', {'processId': None, 'capabilities': {}}, 1)
         send('initialized', {})
+        open_document(broken, 'use lib/broken\n')
+        send('textDocument/documentSymbol', {'textDocument': {'uri': broken}}, 12)
+        send('textDocument/didClose', {'textDocument': {'uri': broken}})
         open_document(main, (workspace / 'main.dq').read_text())
         open_document(alias, edited)
         send('textDocument/documentSymbol', {'textDocument': {'uri': alias}}, 2)
@@ -84,6 +89,9 @@ def run(compiler):
             if 'id' in message:
                 replies[message['id']] = message['result']
                 snapshots[message['id']] = dict(diagnostics)
+        [import_error] = snapshots[12][broken]
+        assert import_error['code'] == 'UseRegenFailed', import_error
+        assert 'Package "missing_board_package" was not found' in import_error['message'], import_error
         assert any(s['name'] == 'UNSAVED' for s in replies[2]), replies[2]
         assert replies[11] and replies[11][0]['uri'] == (root / 'physical/helper.dq').as_uri(), replies[11]
         assert replies[3] and replies[3][0]['uri'] == alias, replies[3]
@@ -97,7 +105,7 @@ def run(compiler):
         assert replies[9] and replies[9][0]['uri'] == alias, replies[9]
         assert replies[10] and replies[10][0]['uri'] == package, replies[10]
         assert (root / 'physical/nested/editor.dq').read_text() == original
-        print('PASS: symlink identity, unsaved imports, alias symbols/completion/definition, diagnostics, and latest edit wins')
+        print('PASS: import diagnostics, symlink identity, unsaved imports, alias navigation, and latest edit wins')
 
 
 if __name__ == '__main__':

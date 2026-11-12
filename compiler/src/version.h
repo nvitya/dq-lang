@@ -15,6 +15,8 @@
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.1:
+  - language server diagnostics improved at the `use ...` errors
 v0.96.0:
   - Compiler intrinsic constants: DQ.FILENAME, DQ.PKGNAME, DQ.LINE
   - Constant strings support embedding constant expressions: `const CONSTSTR : rostr = "\{DQ.PKGNAME:>10} is my package"`

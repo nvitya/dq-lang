@@ -23,6 +23,7 @@
 #include <ostream>
 #include <print>
 #include <set>
+#include <sstream>
 #include <typeinfo>
 #include <unordered_map>
 #include <unordered_set>
@@ -44,6 +45,7 @@
 #include "otype_compound.h"
 #include "scope_builtins.h"
 #include "artifact_lock.h"
+#include "jsontools.h"
 #include "processrunner.h"
 
 static string TypeName(OType * atype)
@@ -935,7 +937,7 @@ static void PrintModuleChildDiagnostics(const string & output)
   }
 }
 
-static bool RunModuleChildCompile(const vector<string> & args, const string & stale_reason, string & rreason)
+bool OModuleIntf::RunModuleChildCompile(const vector<string> & args, const string & stale_reason, string & rreason)
 {
   OProcessRunner procrunner;
   procrunner.args = args;
@@ -955,6 +957,25 @@ static bool RunModuleChildCompile(const vector<string> & args, const string & st
   if (!procrunner.stderr_text.empty())
   {
     print("{}", procrunner.stderr_text);
+  }
+
+  if (g_opt.langserver_worker && g_opt.diagnostic_json)
+  {
+    // The editor may only have the importing file open. Surface the first
+    // child error at the import as well as reporting it at its source.
+    istringstream lines(procrunner.stdout_text);
+    for (string line; getline(lines, line); )
+    {
+      TJsonNode diagnostic;
+      if (!line.starts_with("{\"kind\":\"diagnostic\"") || !diagnostic.TryParse(line)) continue;
+      const TJsonNode * severity = diagnostic.Child("severity");
+      const TJsonNode * message = diagnostic.Child("message");
+      if (severity && severity->GetAsString() == "ERROR" && message && message->GetKind() == nkString)
+      {
+        rreason = message->GetAsString();
+        return false;
+      }
+    }
   }
 
   rreason = format("subprocess exited with code {}", procrunner.exit_code);

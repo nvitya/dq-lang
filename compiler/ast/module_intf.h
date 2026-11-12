@@ -100,6 +100,7 @@ private:
   bool WriteInterfaceRecords(ODqmIfWriter & writer, const vector<SSourceDependency> & source_dependencies,
                              const string & object_filename);
   bool ReadModuleInitDecl(ODqmIfReader & reader);
+  bool RunModuleChildCompile(const vector<string> & args, const string & stale_reason, string & rreason);
   vector<OModuleIntf *> reexport_modules;
   OModuleIntf * embedded_owner = nullptr;
   map<string, set<pair<EIntfDeclKind, string>>> embedded_group_symbols;

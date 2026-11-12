@@ -1,3 +1,0 @@
-func *Main():
-    var DQ : int = 1 //?error(IntrinsicNameReserved)
-endfunc

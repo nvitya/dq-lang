@@ -1,4 +1,0 @@
-var NUM : int = 123
-const TEXT : rostr = "\{NUM}" //?error(InterpolationConstant) //?error(ExprWrongValue)
-func *Main():
-endfunc

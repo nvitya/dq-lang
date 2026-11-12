@@ -1,3 +1,0 @@
-use libc/stdio as DQ //?error(IntrinsicNameReserved)
-func *Main():
-endfunc

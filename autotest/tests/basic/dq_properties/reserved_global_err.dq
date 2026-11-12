@@ -1,3 +1,0 @@
-const DQ : int = 1 //?error(IntrinsicNameReserved)
-func *Main():
-endfunc

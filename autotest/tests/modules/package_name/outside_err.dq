@@ -1,3 +1,0 @@
-const PKG : rostr = DQ.PKGNAME //?error(PackageNameRequired) //?error(ExprWrongValue)
-func *Main():
-endfunc

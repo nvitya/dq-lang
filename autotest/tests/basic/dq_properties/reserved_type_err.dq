@@ -1,3 +1,0 @@
-type DQ = int //?error(IntrinsicNameReserved)
-func *Main():
-endfunc

@@ -191,14 +191,23 @@ A package is a source directory containing a module tree. Build metadata is
 optional; it does not replace the source modules.
 
 The compiler searches standard and installation directories, your user package
-directory, and directories supplied with `--pkg-path`. An explicit package
-path can override an installed package. If several `--pkg-path` options are
+directory, and directories supplied with `--pkg_path`. An explicit package
+path can override an installed package. If several `--pkg_path` options are
 given, the last takes precedence.
+
+An explicit mapping such as `--pkg=board:boards/adcif` binds a logical package
+name to a directory directly, without an extra `board/` directory level.
+Mappings take priority over every search root. Command-line mappings override
+project mappings; within each level the last mapping for a name wins. In a
+project file, write `pkg = 'board:../boards/adcif'`. See
+[package lookup](../030-compiler/050-project-files.md#package-lookup) for path
+anchoring and validation rules.
 
 These same package search paths configure [include discovery](190-compiler-directives.md#include)
 for `#include "package/file.dqi"`; projects do not need a separate include-directory
-list. The project-file `packagepath` setting likewise applies to both module
-imports and package-qualified includes.
+list. The project-file `pkg_path` setting likewise applies to both module
+imports and package-qualified includes. Explicit `pkg` mappings apply to both
+as well. The old `--pkg-path` and `packagepath` spellings remain supported aliases.
 
 ## Namespace and Symbol Conflicts
 
@@ -314,5 +323,5 @@ $HOME/.dq/packages
 
 Package roots are checked from last to first. Therefore, a matching package in
 `$HOME/.dq/packages` takes precedence over the installation roots, and a root
-provided with `--pkg-path` takes precedence over all built-in roots. If several
-`--pkg-path` options are given, the last one takes precedence.
+provided with `--pkg_path` takes precedence over all built-in roots. If several
+`--pkg_path` options are given, the last one takes precedence.

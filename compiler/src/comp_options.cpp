@@ -21,8 +21,89 @@
 #include <set>
 
 #include "executable_path.h"
+#include "dq_utils.h"
+#include "strparse.h"
 
 OCompOptions  g_opt;
+
+bool OPackageOptions::AddMapping(const string & value, const string & base_dir, string & rerror)
+{
+  rerror.clear();
+  size_t separator = value.find(':');
+  if (separator == string::npos || separator + 1 == value.size())
+  {
+    rerror = "Expected package mapping name:directory, got \"" + value + "\"";
+    return false;
+  }
+  string name = value.substr(0, separator);
+  string checked_name;
+  TStrParseObj parser(name.data(), name.size());
+  if (!parser.ReadIdentifier(checked_name) || parser.readptr != parser.bufend)
+  {
+    rerror = "Invalid package name \"" + name + "\"";
+    return false;
+  }
+  filesystem::path directory(value.substr(separator + 1));
+  if (directory.is_relative()) directory = filesystem::path(base_dir) / directory;
+  directory = AbsNormPath(directory);
+  error_code ec;
+  if (!filesystem::is_directory(directory, ec) || ec)
+  {
+    rerror = "Mapped package \"" + name + "\" directory does not exist or is not accessible: " + directory.string();
+    return false;
+  }
+  erase_if(mappings, [&](const SPackageMapping & mapping) { return mapping.name == name; });
+  mappings.push_back({name, directory.string()});
+  return true;
+}
+
+bool OPackageOptions::ReadArgument(int argc, char ** argv, int & index, string & rerror)
+{
+  string argument(argv[index]);
+  size_t equals = argument.find('=');
+  string option = argument.substr(0, equals);
+  if (option != "--pkg" && option != "--pkg_path" && option != "--pkg-path") return false;
+  rerror.clear();
+  string value;
+  if (equals != string::npos) value = argument.substr(equals + 1);
+  else if (index + 1 < argc) value = argv[++index];
+  if (value.empty())
+  {
+    rerror = "Missing value after " + option;
+  }
+  else if (option == "--pkg")
+  {
+    AddMapping(value, filesystem::current_path().string(), rerror);
+  }
+  else
+  {
+    paths.push_back(AbsNormPath(value).string());
+  }
+  return true;
+}
+
+void OPackageOptions::Append(const OPackageOptions & options)
+{
+  paths.insert(paths.end(), options.paths.begin(), options.paths.end());
+  for (const SPackageMapping & mapping : options.mappings)
+  {
+    erase_if(mappings, [&](const SPackageMapping & existing) { return existing.name == mapping.name; });
+    mappings.push_back(mapping);
+  }
+}
+
+void OPackageOptions::AppendArguments(vector<string> & args) const
+{
+  for (const string & path : paths)
+  {
+    args.push_back("--pkg_path");
+    args.push_back(path);
+  }
+  for (const SPackageMapping & mapping : mappings)
+  {
+    args.push_back("--pkg=" + mapping.name + ":" + mapping.directory);
+  }
+}
 
 void OCompTarget::AppendCpuFeatures(const string & features)
 {
@@ -459,6 +540,12 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
 
   for (int i = 1; i < argc; ++i)
   {
+    string package_error;
+    if (packages.ReadArgument(argc, argv, i, package_error))
+    {
+      if (!package_error.empty()) return package_error;
+      continue;
+    }
     string v(argv[i]);
     if (v.empty() || ('-' != v[0]))
     {
@@ -554,12 +641,6 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
       const char * value = require_value(i);
       if (!value) return "Missing module stack after --ifstack";
       ParseModuleUseStack(value, module_use_stack);
-    }
-    else if ("--pkg-path" == v)
-    {
-      const char * value = require_value(i);
-      if (!value) return "Missing path after --pkg-path";
-      package_paths.push_back(value);
     }
     else if ("--build" == v)
     {
@@ -709,7 +790,8 @@ void OCompOptions::PrintUsage()
   print("  --target=<name> : select the compiler target\n");
   print("  --cpu-features=<features> : append LLVM CPU features to the target defaults\n");
   print("  --targets : list supported compiler targets\n");
-  print("  --pkg-path <path> : add a package search root (repeatable, last wins)\n");
+  print("  --pkg_path <path> : add a package search root (repeatable, last wins; alias: --pkg-path)\n");
+  print("  --pkg <name:directory> : map a package directly (repeatable, last wins; overrides search roots)\n");
   print("  --build <tag> : select .dqbuild build tag\n");
   print("  --build-suffix <suffix> : append to the selected .dqbuild build tag\n");
   print("  --build-root <path> : select the local artifact build root\n");
@@ -732,7 +814,8 @@ void OCompOptions::PrintUsage()
 
 bool OCompOptions::CommandLineOptionHasValue(const string & option)
 {
-  return (option == "--target") || (option == "--pkg-path") || (option == "--build")
+  return (option == "--target") || (option == "--pkg-path") || (option == "--pkg_path")
+         || (option == "--pkg") || (option == "--build")
          || (option == "--build-suffix") || (option == "--build-root")
          || (option == "--package-build-root")
          || (option == "--sysroot")

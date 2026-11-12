@@ -49,7 +49,9 @@ static bool LoadProject(ODqProject & project, const fs::path & filename,
                         const vector<string> & command_line_package_paths = {})
 {
   g_opt = OCompOptions();
-  return project.Load(filename, command_line_package_paths);
+  OPackageOptions packages;
+  packages.paths = command_line_package_paths;
+  return project.Load(filename, packages);
 }
 
 int main()
@@ -427,7 +429,7 @@ linkoption = '--gc-sections'
   Expect(g_opt.optlevel == OPTLEVEL_O2, "optimization value");
   Expect(g_opt.dbg_info, "debug value");
   Expect(g_opt.cmdline_defines.size() == 3, "included and local defines");
-  Expect(g_opt.package_paths.size() == 1, "project package path");
+  Expect(g_opt.packages.paths.size() == 1, "project package path");
   Expect(g_opt.link_objects.size() == 1, "link object");
   Expect(g_opt.linker_args.size() == 4, "ordered linker arguments");
   if (g_opt.linker_args.size() == 4)

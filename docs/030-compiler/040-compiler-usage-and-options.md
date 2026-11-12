@@ -27,7 +27,8 @@ Useful options:
 | `--targets` | list canonical targets and their LLVM/default settings |
 | `--exceptions`, `--no-exceptions` | enable or disable DQ exception handling |
 | `--dynstrings`, `--no-dynstrings` | enable or disable heap-backed dynamic strings |
-| `--pkg-path <path>` | add a package search root; repeatable |
+| `--pkg_path <path>` | add a package search root; repeatable; alias: `--pkg-path` |
+| `--pkg <name:directory>` | map a package directly; repeatable; takes priority over search roots |
 | `--build <tag>` | select `.dqbuild/<tag>` |
 | `--build-suffix <suffix>` | append to the selected build tag |
 | `--build-root <path>` | select the local artifact build root |
@@ -67,9 +68,17 @@ search roots. The compiler adds standard roots automatically, including:
 ~/.dq/packages
 ```
 
-Additional roots can be appended with `--pkg-path`. Search uses the last
-matching package root first, so later `--pkg-path` entries can override earlier
-roots.
+Additional roots can be appended with `--pkg_path`. Search uses the last
+matching package root first, so later `--pkg_path` entries can override earlier
+roots. Both `--pkg_path=path` and `--pkg_path path` are accepted.
+
+Use `--pkg=board:../boards/adcif` (or `--pkg board:../boards/adcif`) to select a
+specific source directory for `board`. Explicit mappings override all search
+roots, command-line mappings override project mappings, and the last mapping
+for a name wins. A mapped directory must exist; missing files within it never
+fall back to another package. CLI paths are relative to the working directory.
+The equivalent project properties are `pkg_path` and `pkg`; see
+[package lookup](050-project-files.md#package-lookup).
 
 ## Linking Native Code
 

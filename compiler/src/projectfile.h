@@ -69,7 +69,7 @@ public:
   bool ReadBool(bool & rvalue);
   bool ReadInt(int64_t & rvalue);
   bool CheckDuplicate(const string & name);
-  vector<string> EffectivePackagePaths() const;
+  OPackageOptions EffectivePackages() const;
   bool ReadPackagePathCall(string & rvalue);
   bool ParseVariable();
   bool ParseInclude();
@@ -82,11 +82,11 @@ class ODqProject
 public:
 
   bool Load(const filesystem::path & top_file,
-            const vector<string> & command_line_package_paths);
+            const OPackageOptions & command_line_packages);
 
 public:
   vector<SDqProjectDiagnostic>  diagnostics;
-  vector<string>                command_line_package_paths;
+  OPackageOptions               command_line_packages;
   filesystem::path              project_dir;
   map<string, string>           variables;
   set<string>                   single_properties;

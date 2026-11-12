@@ -19,6 +19,8 @@
 
 using namespace std;
 
+class OPackageOptions;
+
 class OModulePath
 {
 public:
@@ -61,7 +63,7 @@ public:
                                      const filesystem::path & context_artifact,
                                      const filesystem::path & context_source,
                                      const filesystem::path & recorded_source, filesystem::path & rsource_path);
-  static bool ResolvePackageRoot(const string & package_name, const vector<string> & package_paths,
+  static bool ResolvePackageRoot(const string & package_name, const OPackageOptions & packages,
                                  filesystem::path & rroot_dir);
   // Discover the selected package containing a source file, including an include fragment.
   static bool FindPackage(const filesystem::path & source, string & rpackage, filesystem::path & rroot);

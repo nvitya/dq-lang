@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 
 
-def run(compiler):
+def run(compiler, mode='roots'):
     with tempfile.TemporaryDirectory(prefix='dq-lsp-symlink-') as directory:
         root = Path(directory)
         for name in ['workspace', 'physical', 'packages']:
@@ -27,7 +27,20 @@ def run(compiler):
         broken = (workspace / 'broken.dq').as_uri()
         (workspace / 'main.dq').write_text('use lib/nested/editor\nvar result : int = UNSAVED\n')
         project = workspace / 'app.dqproj'
-        project.write_text("main = 'main.dq'\ntarget = 'x86_64-linux'\npackagepath = '../packages'\nlink = false\n")
+        project_text = "main = 'main.dq'\ntarget = 'x86_64-linux'\nlink = false\n"
+        arguments = []
+        if mode == 'roots':
+            project_text += "pkg_path = '../packages'\n"
+        else:
+            (root / 'wrong').mkdir()
+            (root / 'physical/settings.dqproj').write_text('define MAPPED_LIBRARY\n')
+            if mode == 'project-mapping':
+                project_text += "pkg = 'lib:../physical'\n"
+            else:
+                project_text += "pkg = 'lib:../wrong'\n"
+                arguments = ['--pkg=lib:../physical']
+            project_text += "var LIB=PackagePath('lib')\ninclude '${LIB}/settings.dqproj'\n"
+        project.write_text(project_text)
         main = (workspace / 'main.dq').as_uri()
         alias = (workspace / 'lib/nested/editor.dq').as_uri()
         package = (root / 'packages/lib/nested/editor.dq').as_uri()
@@ -71,7 +84,7 @@ def run(compiler):
         for message in messages:
             body = json.dumps(message).encode()
             wire += f'Content-Length: {len(body)}\r\n\r\n'.encode() + body
-        process = subprocess.run([str(compiler), '--langserver', '--no-use-sys', str(project)],
+        process = subprocess.run([str(compiler), '--langserver', '--no-use-sys', str(project), *arguments],
                                  input=wire, capture_output=True, cwd=workspace, timeout=60)
         assert process.returncode == 0, process.stderr.decode()
         output = process.stdout
@@ -105,10 +118,12 @@ def run(compiler):
         assert replies[9] and replies[9][0]['uri'] == alias, replies[9]
         assert replies[10] and replies[10][0]['uri'] == package, replies[10]
         assert (root / 'physical/nested/editor.dq').read_text() == original
-        print('PASS: import diagnostics, symlink identity, unsaved imports, alias navigation, and latest edit wins')
+        print(f'PASS ({mode}): import diagnostics, symlink identity, unsaved imports, alias navigation, and latest edit wins')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compiler', type=Path, default=Path(__file__).resolve().parents[1] / 'build/dq-comp')
-    run(parser.parse_args().compiler.resolve())
+    compiler = parser.parse_args().compiler.resolve()
+    for mode in ['roots', 'project-mapping', 'cli-mapping']:
+        run(compiler, mode)

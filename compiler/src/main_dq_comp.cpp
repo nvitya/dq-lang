@@ -159,7 +159,8 @@ static bool HasArg(int argc, char ** argv, const string & expected)
 struct SProjectStartupArgs
 {
   string project_filename;
-  vector<string> command_line_package_paths;
+  OPackageOptions command_line_packages;
+  string error;
 };
 
 static SProjectStartupArgs ScanProjectStartupArgs(int argc, char ** argv)
@@ -170,9 +171,9 @@ static SProjectStartupArgs ScanProjectStartupArgs(int argc, char ** argv)
   for (int i = 1; i < argc; ++i)
   {
     string arg(argv[i]);
-    if (arg == "--pkg-path")
+    if (result.command_line_packages.ReadArgument(argc, argv, i, result.error))
     {
-      if (i + 1 < argc) result.command_line_package_paths.push_back(argv[++i]);
+      if (!result.error.empty()) return result;
       continue;
     }
     if (OCompOptions::CommandLineOptionHasValue(arg))
@@ -217,12 +218,17 @@ int main(int argc, char ** argv)
   #endif
 
   g_opt.InitializeCompilerExecutable(argc > 0 ? argv[0] : "");
-  g_opt.package_paths = g_opt.DefaultPackagePaths();
+  g_opt.packages.paths = g_opt.DefaultPackagePaths();
 
   // Pre-collect some command line arguments:
   //   - project file name
-  //   - package search paths making them availabe for project files
+  //   - package search roots and mappings, available during project evaluation
   SProjectStartupArgs startup_args = ScanProjectStartupArgs(argc, argv);
+  if (!startup_args.error.empty())
+  {
+    print("{}\n", startup_args.error);
+    return 1;
+  }
 
   // Process the project file
   ODqProject project;
@@ -233,7 +239,7 @@ int main(int argc, char ** argv)
       print("DQ project files must use the .dqproj extension\n");
       return 1;
     }
-    if (!project.Load(startup_args.project_filename, startup_args.command_line_package_paths))
+    if (!project.Load(startup_args.project_filename, startup_args.command_line_packages))
     {
       for (const SDqProjectDiagnostic & diagnostic : project.diagnostics)
       {

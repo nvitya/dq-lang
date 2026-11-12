@@ -93,7 +93,7 @@ private:
   bool ReadDqmIfSourceDependency(ODqmIfReader & reader);
   string DqmIfTargetArch() const;
   string DqmIfTargetRtl() const;
-  string DqmIfBuildOptions() const;
+  string DqmIfBuildOptions(const vector<SSourceDependency> & sources) const;
   bool WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const vector<SSourceDependency> & source_dependencies,
                                 const vector<pair<string, string>> & module_sources,
                                 const string & object_filename);

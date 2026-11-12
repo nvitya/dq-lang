@@ -139,12 +139,13 @@ like `use ^/`. Inside an included fragment from another package, this is the
 fragment's package root; returning to the including file restores its context.
 A `^/` path requires the current source file to belong to a configured package.
 
-Package search paths also configure include discovery: `--pkg-path` and the
-project-file `packagepath` setting apply to both `use` and package-qualified
+Package search paths also configure include discovery: `--pkg_path` and the
+project-file `pkg_path` setting, as well as direct `--pkg` / `pkg` mappings,
+apply to both `use` and package-qualified
 `#include` paths. No separate include-directory list is needed. A platform
 package can ship configuration fragments, register modules, and drivers together;
 the project only needs to make that package discoverable. For example, with
-`packagepath = './packages'`, `#include "platform/config.dqi"` selects the file
+`pkg_path = './packages'`, `#include "platform/config.dqi"` selects the file
 `packages/platform/config.dqi` relative to the project directory. Within that
 fragment, `./` and `../` resolve from the fragment's directory, while `^/`
 resolves from the selected `platform` package root.

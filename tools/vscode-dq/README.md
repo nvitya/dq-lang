@@ -54,7 +54,9 @@ By default the extension resolves `dq-comp` from `PATH`. To use a local compiler
 }
 ```
 
-Use `dq.languageServerArgs` for options such as `--target` or `--pkg-path`.
+Use `dq.languageServerArgs` for options such as `--target`, `--pkg_path`, or
+`--pkg=board:../boards/adcif`. Project `pkg_path` and `pkg` declarations are
+also used by the language server, including navigation and unsaved mapped files.
 Relative argument paths use the selected project's parent directory.
 To select projects explicitly, existing settings remain supported:
 

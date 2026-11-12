@@ -484,7 +484,7 @@ string OModuleIntf::DqmIfTargetRtl() const
   return g_opt.target.platform_name;
 }
 
-string OModuleIntf::DqmIfBuildOptions() const
+string OModuleIntf::DqmIfBuildOptions(const vector<SSourceDependency> & sources) const
 {
   string result = "O" + string(g_opt.OptimizationLevelName()) + ";linkmangle=2;module=" + name;
   if (OPTLEVEL_O1 == g_opt.optlevel) result += ";inline=explicit";
@@ -494,6 +494,24 @@ string OModuleIntf::DqmIfBuildOptions() const
   result += (g_opt.exceptions ? ";exceptions=true" : ";exceptions=false;nounwind=1");
   result += (g_opt.dynstrings ? ";dynstrings=true" : ";dynstrings=false");
   if (!g_opt.cpu_features.empty()) result += ";cpu_features=" + g_opt.cpu_features;
+  // Record the selected roots of packages actually used by this interface,
+  // including include-only dependencies. Unrelated package options must not
+  // invalidate shared runtime artifacts. Canonical roots also detect retargeted
+  // package symlinks, even while their old sources still exist unchanged.
+  set<pair<string, string>> package_roots;
+  for (const SSourceDependency & source : sources)
+  {
+    string package_name;
+    filesystem::path package_root;
+    if (OModulePath::FindPackage(source.filename, package_name, package_root))
+    {
+      package_roots.insert({package_name, package_root.string()});
+    }
+  }
+  for (const auto & [package_name, package_root] : package_roots)
+  {
+    result += ";pkg=" + package_name + ":\"" + JsonEscape(package_root) + "\"";
+  }
 
   for (const OCmdLineDefine & def : g_opt.cmdline_defines)
   {
@@ -705,9 +723,9 @@ bool OModuleIntf::MetadataMatchesCurrentBuild(string & rreason) const
     return false;
   }
 
-  if (build_options != DqmIfBuildOptions())
+  if (build_options != DqmIfBuildOptions(source_dependencies))
   {
-    rreason = format("build options changed: {} != {}", build_options, DqmIfBuildOptions());
+    rreason = format("build options changed: {} != {}", build_options, DqmIfBuildOptions(source_dependencies));
     return false;
   }
 
@@ -1186,11 +1204,7 @@ static vector<string> ModuleChildArgs(const filesystem::path & source_path,
     args.push_back(defarg);
   }
 
-  for (const string & package_path : g_opt.package_paths)
-  {
-    args.push_back("--pkg-path");
-    args.push_back(package_path);
-  }
+  g_opt.packages.AppendArguments(args);
 
   string stack_text;
   for (const string & item : g_opt.module_use_stack)
@@ -1590,7 +1604,7 @@ bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer,
 
   if (!writer.AddRecStr(DQMIF_H_TARGET_ARCH, DqmIfTargetArch())) return false;
   if (!writer.AddRecStr(DQMIF_H_TARGET_RTL, DqmIfTargetRtl())) return false;
-  if (!writer.AddRecStr(DQMIF_H_BUILD_OPTIONS, DqmIfBuildOptions())) return false;
+  if (!writer.AddRecStr(DQMIF_H_BUILD_OPTIONS, DqmIfBuildOptions(source_dependencies))) return false;
   return writer.AddRecEmpty(DQMIF_H_END);
 }
 

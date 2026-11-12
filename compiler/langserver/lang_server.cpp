@@ -479,11 +479,7 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
   runner.args.push_back("--langserver-source");
   runner.args.push_back(source.string());
   if (g_opt.no_use_sys) runner.args.push_back("--no-use-sys");
-  for (const string & path : g_opt.package_paths)
-  {
-    runner.args.push_back("--pkg-path");
-    runner.args.push_back(path);
-  }
+  g_opt.packages.AppendArguments(runner.args);
   for (const OCmdLineDefine & define : g_opt.cmdline_defines)
   {
     string arg = "-D" + define.name;

@@ -276,11 +276,10 @@ bool ODqProjectFile::CheckDuplicate(const string & name)
   return Fail("ProjectDuplicate", format("Project property \"{}\" may only be specified once", name));
 }
 
-vector<string> ODqProjectFile::EffectivePackagePaths() const
+OPackageOptions ODqProjectFile::EffectivePackages() const
 {
-  vector<string> result = g_opt.package_paths;
-  result.insert(result.end(), pproject->command_line_package_paths.begin(),
-                pproject->command_line_package_paths.end());
+  OPackageOptions result = g_opt.packages;
+  result.Append(pproject->command_line_packages);
   return result;
 }
 
@@ -312,8 +311,7 @@ bool ODqProjectFile::ReadPackagePathCall(string & rvalue)
   }
 
   filesystem::path package_root;
-  vector<string> roots = EffectivePackagePaths();
-  if (!OModulePath::ResolvePackageRoot(package_name, roots, package_root))
+  if (!OModulePath::ResolvePackageRoot(package_name, EffectivePackages(), package_root))
   {
     return Fail("ProjectPackage", format("Package \"{}\" was not found", package_name));
   }
@@ -491,10 +489,20 @@ bool ODqProjectFile::ParseProperty(const string & name)
   {
     return Fail("ProjectUnsupported", format("Project property \"{}\" is not supported yet", name));
   }
-  else if ("packagepath" == name)
+  else if (("pkg_path" == name) || ("packagepath" == name))
   {
     if (!ReadPath(path)) return false;
-    g_opt.package_paths.push_back(path.string());
+    g_opt.packages.paths.push_back(path.string());
+  }
+  else if ("pkg" == name)
+  {
+    string value;
+    if (!ReadExpandedString(value)) return false;
+    string error;
+    if (!g_opt.packages.AddMapping(value, filename.parent_path().string(), error))
+    {
+      return Fail("ProjectPackage", error);
+    }
   }
   else if ("link" == name)
   {
@@ -675,10 +683,10 @@ bool ODqProjectFile::ParseFile()
 }
 
 bool ODqProject::Load(const filesystem::path & top_file,
-                      const vector<string> & acommand_line_package_paths)
+                      const OPackageOptions & acommand_line_packages)
 {
   diagnostics.clear();
-  command_line_package_paths = acommand_line_package_paths;
+  command_line_packages = acommand_line_packages;
   variables.clear();
   single_properties.clear();
   define_names.clear();

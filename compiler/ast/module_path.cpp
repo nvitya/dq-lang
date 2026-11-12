@@ -114,7 +114,7 @@ filesystem::path OModulePath::PackageBuildTagDir()
 bool OModulePath::IsPackageRoot(const string & package_name, const filesystem::path & root_dir)
 {
   filesystem::path selected_root;
-  return ResolvePackageRoot(package_name, g_opt.package_paths, selected_root)
+  return ResolvePackageRoot(package_name, g_opt.packages, selected_root)
       && SourcePathIdentity(selected_root) == SourcePathIdentity(root_dir);
 }
 
@@ -134,14 +134,29 @@ filesystem::path OModulePath::LocalRootForSource(const filesystem::path & source
 bool OModulePath::FindPackage(const filesystem::path & source, string & rpackage,
                               filesystem::path & rroot)
 {
+  rpackage.clear();
+  rroot.clear();
   filesystem::path identity = SourcePathIdentity(source);
-  for (auto it = g_opt.package_paths.rbegin(); it != g_opt.package_paths.rend(); ++it)
+  // Prefer the most specific mapped directory when packages are nested.
+  for (auto it = g_opt.packages.mappings.rbegin(); it != g_opt.packages.mappings.rend(); ++it)
+  {
+    filesystem::path root = SourcePathIdentity(it->directory);
+    filesystem::path relative = identity.lexically_relative(root);
+    if (relative.empty() || *relative.begin() == ".." || relative == ".") continue;
+    if (rroot.empty() || root.native().size() > rroot.native().size())
+    {
+      rpackage = it->name;
+      rroot = root;
+    }
+  }
+  if (!rroot.empty()) return true;
+  for (auto it = g_opt.packages.paths.rbegin(); it != g_opt.packages.paths.rend(); ++it)
   {
     filesystem::path search_root = SourcePathIdentity(*it);
     auto match = [&](const string & name) -> bool
     {
       filesystem::path selected;
-      if (!ResolvePackageRoot(name, g_opt.package_paths, selected)) return false;
+      if (!ResolvePackageRoot(name, g_opt.packages, selected)) return false;
       filesystem::path root = SourcePathIdentity(search_root / name);
       // A shadowed package must not acquire the active package's identity.
       if (selected != root) return false;
@@ -168,10 +183,18 @@ bool OModulePath::FindPackage(const filesystem::path & source, string & rpackage
   return false;
 }
 
-bool OModulePath::ResolvePackageRoot(const string & package_name, const vector<string> & package_paths,
+bool OModulePath::ResolvePackageRoot(const string & package_name, const OPackageOptions & packages,
                                      filesystem::path & rroot_dir)
 {
-  for (auto it = package_paths.rbegin(); it != package_paths.rend(); ++it)
+  for (auto it = packages.mappings.rbegin(); it != packages.mappings.rend(); ++it)
+  {
+    if (it->name != package_name) continue;
+    error_code ec;
+    if (!filesystem::is_directory(it->directory, ec) || ec) return false;
+    rroot_dir = SourcePathIdentity(it->directory);
+    return true;
+  }
+  for (auto it = packages.paths.rbegin(); it != packages.paths.rend(); ++it)
   {
     filesystem::path candidate = AbsNormPath(filesystem::path(*it) / package_name);
     error_code ec;
@@ -375,7 +398,7 @@ bool OModulePath::ResolveFrom(const OModulePath & current, string & rerror)
     resolved_package_name = parts[0];
     resolved_local_path = (parts.size() == 1 ? resolved_package_name : Join(parts, 1));
 
-    if (!ResolvePackageRoot(resolved_package_name, g_opt.package_paths, resolved_root_dir))
+    if (!ResolvePackageRoot(resolved_package_name, g_opt.packages, resolved_root_dir))
     {
       rerror = resolved_package_name;
       return false;
@@ -449,7 +472,7 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
   {
     filesystem::path normalized_source = SourcePathIdentity(source_path);
     filesystem::path package_dir;
-    if (ResolvePackageRoot(package_name, g_opt.package_paths, package_dir)
+    if (ResolvePackageRoot(package_name, g_opt.packages, package_dir)
         && normalized_source == SourcePathForLocal(package_dir, local_path))
     {
       rartifact_path = BuildArtifactPathForModule(package_name, local_path, package_dir, false);
@@ -490,7 +513,7 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
   }
 
   filesystem::path package_dir;
-  if (ResolvePackageRoot(package_name, g_opt.package_paths, package_dir))
+  if (ResolvePackageRoot(package_name, g_opt.packages, package_dir))
   {
     rartifact_path = BuildArtifactPathForModule(package_name, local_path, package_dir, false);
     return true;
@@ -529,7 +552,7 @@ bool OModulePath::ResolveCanonicalSource(const string & module_id, const string 
   }
 
   filesystem::path package_dir;
-  if (ResolvePackageRoot(package_name, g_opt.package_paths, package_dir))
+  if (ResolvePackageRoot(package_name, g_opt.packages, package_dir))
   {
     rsource_path = SourcePathForLocal(package_dir, local_path);
     return true;

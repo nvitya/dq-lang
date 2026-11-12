@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.0"
+#define DQ_COMPILER_VERSION  "0.96.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.2:
+  - added `--pkg=pkgname:path` options, and `pkg = 'pkgname:path'`
 v0.96.1:
   - language server diagnostics improved at the `use ...` errors
 v0.96.0:

@@ -37,7 +37,7 @@ through the implicit `sys` runtime interface, so they need no explicit import.
 ## Package Discovery and Platform Dependencies
 
 A bare import is resolved through the compiler's package search roots. Add
-project packages with `--pkg-path` or `packagepath` in a `.dqproj` file. Later
+project packages with `--pkg_path` or `pkg_path` in a `.dqproj` file. Later
 roots take precedence. See [Modules and Packages](../020-language/170-modules-and-packages.md#package-search)
 for identity and lookup rules.
 

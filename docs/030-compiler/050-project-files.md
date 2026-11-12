@@ -23,7 +23,7 @@ directory's `.dqbuild` directory, independently of the `main` source location.
 ```text
 // application.dqproj
 
-packagepath = 'packages'
+pkg_path = 'packages'
 var BOARD_SUPPORT = PackagePath('board_support')
 
 include '${BOARD_SUPPORT}/project/stm32f746.dqproj'
@@ -152,7 +152,8 @@ single-value properties are errors.
 | `target` | string | once, optional | Compiler target name, using the same names accepted by `--target`. |
 | `sysroot` | path string | once, optional | Target system root passed to the Clang linker driver for hosted cross builds. |
 | `cpu_features` | string | once, optional | Append LLVM CPU feature flags to the target defaults, separated by commas. |
-| `packagepath` | path string | repeatable | Add a DQ package search root. |
+| `pkg_path` | path string | repeatable | Add a DQ package search root (`packagepath` is a compatibility alias). |
+| `pkg` | `name:directory` string | repeatable | Map one package directly to a source directory; overrides all search roots. |
 | `link` | boolean | once, optional | Force linking when `true`; compile only when `false`. |
 | `static` | boolean | once, optional | Pass `-static` to the linker when `true`, equivalent to `--static` or `--linker-arg=-static`. Defaults to `false`, which adds no linker argument. |
 | `exceptions` | boolean | once, optional | Enable or disable DQ exception handling. Defaults to enabled on hosted targets and disabled on bare targets; `wasm32-wasi` always disables and rejects enabling exceptions. |
@@ -265,7 +266,8 @@ The following properties contain paths:
 
 - `main`
 - `output`
-- `packagepath`
+- `pkg_path`
+- The directory part of `pkg`
 - `linkobject`
 - `linkerpath`
 - `linkscript`
@@ -285,8 +287,8 @@ linkscript = '../ld/board.ld'
 the path is relative to `project/boards`, not to the process working directory
 or the top-level project directory.
 
-The project parser requires included files and `PackagePath()` results to
-exist. It does not check the existence of `main`, `output`, `packagepath`,
+The project parser requires included files, mapped `pkg` directories, and
+`PackagePath()` results to exist. It does not check the existence of `main`, `output`, `pkg_path`,
 `linkobject`, `linkerpath`, or `linkscript`; the compiler, filesystem, or linker
 reports problems with those paths when they are used.
 
@@ -337,19 +339,49 @@ The argument must expand to one identifier. If `/opt/dq/packages/sdk` is the
 selected package, the function returns the absolute normalized path
 `/opt/dq/packages/sdk`, not `/opt/dq/packages`.
 
-Package roots are searched from highest to lowest precedence:
+Packages are selected using the following precedence, highest first:
 
-1. Command-line `--pkg-path` roots, with the last command-line root winning.
-2. Project `packagepath` roots already encountered, with the last project root
-   winning.
-3. Compiler default package roots, with the later default root winning.
+1. Command-line `--pkg` mappings for that package name.
+2. Project `pkg` mappings already encountered for that package name.
+3. Command-line `--pkg_path` roots.
+4. Project `pkg_path` roots already encountered.
+5. Compiler default package roots.
 
-Command-line package roots are collected before the project is evaluated, so
-they are available to every `PackagePath()` call regardless of command-line
-position. A project `packagepath` becomes available only after its statement is
-evaluated. Includes follow the same textual ordering rule.
+Within each level, the last matching entry wins. Explicit mappings always take
+priority over search roots, including a project mapping over a command-line root.
 
-A missing package is a project-evaluation error.
+Command-line package roots and mappings are collected before the project is
+evaluated, so they are available to every `PackagePath()` call regardless of
+command-line position. Project `pkg_path` and `pkg` settings become available
+only after their statements are evaluated. Includes follow the same textual
+ordering rule.
+
+For example:
+
+```text
+pkg_path = '../dqpkg'
+pkg = 'board:../boards/adcif'
+var BOARD = PackagePath('board')
+```
+
+This binds `board` to `../boards/adcif`, even if a search root contains another
+`board` directory. `use board` selects `../boards/adcif/board.dq`, while
+`use board/pins` selects `../boards/adcif/pins.dq`. Package-qualified includes,
+`^/` paths, and language-server navigation use the same mapping.
+
+The mapping is split at the first colon. The name must be one identifier;
+variable expansion applies to the whole string, and only the directory part
+is resolved relative to the file containing the statement. Spaces and further
+colons are part of the directory, including Windows drive prefixes.
+
+A missing or inaccessible mapped directory is an error when the declaration is
+processed. A missing module or include inside a mapped package does not fall
+back to search roots. A missing `PackagePath()` package is also a project error.
+
+The old project spelling `packagepath` remains an alias for `pkg_path`.
+On the command line, `--pkg_path` and `--pkg` accept either `--option=value` or
+`--option value`; `--pkg-path` remains an alias for `--pkg_path`. CLI directory
+paths are relative to the process working directory.
 
 ## Includes
 
@@ -367,7 +399,7 @@ Includes behave like textual insertion with file-local path anchoring:
 
 - Variables declared before an include are visible inside it.
 - Variables declared by an included file remain visible after it returns.
-- `packagepath` statements affect later `PackagePath()` calls.
+- `pkg_path` and `pkg` statements affect later `PackagePath()` calls.
 - Single-property, variable, and define duplicate checks span all files.
 - Repeatable property ordering follows statement order across includes.
 
@@ -461,7 +493,7 @@ statement     := property '=' property-value
                | 'var' identifier '=' variable-value
                | 'include' string
 
-property      := 'main' | 'output' | 'target' | 'packagepath'
+property      := 'main' | 'output' | 'target' | 'pkg_path' | 'packagepath' | 'pkg'
                | 'link' | 'static' | 'linkobject' | 'linkerpath' | 'linkoption'
                | 'linkscript' | 'debuginfo' | 'optlevel' | 'lto'
                | 'exceptions' | 'dynstrings' | 'cpu_features'

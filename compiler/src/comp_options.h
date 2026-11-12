@@ -122,6 +122,24 @@ public:
   int64_t  int_value = 0;
 };
 
+struct SPackageMapping
+{
+  string name;
+  string directory;
+};
+
+class OPackageOptions
+{
+public:
+  vector<string> paths;
+  vector<SPackageMapping> mappings;
+
+  bool AddMapping(const string & value, const string & base_dir, string & rerror);
+  bool ReadArgument(int argc, char ** argv, int & index, string & rerror);
+  void Append(const OPackageOptions & options);
+  void AppendArguments(vector<string> & args) const;
+};
+
 class OCompOptions
 {
 public:
@@ -162,7 +180,7 @@ public:
   string   sysroot_dir;
   string   build_tag;
   vector<string>  module_use_stack;
-  vector<string>  package_paths;
+  OPackageOptions packages;
   string          module_root_dir;
   string          module_name;
   string          source_overlay_filename;

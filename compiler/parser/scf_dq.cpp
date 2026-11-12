@@ -184,7 +184,7 @@ bool OScFeederDq::ResolveSourcePath(const string & source_text, filesystem::path
       if (component == ".." || component == ".") return false;
     }
     filesystem::path package_root;
-    if (!OModulePath::ResolvePackageRoot(package_name, g_opt.package_paths, package_root))
+    if (!OModulePath::ResolvePackageRoot(package_name, g_opt.packages, package_root))
     {
       return false;
     }

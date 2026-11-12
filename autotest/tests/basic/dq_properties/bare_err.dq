@@ -1,0 +1,3 @@
+const VALUE : int = DQ //?error(DqPropertyExpected) //?error(ExprWrongValue)
+func *Main():
+endfunc

@@ -1,0 +1,3 @@
+const PKG : rostr = DQ.UNKNOWN //?error(DqPropertyUnknown) //?error(ExprWrongValue)
+func *Main():
+endfunc

@@ -57,6 +57,22 @@ Normal `use` modifiers, including `as`, `only`, `exclude`, and `reexport`, apply
 Relative paths resolve from the importing module, not the constant's declaration.
 Runtime strings cannot select modules.
 
+`DQ.PKGNAME` is a read-only compile-time property containing the configured package
+name of the source file containing the expression, without a trailing slash.
+Inside an included fragment it uses that fragment's package, just like `^/` in
+`use` and `#include`. A source outside configured packages produces an error.
+
+Use it to construct a path that retains its meaning when consumed by another
+package:
+
+```dq
+const HWUART_IMPL : rostr = DQ.PKGNAME + "/arma/rk/impl/hwuart_rk"
+```
+
+String concatenation with constant operands (including `"a" + "b"` and named
+string constants) is folded at compile time, even with dynamic strings disabled.
+
+
 The configuration module and selected implementation are ordinary dependencies.
 Changing the constant or resolving the configuration package from a different
 source invalidates affected cached interfaces. Use different build tags for

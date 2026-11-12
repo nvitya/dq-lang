@@ -1,0 +1,5 @@
+//?notest
+#include "platform/config.dqi"
+const API_PACKAGE : rostr = DQ.PKGNAME
+const TEXT : rostr = "a" + "b" + "c"
+use ${IMPL} reexport

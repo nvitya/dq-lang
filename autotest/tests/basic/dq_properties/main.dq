@@ -1,0 +1,23 @@
+use libc/stdio
+const FILE : rostr = DQ.FILENAME
+const FILEPATH : rostr = DQ.FILEPATH
+const FILEDIR : rostr = DQ.FILEDIR
+const LINE : int = DQ.LINE
+const COLUMN : int = DQ.COLUMN
+const LOCATION : rostr = "\{DQ.FILENAME}:\{DQ.LINE}"
+func PackageName() -> int:
+    return 17
+endfunc
+func Name() -> rostr:
+    return DQ.FUNCNAME
+endfunc
+func *Main():
+    printf("file = %s\n", FILE.pchar) //?check('file', 'main.dq')
+    printf("line = %li\n", LINE) //?check('line', 5)
+    printf("column = %li\n", COLUMN) //?check('column', 22)
+    printf("location = %s\n", LOCATION.pchar) //?check('location', 'main.dq:7')
+    printf("path = %i,%i\n", FILEPATH.EndsWith(FILE), FILEDIR.EndsWith("dq_properties")) //?check('path', '1,1')
+    var function_name : rostr = Name()
+    printf("func = %s,%s\n", DQ.FUNCNAME, function_name.pchar) //?check('func', 'Main,Name')
+    printf("oldname = %i\n", PackageName()) //?check('oldname', 17)
+endfunc

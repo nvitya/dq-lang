@@ -1,0 +1,3 @@
+const VALUE : rostr = DQ.FUNCNAME //?error(DqFunctionRequired) //?error(ExprWrongValue)
+func *Main():
+endfunc

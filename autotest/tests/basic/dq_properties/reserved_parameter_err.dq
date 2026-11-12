@@ -1,0 +1,4 @@
+func Test(DQ : int): //?error(FuncParNameInvalid)
+endfunc
+func *Main():
+endfunc

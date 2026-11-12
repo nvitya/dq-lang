@@ -1,0 +1,4 @@
+func DQ(): //?error(IntrinsicNameReserved)
+endfunc
+func *Main():
+endfunc

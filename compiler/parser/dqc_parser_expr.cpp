@@ -8,6 +8,8 @@
  * file:    dqc_parser_expr.cpp
  */
 
+#include <cctype>
+#include <format>
 #include "dqc_parser_expr.h"
 #include "scf_dq.h"
 #include "symbols.h"
@@ -17,6 +19,8 @@
 #include "otype_compound.h"
 #include "otype_enum.h"
 #include "otype_char.h"
+#include "otype_bool.h"
+#include "otype_float.h"
 #include "otype_string.h"
 #include "named_scopes.h"
 
@@ -551,6 +555,11 @@ bool ODqCompParserExpr::ParseAttributes(bool areset)
 
 bool ODqCompParserExpr::CheckSpecialReservedRootName(const string & aname)
 {
+  if (aname == "DQ")
+  {
+    RootStatementError(DQERR_INTRINSIC_NAME_RESERVED, aname, &scf->prevpos);
+    return false;
+  }
   if (SFK_NONE == SpecialFuncKindFromName(aname))
   {
     return true;
@@ -3627,7 +3636,12 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   {
     char quotech = *scf->curp;
     string strval;
-    if (scf->ReadQuotedString(strval))
+    bool interpolation_failed = false;
+    if (scf->ReadQuotedString(strval, [this, &interpolation_failed](string & value)
+        {
+          interpolation_failed = !ParseStringInterpolation(value);
+          return !interpolation_failed;
+        }))
     {
       int64_t char_value = 0;
       if (('\'' == quotech) && DecodeSingleUtf8Scalar(strval, char_value))
@@ -3638,7 +3652,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     }
     else
     {
-      ErrorTxt(DQERR_LIT_STRING, "Unterminated string literal");
+      if (!interpolation_failed) ErrorTxt(DQERR_LIT_STRING, "Unterminated string literal");
       return nullptr;
     }
   }
@@ -3725,6 +3739,8 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   {
     return ParseBuiltinIif();
   }
+
+  if ("DQ" == sid) return ParseDqProperty(scpos_sid);
 
   if ("Defined" == sid)
   {
@@ -5195,6 +5211,148 @@ OExpr * ODqCompParserExpr::ParseBuiltinDefined()
   return ok ? new OBoolLit(defined) : nullptr;
 }
 
+bool ODqCompParserExpr::ParseStringInterpolation(string & result)
+{
+  OScPosition position(scf->curfile, scf->curp - 2);
+  unique_ptr<OExpr> expr(ParseExpression());
+  if (!expr) return false;
+  scf->SkipWhite();
+  string spec;
+  if (scf->CheckSymbol(":"))
+  {
+    char * start = scf->curp;
+    while (scf->curp < scf->bufend && *scf->curp != '}'
+           && *scf->curp != '\n' && *scf->curp != '\r'
+           && *scf->curp != '"' && *scf->curp != '\'' && *scf->curp != '{') ++scf->curp;
+    spec.assign(start, scf->curp);
+    scf->RecalcCurLineCol();
+  }
+  if (!scf->CheckSymbol("}"))
+  {
+    Error(DQERR_INTERPOLATION_CLOSE, &position);
+    return false;
+  }
+
+  // std::vformat consumes a runtime specification, but all DQ values here
+  // must already be known to the compiler. No formatting code is emitted.
+  auto format_value = [&spec, &result](auto value)
+  {
+    result = vformat("{:" + spec + "}", make_format_args(value));
+    return true;
+  };
+  OType * type = expr->ResolvedType();
+  try
+  {
+    if (TK_INT == type->kind || IsCharacterType(type))
+    {
+      OValueInt value(type, 0);
+      if (value.CalculateConstant(expr.get(), false))
+      {
+        bool unsigned_format = spec.ends_with("u");
+        if (unsigned_format) spec.back() = 'd'; // DQ's unsigned decimal spelling.
+        if (IsCharacterType(type) && (spec.empty() || !isalpha(static_cast<unsigned char>(spec.back()))
+                                      || spec.ends_with("s") || spec.ends_with("c")))
+        {
+          if (spec.ends_with("c")) spec.back() = 's';
+          string text;
+          uint32_t ch = value.value;
+          if (type == g_builtins->type_char || ch < 128) text += char(ch);
+          else
+          {
+            // Encode a constant Unicode character as UTF-8 before text formatting.
+            int shift = ch < 0x800 ? 6 : ch < 0x10000 ? 12 : 18;
+            text += char((shift == 6 ? 0xC0 : shift == 12 ? 0xE0 : 0xF0) | (ch >> shift));
+            for (shift -= 6; shift >= 0; shift -= 6) text += char(0x80 | ((ch >> shift) & 0x3F));
+          }
+          return format_value(text);
+        }
+        if (unsigned_format || !static_cast<OTypeInt *>(type)->issigned)
+          return format_value(uint64_t(value.value));
+        return format_value(value.value);
+      }
+    }
+    else if (TK_FLOAT == type->kind)
+    {
+      OValueFloat value(type, 0);
+      if (value.CalculateConstant(expr.get(), false)) return format_value(value.value);
+    }
+    else if (TK_BOOL == type->kind)
+    {
+      OValueBool value(type, false);
+      if (value.CalculateConstant(expr.get(), false)) return format_value(value.value);
+    }
+    else if (TK_ENUM == type->kind)
+    {
+      OValueEnum value(type);
+      if (value.CalculateConstant(expr.get(), false))
+      {
+        if (spec.ends_with("u")) spec.back() = 'd';
+        if (static_cast<OTypeEnum *>(type)->storage_type->issigned)
+          return format_value(int64_t(value.value));
+        return format_value(value.value);
+      }
+    }
+    else if (type->IsTextSource())
+    {
+      OValueTextLiteral value(g_builtins->type_rostr);
+      if (value.CalculateConstant(expr.get(), false)) return format_value(*value.literal.GetStringLiteral());
+    }
+  }
+  catch (const format_error & error)
+  {
+    Error(DQERR_INTERPOLATION_FORMAT, error.what(), &position);
+    return false;
+  }
+  Error(DQERR_INTERPOLATION_CONSTANT, &position);
+  return false;
+}
+
+OExpr * ODqCompParserExpr::ParseDqProperty(OScPosition position)
+{
+  // All properties use the DQ token's location, including inside source fragments.
+  scf->SkipWhite();
+  string name;
+  if (!scf->CheckSymbol("."))
+  {
+    Error(DQERR_DQ_PROPERTY_EXPECTED, &position);
+    return nullptr;
+  }
+  scf->SkipWhite();
+  if (!scf->ReadIdentifier(name))
+  {
+    Error(DQERR_DQ_PROPERTY_EXPECTED, &position);
+    return nullptr;
+  }
+
+  if (name == "LINE") return new OIntLit(position.line);
+  // Columns follow the compiler's diagnostics: one-based UTF-8 byte positions.
+  if (name == "COLUMN") return new OIntLit(position.col);
+  if (name == "FUNCNAME")
+  {
+    if (curvsfunc) return new OEmbStrLit(curvsfunc->name);
+    Error(DQERR_DQ_FUNCTION_REQUIRED, &position);
+    return nullptr;
+  }
+
+  filesystem::path source = filesystem::absolute(position.scfile->fullpath).lexically_normal();
+  if (name == "FILENAME") return new OEmbStrLit(source.filename().string());
+  if (name == "FILEPATH") return new OEmbStrLit(source.string());
+  if (name == "FILEDIR") return new OEmbStrLit(source.parent_path().string());
+  if (name == "PKGNAME")
+  {
+    string package_name;
+    filesystem::path package_root;
+    if (!OModulePath::FindPackage(source, package_name, package_root))
+    {
+      Error(DQERR_PACKAGE_NAME_REQUIRED, &position);
+      return nullptr;
+    }
+    return new OEmbStrLit(package_name);
+  }
+  Error(DQERR_DQ_PROPERTY_UNKNOWN, name, &position);
+  return nullptr;
+}
+
 OType * ODqCompParserExpr::FirstConstResultType(const string & intrinsic_name) const
 {
   if ("FirstInt" == intrinsic_name)    return g_builtins->type_int;
@@ -5205,7 +5363,7 @@ OType * ODqCompParserExpr::FirstConstResultType(const string & intrinsic_name) c
 
 bool ODqCompParserExpr::IsReservedIntrinsicName(const string & name) const
 {
-  return ("Defined" == name) || FirstConstResultType(name);
+  return ("Defined" == name) || ("DQ" == name) || FirstConstResultType(name);
 }
 
 OExpr * ODqCompParserExpr::ParseBuiltinFloatRound(ERoundMode amode)

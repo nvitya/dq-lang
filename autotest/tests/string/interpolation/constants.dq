@@ -1,0 +1,30 @@
+//?compargs('--build-suffix', 'constant-interpolation', '--no-dynstrings')
+use libc/stdio
+const NUM : int = 123
+const STR : rostr = "\{NUM:5} times..."
+const ROOT : rostr = "board"
+const SINGLE : rostr = 'value=\{NUM}'
+const PATH : rostr = "\{ROOT:<8}/impl"
+const MAX : uint64 = 0xFFFFFFFFFFFFFFFF
+const VALUES : rostr = "\{NUM + 1:04X},\{3.5:.2f},\{true},\{MAX},\{MAX:u}"
+const NESTED : rostr = "\{FirstInt(MISSING, (NUM + 1))}:\{"a" + "b"}:\{"\{NUM}"}"
+const ESCAPED : rostr = "\\{NUM} {NUM} \{"\\n"}"
+const CHARS : rostr = "\{'A'}\{'€'}\{'😀':c}"
+enum NState : int8 = (negative = -1, zero)
+const ENUM : rostr = "\{NState.negative}"
+const MULTI : rostr = """
+    \{NUM:5}
+    \{ROOT}
+    """
+func *Main():
+    printf("single = %s\n", SINGLE.pchar) //?check('single', 'value=123')
+    printf("width = [%s]\n", STR.pchar) //?check('width', '[  123 times...]')
+    printf("path = [%s]\n", PATH.pchar) //?check('path', '[board   /impl]')
+    printf("values = %s\n", VALUES.pchar) //?check('values', '007C,3.50,true,18446744073709551615,18446744073709551615')
+    printf("nested = %s\n", NESTED.pchar) //?check('nested', '124:ab:123')
+    printf("escaped = %s\n", ESCAPED.pchar) //?check('escaped', '\{NUM} {NUM} \n')
+    printf("chars = %s\n", CHARS.pchar) //?check('chars', 'A€😀')
+    printf("enum = %s\n", ENUM.pchar) //?check('enum', '-1')
+    printf("multilen = %li\n", MULTI.length) //?check('multilen', 11)
+    printf("inline = %s\n", "\{NUM:05}") //?check('inline', '00123')
+endfunc

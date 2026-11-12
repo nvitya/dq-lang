@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.95.23"
+#define DQ_COMPILER_VERSION  "0.96.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.0:
+  - Compiler intrinsic constants: DQ.FILENAME, DQ.PKGNAME, DQ.LINE
+  - Constant strings support embedding constant expressions: `const CONSTSTR : rostr = "\{DQ.PKGNAME:>10} is my package"`
 v0.95.23:
   - `#include` path handling matches the `use` statement. Local includes must use "./" prefix.
 v0.95.22:

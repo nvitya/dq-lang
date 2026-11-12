@@ -1,0 +1,6 @@
+func GetNumber() -> int:
+    return 123
+endfunc
+func *Main():
+    var text : rostr = "\{GetNumber()}" //?error(InterpolationConstant) //?error(Semicolon)
+endfunc

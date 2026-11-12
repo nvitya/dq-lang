@@ -1,0 +1,3 @@
+const TEXT : rostr = "\{123:Q}" //?error(InterpolationFormat) //?error(ExprWrongValue)
+func *Main():
+endfunc

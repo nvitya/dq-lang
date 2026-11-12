@@ -1,0 +1,11 @@
+//?compargs('--build-suffix', 'package-name', '--no-dynstrings', '--pkg-path', 'autotest/tests/modules/package_name/packages')
+use api/api
+use libc/stdio
+func *Main():
+    printf("value = %d\n", SELECTED_VALUE) //?check('value', 42)
+    printf("package = %s\n", API_PACKAGE.pchar) //?check('package', 'api')
+    printf("text = %s\n", TEXT.pchar) //?check('text', 'abc')
+    printf("nested = %s\n", NESTED.pchar) //?check('nested', 'other')
+    printf("restored = %s\n", RESTORED.pchar) //?check('restored', 'platform')
+    printf("nested-source = %s:%li\n", NESTED_FILE.pchar, NESTED_LINE) //?check('nested-source', 'nested.dqi:3')
+endfunc

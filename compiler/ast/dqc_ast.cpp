@@ -593,6 +593,18 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
       && IsTextSourceType(newright->ResolvedType())
       && (is_concat_disambiguator(newleft->ResolvedType()) || is_concat_disambiguator(newright->ResolvedType())))
   {
+    // Constant text needs neither a runtime concatenation nor dynamic strings.
+    OValueTextLiteral left_value(g_builtins->type_rostr);
+    OValueTextLiteral right_value(g_builtins->type_rostr);
+    if (left_value.CalculateConstant(newleft, false)
+        && right_value.CalculateConstant(newright, false))
+    {
+      auto * result = new OEmbStrLit(*left_value.literal.GetStringLiteral()
+                                   + *right_value.literal.GetStringLiteral());
+      delete newleft;
+      delete newright;
+      return result;
+    }
     if (!EnsureDynStringRtlUse())
     {
       return nullptr;

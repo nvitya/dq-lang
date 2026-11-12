@@ -274,6 +274,13 @@ DEF_DQ_ERR(DQERR_FUNC_ARG_REF_BIND,                "FuncArgRefBind",         "Ar
 DEF_DQ_ERR(DQERR_FUNC_ARG_REF_NIL,                 "FuncArgRefNil",          "Argument $1 for function \"$2\" cannot be nil");
 DEF_DQ_ERR(DQERR_FUNC_ARG_REF_TYPE,                "FuncArgRefType",         "Reference argument $1 type mismatch for function \"$2\": expected \"$3\"");
 DEF_DQ_ERR(DQERR_FUNC_ARG_REF_UNINIT,              "FuncArgRefInit",         "Reference argument \"$1\" is not initialized");
+DEF_DQ_ERR(DQERR_INTERPOLATION_CLOSE,             "InterpolationClose",    "String interpolation requires a closing brace and a literal format specification");
+DEF_DQ_ERR(DQERR_INTERPOLATION_CONSTANT,          "InterpolationConstant", "String interpolation requires a constant number, boolean, character, or text value");
+DEF_DQ_ERR(DQERR_INTERPOLATION_FORMAT,            "InterpolationFormat",   "Invalid string interpolation format: $1");
+DEF_DQ_ERR(DQERR_DQ_PROPERTY_EXPECTED,            "DqPropertyExpected",    "DQ must be followed by a property name, such as DQ.PKGNAME");
+DEF_DQ_ERR(DQERR_DQ_PROPERTY_UNKNOWN,             "DqPropertyUnknown",     "Unknown compiler property DQ.$1");
+DEF_DQ_ERR(DQERR_DQ_FUNCTION_REQUIRED,            "DqFunctionRequired",    "DQ.FUNCNAME requires an enclosing function");
+DEF_DQ_ERR(DQERR_PACKAGE_NAME_REQUIRED,           "PackageNameRequired",    "DQ.PKGNAME requires a source file in a configured package");
 DEF_DQ_ERR(DQERR_INTRINSIC_NAME_RESERVED,          "IntrinsicNameReserved",  "Name \"$1\" is reserved for a compiler intrinsic");
 DEF_DQ_ERR(DQERR_FUNCSIG_TYPEMISM,                 "FuncSigType",            "Function signature mismatch: \"$1\" = \"$2\"");
 DEF_DQ_ERR(DQERR_SPECIAL_FUNC_UNKNOWN,             "SpecialFuncUnknown",     "Unknown special function \"$1\"");

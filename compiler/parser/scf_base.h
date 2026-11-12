@@ -14,6 +14,7 @@
 #pragma once
 
 #include <string>
+#include <functional>
 #include <vector>
 #include "stdint.h"
 #include "ll_defs.h"
@@ -133,7 +134,7 @@ public: // parsing functions
   bool ReadIdentifier(string & rvalue, bool aconsume = true);  // returns "" when invalid
   bool ReadInt64Value(int64_t & rvalue);
   bool ReadHex64Value(uint64_t & rvalue);
-  bool ReadQuotedString(string & rvalue);
+  bool ReadQuotedString(string & rvalue, const function<bool(string &)> & interpolation = {});
 
   bool ReadFloatFracExp(double & rvalue);
 

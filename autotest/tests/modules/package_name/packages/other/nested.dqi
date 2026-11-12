@@ -1,0 +1,3 @@
+const NESTED : rostr = DQ.PKGNAME
+const NESTED_FILE : rostr = DQ.FILENAME
+const NESTED_LINE : int = DQ.LINE

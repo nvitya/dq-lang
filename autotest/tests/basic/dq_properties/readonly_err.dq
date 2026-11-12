@@ -1,0 +1,3 @@
+func *Main():
+    DQ.LINE = 42 //?error(StmtInvalid)
+endfunc

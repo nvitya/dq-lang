@@ -66,7 +66,7 @@ bool ODqCompBase::ReservedWord(string_view aname)
     "new", "delete",
     "and", "not", "or", "is", "as",
     "xor", "div", "rem", "mod",
-    "nil",
+    "nil", "DQ",
     "func", "subfn", "endsubfn", "use", "implementation",
     "struct", "endstruct", "union", "endunion", "object", "endobject",
   };

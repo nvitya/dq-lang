@@ -1,0 +1,3 @@
+const PKG : rostr = PackageName() //?error(VsUnknown) //?error(ExprWrongValue)
+func *Main():
+endfunc

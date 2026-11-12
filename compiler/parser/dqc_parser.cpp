@@ -770,6 +770,11 @@ void ODqCompParser::ParseUseStatement()
       return;
     }
 
+    if (namespace_name == "DQ")
+    {
+      Error(DQERR_INTRINSIC_NAME_RESERVED, namespace_name, &scpos_statement_start);
+      return;
+    }
     if (g_namespaces.end() != g_namespaces.find(namespace_name))
     {
       bool already_used = false;

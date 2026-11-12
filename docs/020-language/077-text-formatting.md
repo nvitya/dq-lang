@@ -9,6 +9,74 @@ DQ aims to be compatible with the brace-based formatting syntax of C++
 `std::format` and Python `str.format()`. This chapter describes the currently
 supported placeholders and options.
 
+## Compile-Time String Interpolation
+
+Inside a string literal, `\{expression}` inserts a constant value. Add a colon
+and a format specification to control its presentation:
+
+```dq
+const NUM : int = 123
+const STR : rostr = "\{NUM:5} times..." // "  123 times..."
+const HEX : rostr = "\{NUM:04X}"        // "007B"
+const LABEL : rostr = "\{DQ.PKGNAME:<30}"
+const PATH : rostr = "\{DQ.PKGNAME}/arma/rk/impl/hwuart_rk"
+```
+
+Expressions can contain arithmetic, named constants, nested parentheses and
+strings, and compile-time intrinsics. Supported values are integers, floats,
+booleans, characters, enums (formatted as their ordinal value), and constant
+text. Runtime variables and ordinary function calls are rejected, even when
+the enclosing string is used at runtime.
+
+The compiler uses C++ `std::vformat` for these specifications: for example,
+`5` sets a minimum width, `<30` left-aligns, `04X` zero-pads hexadecimal output,
+and `.2f` selects two fractional digits. DQ's `u` unsigned-decimal spelling is
+also accepted. Characters default to text, including UTF-8 for Unicode
+characters; numeric specifications format their character codes. Invalid
+specifications produce compile errors. Width and precision must be literal
+parts of the specification; nested replacement fields are not supported.
+
+Interpolation works in single-, double-, and triple-quoted literals. Ordinary
+braces remain literal; `\\{` writes a literal `\{`. Inserted text is not parsed
+again for escapes or interpolation. Multiline indentation is removed from the
+source text, preserving whitespace in inserted values.
+
+The result is one compile-time literal, usable in `const` declarations and
+module paths. It requires no runtime formatting or dynamic strings and works
+with `--no-dynstrings`. These interpolations apply to expression strings;
+quoted filenames in directives such as `#include` retain their literal syntax.
+
+## Compiler Properties
+
+`DQ` is a compiler-provided object with read-only compile-time properties.
+It has no runtime storage, requires no import, and cannot be shadowed by a
+user declaration. Property names are case-sensitive and do not take parentheses.
+
+| Property | Value |
+| --- | --- |
+| `DQ.PKGNAME` | Configured package containing the current source file, without a trailing slash |
+| `DQ.FILENAME` | Source filename including its extension, without directories |
+| `DQ.FILEPATH` | Absolute, lexically normalized source-file path |
+| `DQ.FILEDIR` | Parent directory of that source file |
+| `DQ.LINE` | One-based source line of the `DQ` token |
+| `DQ.COLUMN` | One-based UTF-8 byte column of the `DQ` token, matching compiler diagnostics |
+| `DQ.FUNCNAME` | Unqualified name of the enclosing function or method |
+
+Properties are evaluated where they appear. Included fragments use their own
+source file; returning from an include restores the enclosing source context.
+Assigning a property to an ordinary constant captures its value at that
+declaration, even when that constant is later imported by another module.
+
+`DQ.PKGNAME` requires membership in a configured package, and `DQ.FUNCNAME`
+requires an enclosing function. Using either outside its applicable context is
+a compile error. Other file and location properties also work in standalone
+source files. `DQ` itself is not a value that can be assigned or passed around.
+
+```dq
+const IMPLEMENTATION : rostr = "\{DQ.PKGNAME}/drivers/uart"
+const LOCATION : rostr = "\{DQ.FILENAME}:\{DQ.LINE}"
+```
+
 ## A Simple Print Example
 
 The examples use `PrintLn` from `use print`. Unless stated otherwise, they

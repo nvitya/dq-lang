@@ -644,7 +644,7 @@ bool OScFeederBase::ReadHex64Value(uint64_t & rvalue)
   }
 }
 
-bool OScFeederBase::ReadQuotedString(string & rvalue)
+bool OScFeederBase::ReadQuotedString(string & rvalue, const function<bool(string &)> & interpolation)
 {
   SaveCurPos(prevpos);  // for precise error position tracking
   prevp = curp;
@@ -660,11 +660,25 @@ bool OScFeederBase::ReadQuotedString(string & rvalue)
   char * content_start = curp + (triple_quoted ? 3 : 1);
   char * p = content_start;
   char * content_end = nullptr;
+  char * segment_start = content_start;
+  string raw_value;
 
   while (p < bufend)
   {
     if (*p == '\\')
     {
+      if (interpolation && p + 1 < bufend && p[1] == '{')
+      {
+        raw_value.append(segment_start, p);
+        SetCurPos(savedpos.scfile, p + 2);
+        string value;
+        if (!interpolation(value)) return false;
+        // Protect inserted bytes from escape decoding and multiline dedenting.
+        for (unsigned char ch : value) raw_value += format("\\x{:02x}", ch);
+        p = curp;
+        segment_start = p;
+        continue;
+      }
       // A quote preceded by a backslash is part of the content.  Newlines
       // remain invalid in ordinary (non-triple-quoted) string literals.
       if ((p + 1 >= bufend) || ((!triple_quoted) && ((p[1] == '\n') || (p[1] == '\r'))))
@@ -705,7 +719,7 @@ bool OScFeederBase::ReadQuotedString(string & rvalue)
     return false;
   }
 
-  string raw_value(content_start, content_end);
+  raw_value.append(segment_start, content_end);
   if (triple_quoted)
   {
     // The closing delimiter establishes the indentation removed from each

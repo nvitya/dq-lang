@@ -1,0 +1,2 @@
+//?notest
+const SELECTED_VALUE : int = 42

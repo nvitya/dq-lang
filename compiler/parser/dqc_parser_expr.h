@@ -55,6 +55,7 @@ public: // expressions
   OExpr * ParseAnyValueMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
   OExpr * ParseExprPostfix();
   OExpr * ParseExprPrimary();
+  bool ParseStringInterpolation(string & result);
   OExpr * ParseExplicitCastExpr(bool * rattempted = nullptr);
 
   bool ParseCallArguments(const string & callname, OTypeFunc * tfunc, vector<OExpr *> & rargs);
@@ -69,6 +70,7 @@ public: // expressions
   OExpr * ParseInheritedExpr();
   OExpr * ParseBuiltinIif();
   OExpr * ParseBuiltinDefined();
+  OExpr * ParseDqProperty(OScPosition position);
   OExpr * ParseBuiltinFirstConst(const string & intrinsic_name, OType * result_type);
   OExpr * ParseBuiltinLen();
   OExpr * ParseBuiltinSizeof();

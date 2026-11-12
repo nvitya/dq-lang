@@ -1,0 +1,3 @@
+#define DQ = 1 //?error(IntrinsicNameReserved)
+func *Main():
+endfunc

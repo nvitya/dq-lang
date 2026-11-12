@@ -1,0 +1,4 @@
+const PREFIX : rostr = "\{DQ.PKGNAME}/"
+#include "other/nested.dqi"
+const IMPL : rostr = PREFIX + "impl"
+const RESTORED : rostr = DQ.PKGNAME

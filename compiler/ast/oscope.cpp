@@ -48,6 +48,10 @@ OType * OScope::DefineType(OType * atype)
 
 OValSym * OScope::DefineValSym(OValSym * avalsym)
 {
+  if (avalsym->name == "DQ")
+  {
+    g_compiler->Error(DQERR_INTRINSIC_NAME_RESERVED, avalsym->name, &avalsym->scpos);
+  }
   auto found = valsyms.find(avalsym->name);
   if (found != valsyms.end())
   {

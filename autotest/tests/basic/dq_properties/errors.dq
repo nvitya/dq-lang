@@ -1,0 +1,10 @@
+// Source-property diagnostics share one compile while retaining line-specific checks.
+const BARE : int = DQ //?error(DqPropertyExpected) //?error(ExprWrongValue)
+const FUNCTION : rostr = DQ.FUNCNAME //?error(DqFunctionRequired) //?error(ExprWrongValue)
+const OLD_INTRINSIC : rostr = PackageName() //?error(VsUnknown) //?error(ExprWrongValue)
+const PACKAGE : rostr = DQ.PKGNAME //?error(PackageNameRequired) //?error(ExprWrongValue)
+const UNKNOWN : rostr = DQ.UNKNOWN //?error(DqPropertyUnknown) //?error(ExprWrongValue)
+
+func *Main():
+    DQ.LINE = 42 //?error(StmtInvalid)
+endfunc

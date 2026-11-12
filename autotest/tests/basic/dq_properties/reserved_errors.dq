@@ -1,0 +1,16 @@
+// Check the reserved compiler-object name in each declaration context.
+use libc/stdio as DQ //?error(IntrinsicNameReserved)
+const DQ : int = 1 //?error(IntrinsicNameReserved)
+type DQ = int //?error(IntrinsicNameReserved)
+
+func DQ(): //?error(IntrinsicNameReserved)
+endfunc
+
+func Test(DQ : int): //?error(FuncParNameInvalid)
+endfunc
+
+func *Main():
+    var DQ : int = 1 //?error(IntrinsicNameReserved)
+endfunc
+
+#define DQ = 1 //?error(IntrinsicNameReserved)

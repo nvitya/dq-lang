@@ -1,0 +1,14 @@
+// Keep independent interpolation failures in one compiler invocation.
+var NUM : int = 123
+const NONCONSTANT : rostr = "\{NUM}" //?error(InterpolationConstant) //?error(ExprWrongValue)
+const FORMAT : rostr = "\{123:Q}" //?error(InterpolationFormat) //?error(ExprWrongValue)
+const CLOSE : rostr = "\{123" //?error(InterpolationClose) //?error(ExprWrongValue)
+const DYNAMIC_WIDTH : rostr = "\{123:{5}}" //?error(InterpolationClose) //?error(ExprWrongValue)
+
+func GetNumber() -> int:
+    return 123
+endfunc
+
+func *Main():
+    var text : rostr = "\{GetNumber()}" //?error(InterpolationConstant) //?error(Semicolon)
+endfunc

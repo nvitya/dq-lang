@@ -14,6 +14,7 @@
 #include "module_path.h"
 
 #include <format>
+#include <unordered_map>
 
 #include "comp_options.h"
 #include "dq_utils.h"
@@ -68,6 +69,45 @@ string OModulePath::Join(const vector<string> & items, size_t start)
   return result;
 }
 
+filesystem::path OModulePath::SourceIdentity(const filesystem::path & path)
+{
+  static unordered_map<string, filesystem::path> cache;
+  filesystem::path norm = AbsNormPath(path);
+  string key = norm.string();
+  auto it = cache.find(key);
+  if (it != cache.end()) return it->second;
+
+  filesystem::path result;
+#if !defined(_WIN32)
+  filesystem::path parent = norm.parent_path();
+  if (!parent.empty() && parent != norm)
+  {
+    filesystem::path candidate = SourceIdentity(parent) / norm.filename();
+    error_code ec;
+    (void)filesystem::read_symlink(candidate, ec);
+    result = ec ? candidate : SourcePathIdentity(candidate);
+  }
+  else
+#endif
+  {
+    result = SourcePathIdentity(norm);
+  }
+  cache.emplace(std::move(key), result);
+  return result;
+}
+
+bool OModulePath::IsDirectory(const filesystem::path & path)
+{
+  static unordered_map<string, bool> cache;
+  string key = AbsNormPath(path).string();
+  auto it = cache.find(key);
+  if (it != cache.end()) return it->second;
+  error_code ec;
+  bool result = filesystem::is_directory(key, ec) && !ec;
+  cache.emplace(std::move(key), result);
+  return result;
+}
+
 filesystem::path OModulePath::SourcePathForLocal(const filesystem::path & root_dir, const string & local_path)
 {
   filesystem::path result = root_dir;
@@ -83,9 +123,9 @@ filesystem::path OModulePath::BuildRootDir()
 {
   if (!g_opt.build_root_dir.empty())
   {
-    return SourcePathIdentity(g_opt.build_root_dir);
+    return SourceIdentity(g_opt.build_root_dir);
   }
-  return SourcePathIdentity(filesystem::current_path());
+  return SourceIdentity(filesystem::current_path());
 }
 
 filesystem::path OModulePath::BuildTagDir()
@@ -113,9 +153,10 @@ filesystem::path OModulePath::PackageBuildTagDir()
 
 bool OModulePath::IsPackageRoot(const string & package_name, const filesystem::path & root_dir)
 {
+  if (package_name.empty()) return false;
   filesystem::path selected_root;
   return ResolvePackageRoot(package_name, g_opt.packages, selected_root)
-      && SourcePathIdentity(selected_root) == SourcePathIdentity(root_dir);
+      && SourceIdentity(selected_root) == SourceIdentity(root_dir);
 }
 
 filesystem::path OModulePath::LocalRootForSource(const filesystem::path & source)
@@ -136,11 +177,11 @@ bool OModulePath::FindPackage(const filesystem::path & source, string & rpackage
 {
   rpackage.clear();
   rroot.clear();
-  filesystem::path identity = SourcePathIdentity(source);
+  filesystem::path identity = SourceIdentity(source);
   // Prefer the most specific mapped directory when packages are nested.
   for (auto it = g_opt.packages.mappings.rbegin(); it != g_opt.packages.mappings.rend(); ++it)
   {
-    filesystem::path root = SourcePathIdentity(it->directory);
+    filesystem::path root = SourceIdentity(it->directory);
     filesystem::path relative = identity.lexically_relative(root);
     if (relative.empty() || *relative.begin() == ".." || relative == ".") continue;
     if (rroot.empty() || root.native().size() > rroot.native().size())
@@ -152,16 +193,17 @@ bool OModulePath::FindPackage(const filesystem::path & source, string & rpackage
   if (!rroot.empty()) return true;
   for (auto it = g_opt.packages.paths.rbegin(); it != g_opt.packages.paths.rend(); ++it)
   {
-    filesystem::path search_root = SourcePathIdentity(*it);
+    if (!IsDirectory(*it)) continue;
+    filesystem::path search_root = SourceIdentity(*it);
     auto match = [&](const string & name) -> bool
     {
-      filesystem::path selected;
-      if (!ResolvePackageRoot(name, g_opt.packages, selected)) return false;
-      filesystem::path root = SourcePathIdentity(search_root / name);
-      // A shadowed package must not acquire the active package's identity.
-      if (selected != root) return false;
+      filesystem::path root = SourceIdentity(search_root / name);
       filesystem::path relative = identity.lexically_relative(root);
       if (relative.empty() || *relative.begin() == ".." || relative == ".") return false;
+      filesystem::path selected;
+      if (!ResolvePackageRoot(name, g_opt.packages, selected)) return false;
+      // A shadowed package must not acquire the active package's identity.
+      if (selected != root) return false;
       rpackage = name;
       rroot = root;
       return true;
@@ -172,12 +214,24 @@ bool OModulePath::FindPackage(const filesystem::path & source, string & rpackage
         && match(relative.begin()->string())) return true;
 
     // A package symlink may point outside its search directory entirely.
-    error_code ec;
-    filesystem::directory_iterator entry(search_root, ec), end;
-    while (!ec && entry != end)
+    static unordered_map<string, vector<string>> symlink_cache;
+    string search_key = search_root.string();
+    auto sym_it = symlink_cache.find(search_key);
+    if (sym_it == symlink_cache.end())
     {
-      if (entry->is_symlink(ec) && match(entry->path().filename().string())) return true;
-      entry.increment(ec);
+      vector<string> symlinks;
+      error_code ec;
+      filesystem::directory_iterator entry(search_root, ec), end;
+      while (!ec && entry != end)
+      {
+        if (entry->is_symlink(ec)) symlinks.push_back(entry->path().filename().string());
+        entry.increment(ec);
+      }
+      sym_it = symlink_cache.emplace(std::move(search_key), std::move(symlinks)).first;
+    }
+    for (const string & name : sym_it->second)
+    {
+      if (match(name)) return true;
     }
   }
   return false;
@@ -189,18 +243,17 @@ bool OModulePath::ResolvePackageRoot(const string & package_name, const OPackage
   for (auto it = packages.mappings.rbegin(); it != packages.mappings.rend(); ++it)
   {
     if (it->name != package_name) continue;
-    error_code ec;
-    if (!filesystem::is_directory(it->directory, ec) || ec) return false;
-    rroot_dir = SourcePathIdentity(it->directory);
+    if (!IsDirectory(it->directory)) return false;
+    rroot_dir = SourceIdentity(it->directory);
     return true;
   }
   for (auto it = packages.paths.rbegin(); it != packages.paths.rend(); ++it)
   {
+    if (!IsDirectory(*it)) continue;
     filesystem::path candidate = AbsNormPath(filesystem::path(*it) / package_name);
-    error_code ec;
-    if (filesystem::is_directory(candidate, ec) && !ec)
+    if (IsDirectory(candidate))
     {
-      rroot_dir = SourcePathIdentity(candidate);
+      rroot_dir = SourceIdentity(candidate);
       return true;
     }
   }
@@ -255,13 +308,13 @@ filesystem::path OModulePath::BuildArtifactPathForModule(const string & package_
 
 filesystem::path OModulePath::BuildArtifactPath(const filesystem::path & source_path)
 {
-  filesystem::path source = SourcePathIdentity(source_path);
+  filesystem::path source = SourceIdentity(source_path);
   return BuildArtifactPathForModule("", source.stem().string(), source.parent_path(), false);
 }
 
 filesystem::path OModulePath::BuildInterfaceArtifactPath(const filesystem::path & source_path)
 {
-  filesystem::path source = SourcePathIdentity(source_path);
+  filesystem::path source = SourceIdentity(source_path);
   return BuildArtifactPathForModule("", source.stem().string(), source.parent_path(), true);
 }
 
@@ -296,11 +349,11 @@ bool OModulePath::InitCurrent(const filesystem::path & asource_path, string & re
 {
   Clear();
   rerror.clear();
-  source_path = SourcePathIdentity(asource_path);
+  source_path = SourceIdentity(asource_path);
 
   if (!g_opt.module_root_dir.empty() && !g_opt.module_name.empty())
   {
-    root_dir = SourcePathIdentity(g_opt.module_root_dir);
+    root_dir = SourceIdentity(g_opt.module_root_dir);
     module_id = g_opt.module_name;
     vector<string> idparts = Split(module_id);
     if (idparts.empty())
@@ -422,7 +475,7 @@ bool OModulePath::ResolveFrom(const OModulePath & current, string & rerror)
     {
       filesystem::path target = current.source_path.parent_path() / source_text;
       target += ".dq";
-      target = SourcePathIdentity(target);
+      target = SourceIdentity(target);
       if (!FindPackage(target, resolved_package_name, resolved_root_dir))
       {
         // Derive local identities from the build root, so reaching a file
@@ -470,7 +523,7 @@ bool OModulePath::ResolveCanonicalArtifact(const string & module_id, const strin
   // interface records the resolved source path, which preserves that origin.
   if (!source_path.empty())
   {
-    filesystem::path normalized_source = SourcePathIdentity(source_path);
+    filesystem::path normalized_source = SourceIdentity(source_path);
     filesystem::path package_dir;
     if (ResolvePackageRoot(package_name, g_opt.packages, package_dir)
         && normalized_source == SourcePathForLocal(package_dir, local_path))
@@ -562,7 +615,7 @@ bool OModulePath::ResolveCanonicalSource(const string & module_id, const string 
   // identity alone cannot reconstruct that root; retain the recorded source.
   if (!recorded_source.empty())
   {
-    filesystem::path source = SourcePathIdentity(recorded_source);
+    filesystem::path source = SourceIdentity(recorded_source);
     filesystem::path root = LocalRootForSource(source);
     string root_name = root.filename().string();
     if (root_name.empty()) root_name = "__root";

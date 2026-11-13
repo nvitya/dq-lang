@@ -45,6 +45,7 @@ string JsonEscape(string_view text)
 
 filesystem::path AbsNormPath(const filesystem::path & path)
 {
+  if (path.is_absolute()) return path.lexically_normal();
   error_code ec;
   filesystem::path result = filesystem::absolute(path, ec);
   if (ec) result = path;
@@ -54,8 +55,7 @@ filesystem::path AbsNormPath(const filesystem::path & path)
 filesystem::path SourcePathIdentity(const filesystem::path & path)
 {
   error_code ec;
-  filesystem::path result = filesystem::absolute(path, ec);
-  if (ec) return AbsNormPath(path);
+  filesystem::path result = AbsNormPath(path);
   result = filesystem::weakly_canonical(result, ec);
   return ec ? AbsNormPath(path) : result;
 }

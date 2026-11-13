@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.4"
+#define DQ_COMPILER_VERSION  "0.96.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.5:
+  - Compiler performance regression fix: reduced symlink resolution calls
 v0.96.4:
   - Language server improvements: cacheing and lock handling fix
 v0.96.3:

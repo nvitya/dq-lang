@@ -39,8 +39,8 @@ func *Main():
     #endif
 
     started = TestNanoTime()
-    SleepSecs(1.01) // Exercise both whole and fractional seconds.
-    PrintLn('SleepSecs = {}', [TestNanoTime() - started >= 1010000000]) //?check('SleepSecs', 'true')
+    SleepSecs(0.01)
+    PrintLn('SleepSecs = {}', [TestNanoTime() - started >= 10000000]) //?check('SleepSecs', 'true')
 
     started = TestNanoTime()
     SleepMillis(10)

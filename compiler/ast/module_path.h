@@ -77,6 +77,8 @@ public:
 private:
   static vector<string> Split(const string & path);
   static string Join(const vector<string> & items, size_t start = 0);
+  static filesystem::path SourceIdentity(const filesystem::path & path);
+  static bool IsDirectory(const filesystem::path & path);
   static filesystem::path SourcePathForLocal(const filesystem::path & root_dir, const string & local_path);
   static filesystem::path BuildArtifactPathForModule(const string & package_name, const string & local_path,
                                                      const filesystem::path & root_dir, bool interface_only);

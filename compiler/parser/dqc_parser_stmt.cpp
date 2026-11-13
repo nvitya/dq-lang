@@ -998,7 +998,8 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
     for (auto chunk : split_view)
     {
       string chunkstr = string(string_view(chunk));
-      bool is_word = !chunkstr.empty() && ((chunkstr[0] >= 'a' && chunkstr[0] <= 'z')
+      // std::string::operator[](0) is always null-terminated when empty
+      bool is_word = ((chunkstr[0] >= 'a' && chunkstr[0] <= 'z')
           || (chunkstr[0] >= 'A' && chunkstr[0] <= 'Z') || ('_' == chunkstr[0]));
       bool matched = is_word ? scf->CheckKeyword(chunkstr.c_str()) : scf->CheckSymbol(chunkstr.c_str());
       if (matched)

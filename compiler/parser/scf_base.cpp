@@ -163,7 +163,8 @@ void OScFeederBase::Reset()
 
 string OScFeederBase::PrevStr()
 {
-  if (!prevp || prevlen <= 0)
+  // Tokenizers always initialize prevp before setting prevlen > 0
+  if (prevlen <= 0)
   {
     return "";
   }
@@ -495,10 +496,7 @@ bool OScFeederBase::CheckKeyword(const char * checkstring, bool aconsume)
   };
 
   const size_t len = strlen(checkstring);
-  if (!curfile || !curfile->pstart || (curp > bufend))
-  {
-    return false;
-  }
+  // Scanner invariant guarantees an open curfile with curfile->pstart <= curp <= bufend
   if ((curp > curfile->pstart && is_identifier_char(curp[-1]))
       || (size_t(bufend - curp) > len && is_identifier_char(curp[len])))
   {

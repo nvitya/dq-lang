@@ -1025,7 +1025,8 @@ void ODqCompParser::ParseEnumDecl()
   {
     return;
   }
-  if (g_module->TypeDeclared(enum_name))
+  OType * foundtype;
+  if (g_module->TypeDeclared(enum_name, &foundtype))
   {
     RootStatementError(DQERR_TYPE_ALREADY_DEFINED, enum_name, &scf->prevpos);
     return;

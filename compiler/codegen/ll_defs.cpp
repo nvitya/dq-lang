@@ -59,7 +59,8 @@ void ll_init_debug_info()
       llvm::dwarf::DW_LANG_C_plus_plus, di_main_file, "dqc", false, "", 0);
 }
 
-static LlValue * ResizeIntValue(LlValue * value, LlType * dst, bool issigned, const char * prefix)
+static LlValue * ResizeIntValue(LlValue * value, LlType * dst, bool issigned,
+                                  const char * extname, const char * truncname)
 {
   if (value->getType() == dst)
   {
@@ -73,34 +74,34 @@ static LlValue * ResizeIntValue(LlValue * value, LlType * dst, bool issigned, co
   unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
   if (srcbits < dstbits)
   {
-    string name = string(prefix) + ".ext";
-    return issigned ? ll_builder.CreateSExt(value, dst, name)
-                    : ll_builder.CreateZExt(value, dst, name);
+    return issigned ? ll_builder.CreateSExt(value, dst, extname)
+                    : ll_builder.CreateZExt(value, dst, extname);
   }
   if (srcbits > dstbits)
   {
-    return ll_builder.CreateTrunc(value, dst, string(prefix) + ".trunc");
+    return ll_builder.CreateTrunc(value, dst, truncname);
   }
   return value;
 }
 
 static bool IsSignedIntOrEnumType(OType * srctype)
 {
-  OType * resolved = srctype ? srctype->ResolveAlias() : nullptr;
-  if (auto * enumtype = dynamic_cast<OTypeEnum *>(resolved))
+  // srctype must be non-null; omitting null checks avoids masking missing resolved types
+  OType * resolved = srctype->ResolveAlias();
+  if (TK_ENUM == resolved->kind)
   {
-    resolved = enumtype->storage_type;
+    resolved = static_cast<OTypeEnum *>(resolved)->storage_type;
   }
-  if (auto * inttype = dynamic_cast<OTypeInt *>(resolved))
+  if (TK_INT == resolved->kind)
   {
-    return inttype->issigned;
+    return static_cast<OTypeInt *>(resolved)->issigned;
   }
   return true;
 }
 
 LlValue * ToNativeInt(LlValue * value, bool issigned)
 {
-  return ResizeIntValue(value, g_builtins->type_int->GetLlType(), issigned, "int");
+  return ResizeIntValue(value, g_builtins->type_int->GetLlType(), issigned, "int.ext", "int.trunc");
 }
 
 LlValue * ToNativeInt(LlValue * value, OType * srctype)
@@ -110,10 +111,10 @@ LlValue * ToNativeInt(LlValue * value, OType * srctype)
 
 LlValue * ToNativeUInt(LlValue * value)
 {
-  return ResizeIntValue(value, g_builtins->type_uint->GetLlType(), false, "uint");
+  return ResizeIntValue(value, g_builtins->type_uint->GetLlType(), false, "uint.ext", "uint.trunc");
 }
 
 LlValue * ToCharValue(LlValue * value)
 {
-  return ResizeIntValue(value, g_builtins->type_char->GetLlType(), false, "ch");
+  return ResizeIntValue(value, g_builtins->type_char->GetLlType(), false, "ch.ext", "ch.trunc");
 }

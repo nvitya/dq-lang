@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.7"
+#define DQ_COMPILER_VERSION  "0.96.8"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.8:
+  - Compiler code refactor: reverted previously added unnecessary checks
 v0.96.7:
   - Several compiler code correctness and safety fixes
 v0.96.6:

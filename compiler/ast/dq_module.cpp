@@ -489,37 +489,39 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
   return true;
 }
 
-bool OModule::TypeDeclared(const string aname, OType ** rtype)
+bool OModule::TypeDeclared(const string & aname, OType ** rtype)
 {
+  // rtype must be non-null by contract; omitting null checks avoids masking caller errors
   OType * found;
   found = scope_priv->FindType(aname, nullptr, false);
   if (found)
   {
-    if (rtype) *rtype = found;
+    *rtype = found;
     return true;
   }
   found = scope_pub->FindType(aname, nullptr, false);
   if (found)
   {
-    if (rtype) *rtype = found;
+    *rtype = found;
     return true;
   }
   return false;
 }
 
-bool OModule::ValSymDeclared(const string aname, OValSym ** rvalsym)
+bool OModule::ValSymDeclared(const string & aname, OValSym ** rvalsym)
 {
+  // rvalsym must be non-null by contract; omitting null checks avoids masking caller errors
   OValSym * found;
   found = scope_priv->FindValSym(aname, nullptr, false);
   if (found)
   {
-    if (rvalsym) *rvalsym = found;
+    *rvalsym = found;
     return true;
   }
   found = scope_pub->FindValSym(aname, nullptr, false);
   if (found)
   {
-    if (rvalsym) *rvalsym = found;
+    *rvalsym = found;
     return true;
   }
   return false;

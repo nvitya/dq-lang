@@ -119,8 +119,8 @@ public:
                          const vector<string> & asymbol_names = {},
                          bool areexport = false);
 
-  bool TypeDeclared(const string aname, OType ** rtype = nullptr);
-  bool ValSymDeclared(const string aname, OValSym ** rvalsym = nullptr);
+  bool TypeDeclared(const string & aname, OType ** rtype);
+  bool ValSymDeclared(const string & aname, OValSym ** rvalsym);
 };
 
 extern OModule *  g_module;

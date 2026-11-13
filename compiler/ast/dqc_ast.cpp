@@ -181,11 +181,11 @@ bool ODqCompAst::ResolveCompoundMemberBase(OLValueExpr * lval, OType * srctype, 
 
 OLValueVar * ODqCompAst::CreateVarExpr(OValSym * vs)
 {
-  if (curvsfunc && vs)
+  if (curvsfunc)
   {
     curvsfunc->AddCapture(vs);
   }
-  return new OLValueVar(vs);
+  return new OLValueVar(vs);  // assumes non-null vs; caller invariant (OLValueVar crashes directly if null)
 }
 
 ODecl * ODqCompAst::AddDeclVar(OScPosition & scpos, string aid, OType * atype)

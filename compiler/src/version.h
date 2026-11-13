@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.3"
+#define DQ_COMPILER_VERSION  "0.96.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.4:
+  - Language server improvements: cacheing and lock handling fix
 v0.96.3:
   - `#define` supports the fully typed `const` syntax: `#define MYDEF : int = 200`
 v0.96.2:

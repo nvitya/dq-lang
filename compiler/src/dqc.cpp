@@ -597,7 +597,9 @@ void ODqCompiler::Run()
 
   OArtifactLock output_artifact_lock;
   OArtifactLock interface_artifact_lock;
-  if (!out_filename.empty())
+  // Root analysis does not publish artifacts. Only interface-generation
+  // children need output locks, always under the server's private build root.
+  if (!out_filename.empty() && (!g_opt.langserver_worker || g_opt.ifgen))
   {
     if (!output_artifact_lock.Lock(out_filename, EArtifactLockMode::EXCLUSIVE))
     {

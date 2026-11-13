@@ -5,6 +5,7 @@ Run: python3 tools/test-langserver.py --compiler build/dq-comp
 """
 import argparse
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -121,9 +122,127 @@ def run(compiler, mode='roots'):
         print(f'PASS ({mode}): import diagnostics, symlink identity, unsaved imports, alias navigation, and latest edit wins')
 
 
+
+def run_cache(compiler):
+    with tempfile.TemporaryDirectory(prefix='dq-lsp-cache-') as directory:
+        root = Path(directory)
+        library = root / 'lib'
+        library.mkdir()
+        include = library / 'value.dqi'
+        original = 'const VALUE : int = 7\n'
+        include.write_text(original)
+        (library / 'lib.dq').write_text('#include "./value.dqi"\n')
+        main = root / 'main.dq'
+        main_text = 'use lib\nvar result : int = VALUE\n'
+        main.write_text(main_text)
+        output = root / 'unwritten' / 'project.code-workspace'
+        project = root / 'app.dqproj'
+        project.write_text(f"main = 'main.dq'\npkg = 'lib:{library}'\noutput = '{output}'\nlink = true\n")
+        temporary = root / 'temporary'
+        temporary.mkdir()
+        environment = dict(os.environ, TMPDIR=str(temporary), TMP=str(temporary), TEMP=str(temporary))
+        with subprocess.Popen([str(compiler), '--langserver', '--no-use-sys', str(project)],
+                              cwd=root, env=environment, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
+            request_id = 0
+            diagnostics = {}
+
+            def send(method, params=None, request=None):
+                message = {'jsonrpc': '2.0', 'method': method, 'params': params}
+                if request is not None:
+                    message['id'] = request
+                body = json.dumps(message).encode()
+                process.stdin.write(f'Content-Length: {len(body)}\r\n\r\n'.encode() + body)
+                process.stdin.flush()
+
+            def request(method, params):
+                nonlocal request_id
+                request_id += 1
+                send(method, params, request_id)
+                while True:
+                    headers = {}
+                    while True:
+                        line = process.stdout.readline()
+                        assert line, process.stderr.read().decode()
+                        if line == b'\r\n':
+                            break
+                        name, value = line.decode().split(':', 1)
+                        headers[name.lower()] = value.strip()
+                    message = json.loads(process.stdout.read(int(headers['content-length'])))
+                    assert 'error' not in message, message
+                    if message.get('method') == 'textDocument/publishDiagnostics':
+                        diagnostics[message['params']['uri']] = message['params']['diagnostics']
+                    if message.get('id') == request_id:
+                        return message['result']
+
+            def open_document(path, text):
+                send('textDocument/didOpen', {'textDocument': {
+                    'uri': path.as_uri(), 'languageId': 'dq', 'version': 1, 'text': text}})
+
+            def change_document(path, text, version):
+                send('textDocument/didChange', {'textDocument': {'uri': path.as_uri(), 'version': version},
+                     'contentChanges': [{'text': text}]})
+
+            def analyze():
+                # A request is a barrier: preceding notifications have finished analysis.
+                request('textDocument/documentSymbol', {'textDocument': {'uri': main.as_uri()}})
+                return diagnostics[main.as_uri()]
+
+            def artifacts():
+                return {path: (path.stat().st_mtime_ns, path.read_bytes())
+                        for path in temporary.rglob('*.dqm_if')}
+
+            try:
+                request('initialize', {'capabilities': {}})
+                send('initialized', {})
+                open_document(main, main_text)
+                assert not analyze(), diagnostics
+                cached = artifacts()
+                assert cached, 'No cached module interfaces'
+                assert not output.parent.exists(), 'Analysis created the project output lock directory'
+                assert not (root / '.dqbuild').exists(), 'Analysis wrote into the project build tree'
+
+                # Opening an include invalidates its metadata once. Subsequent main-file
+                # edits must preserve both the overlay and the cached module interface.
+                open_document(include, original)
+                assert not analyze(), diagnostics
+                cached = artifacts()
+                change_document(main, main_text + '\n', 2)
+                assert not analyze(), diagnostics
+                assert artifacts() == cached, 'An unrelated edit rebuilt unchanged module interfaces'
+                change_document(include, original, 2)
+                assert not analyze(), diagnostics
+                assert artifacts() == cached, 'Identical buffer text invalidated the cache'
+
+                # Same-size unsaved changes to a transitive include must invalidate it.
+                change_document(include, original.replace('VALUE', 'OTHER'), 3)
+                assert analyze(), 'A changed include reused stale declarations'
+                assert artifacts() != cached, 'A changed include did not rebuild its interface'
+                send('textDocument/didClose', {'textDocument': {'uri': include.as_uri()}})
+                assert not analyze(), 'Closing an unsaved include did not restore disk declarations'
+                assert include.read_text() == original
+
+                # Disk changes must invalidate the persistent cache too.
+                include.write_text(original.replace('VALUE', 'OTHER'))
+                change_document(main, main_text + '\n\n', 3)
+                assert analyze(), 'A disk edit reused stale declarations'
+                assert not output.parent.exists(), 'Analysis created the project output lock directory'
+                request('shutdown', None)
+                send('exit')
+                process.wait(timeout=10)
+                assert process.returncode == 0, process.stderr.read().decode()
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.wait()
+        assert not list(temporary.iterdir()), 'Server did not clean up its private cache'
+        print('PASS: persistent interfaces, stable overlays, include invalidation, close, disk edits, and no output locks')
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compiler', type=Path, default=Path(__file__).resolve().parents[1] / 'build/dq-comp')
     compiler = parser.parse_args().compiler.resolve()
     for mode in ['roots', 'project-mapping', 'cli-mapping']:
         run(compiler, mode)
+    run_cache(compiler)

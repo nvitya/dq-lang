@@ -429,10 +429,10 @@ void ODqLanguageServer::RespondError(const TJsonNode * request, int code, string
 bool ODqLanguageServer::StageDocuments(filesystem::path & rmanifest, filesystem::path & rbuild_root)
 {
   error_code ec;
-  filesystem::path job_dir = temp_root / format("job-{}", chrono::steady_clock::now().time_since_epoch().count());
-  filesystem::create_directories(job_dir / "sources", ec);
-  if (ec) return false;
-  rbuild_root = job_dir / "build";
+  // Keep interfaces and unchanged overlays for the lifetime of this server.
+  // Interface freshness uses overlay sizes and modification times, just as it
+  // does for files on disk, so only changed buffers invalidate dependencies.
+  rbuild_root = temp_root / "build";
   filesystem::create_directories(rbuild_root, ec);
   if (ec) return false;
 
@@ -446,19 +446,35 @@ bool ODqLanguageServer::StageDocuments(filesystem::path & rmanifest, filesystem:
     const SDocument * & latest = sources[SourcePathIdentity(document.path).string()];
     if (!latest || (latest->revision < document.revision)) latest = &document;
   }
-  size_t index = 0;
   for (const auto & [identity, latest] : sources)
   {
     const SDocument & document = *latest;
-    filesystem::path staged = job_dir / "sources" / format("{}-{}{}", index++, document.version, document.path.extension().string());
-    ofstream output(staged, ios::binary);
-    output.write(document.text.data(), static_cast<streamsize>(document.text.size()));
-    if (!output) return false;
+    SStagedSource & staged = staged_sources[identity];
+    if (staged.path.empty() || staged.text != document.text)
+    {
+      filesystem::path path = temp_root / "sources" / format("{}{}", document.revision, document.path.extension().string());
+      ofstream output(path, ios::binary);
+      output.write(document.text.data(), static_cast<streamsize>(document.text.size()));
+      output.close();
+      if (!output) return false;
+      filesystem::remove(staged.path, ec);
+      staged.path = std::move(path);
+      staged.text = document.text;
+    }
     TJsonNode & file = files.Add().GetAsObject();
     file.Add("source", identity);
-    file.Add("staged", staged.string());
+    file.Add("staged", staged.path.string());
   }
-  rmanifest = job_dir / "overlay.json";
+  for (auto it = staged_sources.begin(); it != staged_sources.end(); )
+  {
+    if (sources.contains(it->first)) ++it;
+    else
+    {
+      filesystem::remove(it->second.path, ec);
+      it = staged_sources.erase(it);
+    }
+  }
+  rmanifest = temp_root / "overlay.json";
   ofstream output(rmanifest, ios::binary);
   string text = manifest.GetAsJson(true);
   output.write(text.data(), static_cast<streamsize>(text.size()));
@@ -469,7 +485,9 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
                                             const filesystem::path & manifest,
                                             const filesystem::path & build_root)
 {
-  filesystem::path result_path = build_root / format("semantic-{}.json", documents.size());
+  filesystem::path result_path = build_root / "semantic.json";
+  error_code ec;
+  filesystem::remove(result_path, ec);
   OProcessRunner runner;
   runner.args = {g_opt.compiler_executable, "--langserver-worker", "--diagnostic-format=jsonl",
                  "--source-overlay", manifest.string(), "--build-root", build_root.string(),

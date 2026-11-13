@@ -767,11 +767,6 @@ bool OModuleIntf::MetadataMatchesSources(string & rreason) const
 
   for (const auto & [module_name, stored_source] : module_sources)
   {
-    // Language-server workers place artifacts under a private build root.  A
-    // local module's original source root cannot be recovered from that
-    // relocated artifact path, but every interface was created in this worker.
-    if (g_opt.langserver_worker) continue;
-
     filesystem::path resolved_source;
     if (!OModulePath::ResolveCanonicalSource(module_name, name, interface_filename,
                                              source_dependencies.front().filename, stored_source, resolved_source))

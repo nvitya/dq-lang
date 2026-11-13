@@ -37,8 +37,13 @@ It deliberately advertises only full document synchronization, diagnostics,
 and top-level document symbols. Hover, navigation, completion, signature help,
 and hierarchical symbols remain specified below as the next semantic-index
 increment; they are not advertised until that index is implemented. Likewise,
-cancellation, debounce, file watchers, and persistent interface caching are
-design requirements for that increment rather than properties of the baseline.
+cancellation, debounce, and file watchers remain design requirements for that
+increment. Interface caching already persists across analysis passes within one
+server session, using private `.dqbuild` directories and stable copies of
+unchanged editor buffers. The normal compiler freshness checks invalidate
+interfaces when source files, unsaved buffers, includes, or build options change.
+Root analysis workers do not lock the project's configured output; only interface
+generation children lock artifacts in the private build tree.
 
 ## Goals
 

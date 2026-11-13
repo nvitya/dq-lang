@@ -86,6 +86,12 @@ public:
 
 private:
   filesystem::path temp_root;
+  struct SStagedSource
+  {
+    filesystem::path path;
+    string text;
+  };
+  unordered_map<string, SStagedSource> staged_sources;
   unordered_map<string, SDocument> documents;
   unordered_map<string, vector<SDocumentSymbol>> document_symbols;
   unordered_map<string, vector<SDocumentSymbol>> namespaces;

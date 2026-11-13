@@ -153,7 +153,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
         return false;
       }
 
-      if (TK_INT == srctype->kind)
+      if (TK_INT == srctype->kind || IsCharacterType(srctype))
       {
         OValueInt srcvalue(srctype, 0);
         if (not srcvalue.CalculateConstant(ex->src, emit_errors))

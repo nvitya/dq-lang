@@ -135,6 +135,10 @@ public:
   void UpdateObjectInheritanceFlags();
   void GenVTableGlobal(bool apublic);
   void GenerateVTableStore(LlValue * ll_object_addr);
+  static void GenerateConstructorCall(OScope * scope, LlValue * ll_self, OValSymFunc * ctor_func,
+                                      LlFuncType * ll_calltype, LlValue * ll_callee,
+                                      const vector<OExpr *> & ctor_args);
+  void GenerateDestructorCall(OScope * scope, LlValue * ll_object_addr, bool virtual_dispatch) const;
   void GenerateFieldInitializers(OScope * scope, LlValue * ll_object_addr);
   void GenerateFieldDestructors(OScope * scope, LlValue * ll_object_addr);
   LlValue * GenerateInstanceOf(OScope * scope, OTypeObject * src_obj, LlValue * ll_src);
@@ -178,6 +182,7 @@ public:
   EObjectStorageKind object_storage = OSK_OBJECT_REF;
   vector<OExpr *>    object_ctor_args;
   bool               object_ctor_call_at_decl = false;
+  LlValue *          ll_alive_flag = nullptr;
 
   OVsObject(OScPosition & apos, const string aname, OType * atype,
             EValSymKind akind = VSK_VARIABLE, EObjectStorageKind astorage = OSK_OBJECT_REF)
@@ -207,5 +212,5 @@ public:
   OValSymFunc * FindConstructor() const;
   OValSymFunc * FindDestructor() const;
   void GenerateConstructorCall(OScope * scope, LlValue * ll_object_addr) const;
-  void GenerateDestructorCall(LlValue * ll_object_addr) const;
+  void GenerateDestructorCall(OScope * scope, LlValue * ll_object_addr) const;
 };

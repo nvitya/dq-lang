@@ -5,6 +5,13 @@ endstruct
 
 const TIMER2_BASE : uint32 = 0x40000000
 const TIMER2 : ^STimerRegisters = ^STimerRegisters(TIMER2_BASE)
+const WIDE64_A : int64 = 0x100000001
+const WIDE64_B : int64 = 1
+const WIDE64_GT : bool = WIDE64_A > WIDE64_B
+
+#if not WIDE64_GT
+  var wide64_fold_truncated : OUnexpectedTruncation
+#endif
 
 func WriteTimerControl(value : uint32):
     TIMER2.CR1 = value

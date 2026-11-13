@@ -240,9 +240,21 @@ void OStmtVarDecl::Generate(OScope * scope)
 
   if (objvar && objvar->IsFixedObjectStorage())
   {
+    objvar->ll_alive_flag = nullptr;
+    if (g_opt.exceptions && objvar->ObjectCtorCallAtDecl())
+    {
+      auto * alive = CreateEntryBlockAlloca(LlType::getInt1Ty(ll_ctx), nullptr, variable->name + ".alive");
+      llvm::IRBuilder<> entry_b(alive->getParent(), std::next(alive->getIterator()));
+      entry_b.CreateStore(llvm::ConstantInt::getFalse(ll_ctx), alive);
+      objvar->ll_alive_flag = alive;
+    }
     LlConst * ll_zero = llvm::ConstantAggregateZero::get(variable->ptype->GetLlType());
     ll_builder.CreateStore(ll_zero, variable->ll_value);
     objvar->GenerateConstructorCall(scope, variable->ll_value);
+    if (objvar->ll_alive_flag)
+    {
+      ll_builder.CreateStore(llvm::ConstantInt::getTrue(ll_ctx), objvar->ll_alive_flag);
+    }
     return;
   }
 
@@ -528,31 +540,6 @@ void OStmtDelete::Generate(OScope * scope)
   ll_builder.CreateCondBr(ll_is_null, bb_done, bb_delete);
 
   ll_builder.SetInsertPoint(bb_delete);
-  if (object_type && object_type->is_polymorphic)
-  {
-    OTypeObject * root = object_type;
-    while (root->base_type)
-    {
-      root = root->GetBaseObject();
-    }
-    root->GetLlType();
-    LlValue * ll_vptr_addr = ll_builder.CreateStructGEP(root->GetLlType(), ll_ptr,
-        root->vtable_field_index, "delete.vtable.addr");
-    LlValue * ll_vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_vptr_addr, "delete.vtable");
-    LlValue * ll_slot_addr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), ll_vptr,
-        {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 1)}, "delete.dtor.slot");
-    LlValue * ll_dtor = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), ll_slot_addr, "delete.dtor");
-    if (object_dtor_func)
-    {
-      ll_builder.CreateCall(static_cast<LlFuncType *>(object_dtor_func->ptype->GetLlType()), ll_dtor, {ll_ptr});
-    }
-  }
-  else if (object_dtor_func && object_dtor_func->ll_func)
-  {
-    ll_builder.CreateCall(object_dtor_func->ll_func, {ll_ptr});
-  }
-  ll_builder.CreateCall(memfree_func->ll_func, {ll_ptr});
-
   if (clear_after_free)
   {
     auto * lval = dynamic_cast<OLValueExpr *>(ptrexpr);
@@ -564,6 +551,13 @@ void OStmtDelete::Generate(OScope * scope)
     LlValue * ll_addr = lval->GenerateAddress(scope);
     ll_builder.CreateStore(ll_null, ll_addr);
   }
+  if (object_type)
+  {
+    object_type->GenerateDestructorCall(scope, ll_ptr, true);
+  }
+  scope->GenerateCallOrInvoke(
+      static_cast<LlFuncType *>(memfree_func->ptype->GetLlType()),
+      memfree_func->ll_func, {ll_ptr});
 
   ll_builder.CreateBr(bb_done);
   ll_builder.SetInsertPoint(bb_done);

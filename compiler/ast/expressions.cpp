@@ -2077,35 +2077,6 @@ OPointerIndexExpr::~OPointerIndexExpr()
   ptype = alloc_type->GetPointerType();
 }
 
-static void EmitCtorCallWithCleanup(OScope * scope, LlValue * ll_self, OValSymFunc * ctor_func,
-                                    LlFuncType * ll_calltype, LlValue * ll_callee,
-                                    const vector<OExpr *> & ctor_args)
-{
-  OTypeFunc * ctor_type = nullptr;
-  if (ctor_func)
-  {
-    // Function symbols always carry a non-null function type (possibly behind an alias)
-    OType * resolved = ctor_func->ptype->ResolveAlias();
-    if (TK_FUNCTION == resolved->kind)
-    {
-      ctor_type = static_cast<OTypeFunc *>(resolved);
-    }
-  }
-  OCallLifetimeCleanup cleanup(scope, ctor_args);
-  vector<LlValue *> ll_args;
-  ll_args.push_back(ll_self);
-  for (size_t i = 0; i < ctor_args.size(); ++i)
-  {
-    LlValue * arg_val = ctor_args[i]->Generate(scope);
-    OFuncParam * param = (ctor_type && (i + 1) < ctor_type->params.size()) ? ctor_type->params[i + 1] : nullptr;
-    cleanup.CaptureArgument(ctor_args[i], arg_val, param);
-    ll_args.push_back(arg_val);
-  }
-  cleanup.Prepare();
-  scope->GenerateCallOrInvoke(ll_calltype, ll_callee, ll_args);
-  cleanup.Cleanup();
-}
-
 LlValue * ONewExpr::Generate(OScope * scope)
 {
   if (!memalloc_func || !memalloc_func->ll_func)
@@ -2132,9 +2103,9 @@ LlValue * ONewExpr::Generate(OScope * scope)
 
   if (ctor_func)
   {
-    EmitCtorCallWithCleanup(scope, ll_ptr, ctor_func,
-                            static_cast<LlFuncType *>(ctor_func->ptype->GetLlType()),
-                            ctor_func->ll_func, ctor_args);
+    OTypeObject::GenerateConstructorCall(scope, ll_ptr, ctor_func,
+                                         static_cast<LlFuncType *>(ctor_func->ptype->GetLlType()),
+                                         ctor_func->ll_func, ctor_args);
   }
 
   return ll_ptr;
@@ -2218,7 +2189,7 @@ LlValue * ODynamicNewObjectExpr::Generate(OScope * scope)
     LlFuncType * ll_calltype = ctor_func
         ? static_cast<LlFuncType *>(static_cast<OTypeFunc *>(ctor_func->ptype)->GetLlType())
         : LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {ptr_type}, false);
-    EmitCtorCallWithCleanup(scope, ll_ptr, ctor_func, ll_calltype, ll_ctor, ctor_args);
+    OTypeObject::GenerateConstructorCall(scope, ll_ptr, ctor_func, ll_calltype, ll_ctor, ctor_args);
     ll_builder.CreateBr(bb_done);
 
     ll_builder.SetInsertPoint(bb_done);

@@ -150,12 +150,7 @@ static void GenerateElementDestructor(OType * elemtype, LlValue * elem_addr)
   }
   if (TK_OBJECT == elemtype->kind)
   {
-    OTypeObject * objtype = static_cast<OTypeObject *>(elemtype);
-    OValSymFunc * dtor = objtype->FindSpecialMethod(OSF_DESTROY);
-    if (dtor && dtor->ll_func)
-    {
-      ll_builder.CreateCall(dtor->ll_func, {elem_addr});
-    }
+    static_cast<OTypeObject *>(elemtype)->GenerateDestructorCall(nullptr, elem_addr, false);
   }
   else if (TK_ARRAY == elemtype->kind)
   {

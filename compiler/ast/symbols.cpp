@@ -314,34 +314,20 @@ void OTypeAutoFree::GenerateCleanup(OScope * scope, LlValue * addr)
   ll_builder.CreateCondBr(is_null, done_bb, free_bb);
 
   ll_builder.SetInsertPoint(free_bb);
+  ll_builder.CreateStore(null_value, addr);
   if (auto * object_type = dynamic_cast<OTypeObject *>(basetype->ResolveAlias()))
   {
-    OValSymFunc * dtor = object_type->FindSpecialMethod(OSF_DESTROY);
-    if (object_type->is_polymorphic)
-    {
-      OTypeObject * root = object_type;
-      while (root->base_type)
-      {
-        root = root->GetBaseObject();
-      }
-      root->GetLlType();
-      LlValue * vptr_addr = ll_builder.CreateStructGEP(root->GetLlType(), value, root->vtable_field_index, "autofree.vtable.addr");
-      LlValue * vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), vptr_addr, "autofree.vtable");
-      LlValue * slot_addr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), vptr,
-          {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 1)}, "autofree.dtor.slot");
-      LlValue * dtor_ptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), slot_addr, "autofree.dtor");
-      if (dtor)
-      {
-        ll_builder.CreateCall(static_cast<LlFuncType *>(dtor->ptype->GetLlType()), dtor_ptr, {value});
-      }
-    }
-    else if (dtor && dtor->ll_func)
-    {
-      ll_builder.CreateCall(dtor->ll_func, {value});
-    }
+    object_type->GenerateDestructorCall(scope, value, true);
   }
-  ll_builder.CreateCall(memfree->ll_func, {value});
-  ll_builder.CreateStore(null_value, addr);
+  LlFuncType * memfree_type = static_cast<LlFuncType *>(memfree->ptype->GetLlType());
+  if (scope)
+  {
+    scope->GenerateCallOrInvoke(memfree_type, memfree->ll_func, {value});
+  }
+  else
+  {
+    ll_builder.CreateCall(memfree_type, memfree->ll_func, {value});
+  }
   ll_builder.CreateBr(done_bb);
   ll_builder.SetInsertPoint(done_bb);
 }

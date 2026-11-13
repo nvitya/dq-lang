@@ -48,6 +48,34 @@ func ContinueWithLocals():
     printf("cleanup.continue.done = %d\n", count)
 endfunc
 
+object OThrowCreate:
+    func *Create():
+        raise Exception("ctor_fail")
+    endfunc
+
+    func *Destroy():
+        @.printf("cleanup.bad_ctor_destroy = 1\n")
+    endfunc
+endobject
+
+object OThrowDestroy:
+    id : int
+
+    func *Create(aid : int):
+        id = aid
+    endfunc
+
+    func *Destroy():
+        @.printf("cleanup.throw_destroy.%d = 1\n", id)
+        raise Exception("dtor_fail")
+    endfunc
+endobject
+
+func ThrowDuringSecondLocalCreate():
+    var first <- OMarker(5)
+    var failing <- OThrowCreate()
+endfunc
+
 func *Main():
     try:
         ThrowWithLocals()       //?check("cleanup.create.1", 1)
@@ -67,5 +95,33 @@ func *Main():
     ContinueWithLocals()      //?check("cleanup.create.4", 1)
                               //?check("cleanup.destroy.4", 1)
                               //?check("cleanup.continue.done", 1)
+
+    try:
+        ThrowDuringSecondLocalCreate() //?check("cleanup.create.5", 1)
+                                       //?check("cleanup.destroy.5", 1)
+    except Exception as e:
+        printf("cleanup.ctor_exc = ")
+        e.PrintMessage()
+        printf("\n")                   //?check("cleanup.ctor_exc", "ctor_fail")
+    endtry
+
+    try:
+        var del_item : OThrowDestroy = new OThrowDestroy(6)
+        delete del_item                //?check("cleanup.throw_destroy.6", 1)
+    except Exception as e:
+        printf("cleanup.del_exc = ")
+        e.PrintMessage()
+        printf("\n")                   //?check("cleanup.del_exc", "dtor_fail")
+    endtry
+
+    try:
+        if 1 == 1:
+            var af_item : autofree OThrowDestroy = new OThrowDestroy(7)
+        endif                          //?check("cleanup.throw_destroy.7", 1)
+    except Exception as e:
+        printf("cleanup.af_exc = ")
+        e.PrintMessage()
+        printf("\n")                   //?check("cleanup.af_exc", "dtor_fail")
+    endtry
 
 endfunc

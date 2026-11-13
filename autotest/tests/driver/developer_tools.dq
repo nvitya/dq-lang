@@ -15,8 +15,25 @@ func CheckTool(name : strslice):
     run.ExpectExitCode(0)
 endfunc
 
+func CheckDqRunOptions():
+    var dqrun : str = BinPath('dq-run')
+    if not FileExists(dqrun):
+        dqrun = SourcePath('../../bin/dq-run')
+    endif
+    var src : str = TempPath('.dq')
+    var exe : str = TempPath('.exe')
+    var broot : str = TempPath('.buildroot')
+    FileWriteText(src, 'func *Main():\n    exit_code = 0\nendfunc\n')
+    run.RunTool([dqrun, '--build-root', broot, '--build', 'custom', '-o', exe, src])
+    run.ExpectExitCode(0)
+    RemoveTemp(src)
+    RemoveTemp(exe)
+    run.RunTool(['/bin/rm', '-rf', '--', broot])
+endfunc
+
 func *Main():
     CheckTool('dq-inline-asm-test')
     CheckTool('dq-projectfile-test')
+    CheckDqRunOptions()
     exit_code = TestResult()
 endfunc

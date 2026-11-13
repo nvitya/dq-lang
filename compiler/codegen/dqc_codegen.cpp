@@ -231,10 +231,11 @@ void ODqCompCodegen::GenerateDqExcNativeThrowBody()
 
   LlValue * exc_arg = f->getArg(0);
 
+  LlType * size_type = g_builtins->native_uint->GetLlType();
   llvm::FunctionCallee fn_alloc = ll_module->getOrInsertFunction("__cxa_allocate_exception",
-      LlFuncType::get(llvm::PointerType::get(ll_ctx, 0), {LlType::getInt64Ty(ll_ctx)}, false));
+      LlFuncType::get(llvm::PointerType::get(ll_ctx, 0), {size_type}, false));
 
-  LlValue * size_val = llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 8);
+  LlValue * size_val = llvm::ConstantInt::get(size_type, TARGET_PTRSIZE);
   LlValue * ptr = ll_builder.CreateCall(fn_alloc, {size_val}, "exc.alloc");
 
   ll_builder.CreateStore(exc_arg, ptr);

@@ -96,8 +96,11 @@ protected:
   void    DeclareOverloadSet(OValSymOverloadSet * ovset, OScope * decl_scope, bool ahidden_decl);
   bool    ResolveForwardDecl(OValSymFunc * fwdfunc, OValSymFunc *& vsfunc, OScope * body_parent_scope,
                              bool is_declaration_only, bool has_body);
-  bool    FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
+  bool    FinishFunctionDecl(OValSymFunc *& vsfunc, OScope * decl_scope, OScope * body_parent_scope,
                              bool ahidden_decl, bool aallow_external, const string & aowner_desc);
+  bool    ParseMethodHeader(const string & after_token, string & rmethod_name,
+                            EObjectSpecFuncKind & rspec_kind);
+  bool    FinishCompoundMethod(OValSymFunc *& vsfunc, OCompoundType * compound_type);
   void    ParseQualifiedObjectFunction(const string & object_name);
   bool    ReadCompoundMethod(OCompoundType * compound_type, EMemberVisibility avisibility);
   bool    ReadObjectProperty(OTypeObject * object_type, EMemberVisibility avisibility);

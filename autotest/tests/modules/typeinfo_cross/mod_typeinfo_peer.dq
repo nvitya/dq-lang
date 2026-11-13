@@ -1,0 +1,32 @@
+//?notest
+
+object OBase:
+public
+    v : int = 0
+    func *Create(av : int):
+        v = av
+    endfunc
+    func id() -> int [[virtual]]:
+        return 10
+    endfunc
+endobject
+
+object OFirst(OBase):
+public
+    func *Create(av : int):
+        inherited Create(av)
+    endfunc
+    func id() -> int [[override]]:
+        return 20 + v
+    endfunc
+endobject
+
+func CreatePeerFirst() -> int:
+    var p : OBase = new OFirst(5)
+    var ok : int = 0
+    if p is OFirst:
+        ok = p.id()
+    endif
+    delete p
+    return ok
+endfunc

@@ -308,7 +308,6 @@ public:
   OExpr *        ptrexpr;
   bool           clear_after_free;
   OValSymFunc *  memfree_func;
-  OValSymFunc *  object_dtor_func = nullptr;
 
   OStmtDelete(OScPosition & ascpos, OExpr * aptrexpr, bool aclear_after_free, OValSymFunc * amemfree_func)
   :

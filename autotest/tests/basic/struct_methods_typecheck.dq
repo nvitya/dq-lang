@@ -24,6 +24,13 @@ struct SNoLifecycle:
     endfunc
 endstruct
 
+struct SOutOfLineLifecycle:
+    x : int
+endstruct
+
+func SOutOfLineLifecycle.*Create(): //?error(ObjSpecFuncInvalid)
+endfunc
+
 struct SNoVirtual:
     func Bad() [[virtual]]: //?error(ObjFuncOverride)
     endfunc

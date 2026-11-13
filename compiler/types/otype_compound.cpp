@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "dqm_if.h"
+#include "dq_module.h"
 #include "dqc.h"
 #include "expressions.h"
 #include "otype_func.h"
@@ -528,22 +529,34 @@ void OTypeObject::GenVTableGlobal(bool apublic)
   }
 
   llvm::PointerType * ptr_type = llvm::PointerType::get(ll_ctx, 0);
+  bool is_imported = (module != nullptr) && (module != g_module);
+  if (!is_imported && !apublic && g_module && g_module->scope_pub->FindType(name, nullptr, false) == this)
+  {
+    apublic = true;
+  }
 
-  if (manual_ll_layout)
+  string module_name = module ? module->name : (g_module ? g_module->name : "");
+  auto mangle_symbol = [&](const char * prefix) -> string
+  {
+    string raw = prefix + name;
+    return module_name.empty() ? raw : OModuleIntf::LinkerSymbolNameForModule(module_name, raw);
+  };
+  string ti_ll_name = mangle_symbol("_DQTI_");
+  string vt_ll_name = mangle_symbol("_DQVT_");
+
+  if (is_imported)
   {
     // Imported type: do not emit local definitions, just use external references
     if (!ll_typeinfo)
     {
       auto * ti_arrtype = llvm::ArrayType::get(ptr_type, 3 + ConstructorContractSlots().size());
-      string ti_ll_name = "_DQTI_" + name;
       ll_typeinfo = new llvm::GlobalVariable(*ll_module, ti_arrtype, false, llvm::GlobalValue::ExternalLinkage, nullptr, ti_ll_name);
     }
 
     if (is_polymorphic && !ll_vtable)
     {
       auto * vt_arrtype = llvm::ArrayType::get(ptr_type, virtual_methods.size() + 2);
-      string ll_name = "_DQVT_" + name;
-      ll_vtable = new llvm::GlobalVariable(*ll_module, vt_arrtype, false, llvm::GlobalValue::ExternalLinkage, nullptr, ll_name);
+      ll_vtable = new llvm::GlobalVariable(*ll_module, vt_arrtype, false, llvm::GlobalValue::ExternalLinkage, nullptr, vt_ll_name);
     }
     return;
   }
@@ -586,7 +599,6 @@ void OTypeObject::GenVTableGlobal(bool apublic)
 
     auto * ti_arrtype = llvm::ArrayType::get(ptr_type, typeinfo_entries.size());
     auto * ti_init = llvm::ConstantArray::get(ti_arrtype, typeinfo_entries);
-    string ti_ll_name = "_DQTI_" + name;
     ll_typeinfo = new llvm::GlobalVariable(*ll_module, ti_arrtype, true, linktype, ti_init, ti_ll_name);
   }
 
@@ -624,8 +636,7 @@ void OTypeObject::GenVTableGlobal(bool apublic)
 
   auto * arrtype = llvm::ArrayType::get(ptr_type, entries.size());
   auto * init = llvm::ConstantArray::get(arrtype, entries);
-  string ll_name = "_DQVT_" + name;
-  ll_vtable = new llvm::GlobalVariable(*ll_module, arrtype, true, linktype, init, ll_name);
+  ll_vtable = new llvm::GlobalVariable(*ll_module, arrtype, true, linktype, init, vt_ll_name);
 }
 
 void OTypeObject::GenerateVTableStore(LlValue * ll_object_addr)
@@ -845,6 +856,82 @@ OValSymFunc * OVsObject::FindDestructor() const
   return (object_type ? object_type->FindSpecialMethod(OSF_DESTROY) : nullptr);
 }
 
+void OTypeObject::GenerateConstructorCall(OScope * scope, LlValue * ll_self, OValSymFunc * ctor_func,
+                                          LlFuncType * ll_calltype, LlValue * ll_callee,
+                                          const vector<OExpr *> & ctor_args)
+{
+  OTypeFunc * ctor_type = nullptr;
+  if (ctor_func && ctor_func->ptype)
+  {
+    OType * resolved = ctor_func->ptype->ResolveAlias();
+    if (TK_FUNCTION == resolved->kind)
+    {
+      ctor_type = static_cast<OTypeFunc *>(resolved);
+    }
+  }
+
+  OCallLifetimeCleanup cleanup(scope, ctor_args);
+  vector<LlValue *> ll_args;
+  ll_args.push_back(ll_self);
+  for (size_t i = 0; i < ctor_args.size(); ++i)
+  {
+    LlValue * arg_val = ctor_args[i]->Generate(scope);
+    OFuncParam * param = (ctor_type && (i + 1) < ctor_type->params.size()) ? ctor_type->params[i + 1] : nullptr;
+    cleanup.CaptureArgument(ctor_args[i], arg_val, param);
+    ll_args.push_back(arg_val);
+  }
+  cleanup.Prepare();
+  if (scope)
+  {
+    scope->GenerateCallOrInvoke(ll_calltype, ll_callee, ll_args);
+  }
+  else
+  {
+    ll_builder.CreateCall(ll_calltype, ll_callee, ll_args);
+  }
+  cleanup.Cleanup();
+}
+
+void OTypeObject::GenerateDestructorCall(OScope * scope, LlValue * ll_object_addr, bool virtual_dispatch) const
+{
+  OValSymFunc * dtor = FindSpecialMethod(OSF_DESTROY);
+  if (!dtor)
+  {
+    return;
+  }
+
+  LlFuncType * dtor_type = static_cast<LlFuncType *>(dtor->ptype->GetLlType());
+  LlValue * callee = dtor->ll_func;
+  if (virtual_dispatch && is_polymorphic)
+  {
+    const OTypeObject * root = this;
+    while (root->base_type)
+    {
+      root = root->GetBaseObject();
+    }
+    LlType * root_ll_type = const_cast<OTypeObject *>(root)->GetLlType();
+    LlValue * vptr_addr = ll_builder.CreateStructGEP(root_ll_type, ll_object_addr,
+        root->vtable_field_index, "dtor.vtable.addr");
+    LlValue * vptr = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), vptr_addr, "dtor.vtable");
+    LlValue * slot_addr = ll_builder.CreateGEP(llvm::PointerType::get(ll_ctx, 0), vptr,
+        {llvm::ConstantInt::get(LlType::getInt64Ty(ll_ctx), 1)}, "dtor.slot");
+    callee = ll_builder.CreateLoad(llvm::PointerType::get(ll_ctx, 0), slot_addr, "dtor.fn");
+  }
+  if (!callee)
+  {
+    return;
+  }
+
+  if (scope)
+  {
+    scope->GenerateCallOrInvoke(dtor_type, callee, {ll_object_addr});
+  }
+  else
+  {
+    ll_builder.CreateCall(dtor_type, callee, {ll_object_addr});
+  }
+}
+
 void OVsObject::GenerateConstructorCall(OScope * scope, LlValue * ll_object_addr) const
 {
   if (!object_ctor_call_at_decl)
@@ -858,28 +945,17 @@ void OVsObject::GenerateConstructorCall(OScope * scope, LlValue * ll_object_addr
     return;
   }
 
-  OCallLifetimeCleanup cleanup(scope, object_ctor_args);
-  auto * ctor_sig = dynamic_cast<OTypeFunc *>(ctor->ptype ? ctor->ptype->ResolveAlias() : nullptr);
-  vector<LlValue *> ll_args;
-  ll_args.push_back(ll_object_addr);
-  for (size_t i = 0; i < object_ctor_args.size(); ++i)
-  {
-    LlValue * arg_val = object_ctor_args[i]->Generate(scope);
-    OFuncParam * param = (ctor_sig && (i + 1) < ctor_sig->params.size()) ? ctor_sig->params[i + 1] : nullptr;
-    cleanup.CaptureArgument(object_ctor_args[i], arg_val, param);
-    ll_args.push_back(arg_val);
-  }
-  cleanup.Prepare();
-  ll_builder.CreateCall(ctor->ll_func, ll_args);
-  cleanup.Cleanup();
+  OTypeObject::GenerateConstructorCall(
+      scope, ll_object_addr, ctor,
+      static_cast<LlFuncType *>(ctor->ptype->GetLlType()),
+      ctor->ll_func, object_ctor_args);
 }
 
-void OVsObject::GenerateDestructorCall(LlValue * ll_object_addr) const
+void OVsObject::GenerateDestructorCall(OScope * scope, LlValue * ll_object_addr) const
 {
-  OValSymFunc * dtor = FindDestructor();
-  if (dtor && dtor->ll_func)
+  if (OTypeObject * object_type = ObjectType())
   {
-    ll_builder.CreateCall(dtor->ll_func, {ll_object_addr});
+    object_type->GenerateDestructorCall(scope, ll_object_addr, false);
   }
 }
 
@@ -900,7 +976,21 @@ void OVsObject::GenerateCleanup(OScope * scope, LlValue * addr)
   }
   if (IsFixedObjectStorage())
   {
-    GenerateDestructorCall(addr);
+    if (addr == ll_value && ll_alive_flag)
+    {
+      LlValue * is_alive = ll_builder.CreateLoad(LlType::getInt1Ty(ll_ctx), ll_alive_flag, name + ".is_alive");
+      LlFunction * func = ll_builder.GetInsertBlock()->getParent();
+      LlBasicBlock * dtor_bb = LlBasicBlock::Create(ll_ctx, name + ".dtor", func);
+      LlBasicBlock * done_bb = LlBasicBlock::Create(ll_ctx, name + ".dtor.done", func);
+      ll_builder.CreateCondBr(is_alive, dtor_bb, done_bb);
+      ll_builder.SetInsertPoint(dtor_bb);
+      ll_builder.CreateStore(llvm::ConstantInt::getFalse(ll_ctx), ll_alive_flag);
+      GenerateDestructorCall(scope, addr);
+      ll_builder.CreateBr(done_bb);
+      ll_builder.SetInsertPoint(done_bb);
+      return;
+    }
+    GenerateDestructorCall(scope, addr);
     return;
   }
   super::GenerateCleanup(scope, addr);

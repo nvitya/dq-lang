@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#include "comp_options.h"
 #include "executable_path.h"
 #include "processrunner.h"
 
@@ -42,11 +43,6 @@ static void PrintUsage()
   print("  - compiler options must come before the input file\n");
   print("  - program output is shown live\n");
   print("  - -c is not supported by dq-run\n");
-}
-
-static bool NeedsCompilerValue(const string & arg)
-{
-  return ("-o" == arg);
 }
 
 static bool ParseArgs(int argc, char ** argv, SDqRunOptions & opt)
@@ -82,7 +78,7 @@ static bool ParseArgs(int argc, char ** argv, SDqRunOptions & opt)
         opt.has_compiler_options = true;
         opt.compiler_args.push_back(arg);
 
-        if (NeedsCompilerValue(arg))
+        if (OCompOptions::CommandLineOptionHasValue(arg))
         {
           if (i + 1 >= argc)
           {
@@ -90,10 +86,13 @@ static bool ParseArgs(int argc, char ** argv, SDqRunOptions & opt)
             return false;
           }
 
-          ++i;
-          opt.output_filename = argv[i];
-          opt.has_dash_o = true;
-          opt.compiler_args.push_back(opt.output_filename);
+          string val(argv[++i]);
+          if ("-o" == arg)
+          {
+            opt.output_filename = val;
+            opt.has_dash_o = true;
+          }
+          opt.compiler_args.push_back(val);
         }
       }
       else

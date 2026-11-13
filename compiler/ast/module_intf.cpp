@@ -487,7 +487,7 @@ string OModuleIntf::DqmIfTargetRtl() const
 
 string OModuleIntf::DqmIfBuildOptions(const vector<SSourceDependency> & sources) const
 {
-  string result = "O" + string(g_opt.OptimizationLevelName()) + ";linkmangle=2;module=" + name;
+  string result = "O" + string(g_opt.OptimizationLevelName()) + ";linkmangle=3;module=" + name;
   if (OPTLEVEL_O1 == g_opt.optlevel) result += ";inline=explicit";
   result += ";float=" + to_string(g_opt.target.default_float_bits);
   if (g_opt.dbg_info)      result += ";g;dbgsrcpath=1";
@@ -3100,7 +3100,7 @@ bool OModuleIntf::ReadCompoundDecl(ODqmIfReader & reader, ETypeKind akind)
     return false;
   }
 
-  OType * existing = scope_pub->FindType(declname);
+  OType * existing = scope_pub->FindType(declname, nullptr, false);
   OCompoundType * ctype = nullptr;
   if (existing)
   {
@@ -3651,7 +3651,7 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
           : (DQMIF_UNION_FWD == reader.recid ? TK_UNION : TK_STRUCT);
       string declname;
       if (!reader.ReadString(declname)) return false;
-      OType * existing = scope_pub->FindType(declname);
+      OType * existing = scope_pub->FindType(declname, nullptr, false);
       if (!existing)
       {
          OCompoundType * ctype = (TK_OBJECT == compound_kind

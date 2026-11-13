@@ -11,10 +11,15 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.8"
+#define DQ_COMPILER_VERSION  "0.96.9"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.9:
+  - Module-qualify object vtable and typeinfo linker symbols
+  - Fix boolean constant folding for unsigned/64-bit comparisons and short-circuiting
+  - Fix exception unwinding for object lifecycle/embstr calls and 32-bit native throw
+  - Share value-taking CLI option handling with dq-run and unify method validation
 v0.96.8:
   - Compiler code refactor: reverted previously added unnecessary checks
 v0.96.7:

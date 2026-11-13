@@ -104,9 +104,13 @@ static OValSymFunc * EmbStrFunc(const string & name)
   return fn;
 }
 
-static LlValue * CallEmbStrFunc(const string & name, vector<LlValue *> args = {})
+static LlValue * CallEmbStrFunc(OScope * scope, const string & name, vector<LlValue *> args = {})
 {
   OValSymFunc * fn = EmbStrFunc(name);
+  if (scope)
+  {
+    return scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(fn->ptype->GetLlType()), fn->ll_func, args);
+  }
   return ll_builder.CreateCall(fn->ll_func, args);
 }
 
@@ -273,11 +277,11 @@ LlValue * OTypeEmbStr::GenerateMetaField(OScope * scope, LlValue * embstraddr, E
   switch (field)
   {
     case ESMF_LENGTH:
-      return ToNativeUInt(CallEmbStrFunc("EmbStrLen", {descaddr}));
+      return ToNativeUInt(CallEmbStrFunc(scope, "EmbStrLen", {descaddr}));
     case ESMF_MAXLENGTH:
-      return ToNativeUInt(CallEmbStrFunc("EmbStrMaxLen", {descaddr}));
+      return ToNativeUInt(CallEmbStrFunc(scope, "EmbStrMaxLen", {descaddr}));
     case ESMF_STORAGE_SIZE:
-      return ToNativeUInt(CallEmbStrFunc("EmbStrStorageSize", {descaddr}));
+      return ToNativeUInt(CallEmbStrFunc(scope, "EmbStrStorageSize", {descaddr}));
     case ESMF_PCHAR:
       return GenerateDataPtr(scope, embstraddr);
   }
@@ -289,11 +293,11 @@ static void CallEmbStrStore(OScope * scope, LlValue * dstdesc, OExpr * srcexpr)
   OType * srctype = srcexpr->ResolvedType();
   if (srctype && !IsCCharPointerType(srctype) && IsTextSourceType(srctype))
   {
-    CallEmbStrFunc("EmbStrAssignDesc", {dstdesc, GenerateTextInfoAddress(scope, srcexpr)});
+    CallEmbStrFunc(scope, "EmbStrAssignDesc", {dstdesc, GenerateTextInfoAddress(scope, srcexpr)});
     return;
   }
 
-  CallEmbStrFunc("EmbStrAssignPtr", {dstdesc, srcexpr->Generate(scope)});
+  CallEmbStrFunc(scope, "EmbStrAssignPtr", {dstdesc, srcexpr->Generate(scope)});
 }
 
 bool OTypeEmbStr::GenerateStore(OScope * scope, LlValue * dstdaddr, OExpr * srcexpr)
@@ -359,7 +363,7 @@ static LlValue * GenerateEmbStrMethodSource(OScope * scope, OExpr * expr, const 
       args.push_back(index);
     }
     args.push_back(ToCharValue(expr->Generate(scope)));
-    return CallEmbStrFunc(char_func, args);
+    return CallEmbStrFunc(scope, char_func, args);
   }
 
   OType * srctype = expr->ResolvedType();
@@ -371,7 +375,7 @@ static LlValue * GenerateEmbStrMethodSource(OScope * scope, OExpr * expr, const 
       args.push_back(index);
     }
     args.push_back(GenerateTextInfoAddress(scope, expr));
-    return CallEmbStrFunc(desc_func, args);
+    return CallEmbStrFunc(scope, desc_func, args);
   }
 
   vector<LlValue *> args = {dstdesc};
@@ -380,7 +384,7 @@ static LlValue * GenerateEmbStrMethodSource(OScope * scope, OExpr * expr, const 
     args.push_back(index);
   }
   args.push_back(expr->Generate(scope));
-  return CallEmbStrFunc(ptr_func, args);
+  return CallEmbStrFunc(scope, ptr_func, args);
 }
 
 LlValue * OTypeEmbStr::GenerateMethodCall(OScope * scope, LlValue * embstraddr,
@@ -390,7 +394,7 @@ LlValue * OTypeEmbStr::GenerateMethodCall(OScope * scope, LlValue * embstraddr,
   switch (method)
   {
     case ESM_CLEAR:
-      return CallEmbStrFunc("EmbStrClear", {dstdesc});
+      return CallEmbStrFunc(scope, "EmbStrClear", {dstdesc});
 
     case ESM_SET:
       return GenerateEmbStrMethodSource(scope, args[0], "EmbStrAssignPtr", "EmbStrAssignDesc",
@@ -415,7 +419,7 @@ LlValue * OTypeEmbStr::GenerateMethodCall(OScope * scope, LlValue * embstraddr,
     {
       LlValue * index = ToNativeInt(args[0]->Generate(scope), args[0]->ResolvedType());
       LlValue * count = (args.size() > 1 ? ToNativeInt(args[1]->Generate(scope), args[1]->ResolvedType()) : LlNativeInt(1));
-      return CallEmbStrFunc("EmbStrDelete", {dstdesc, index, count});
+      return CallEmbStrFunc(scope, "EmbStrDelete", {dstdesc, index, count});
     }
 
     case ESM_ADDFMT:

@@ -1942,32 +1942,11 @@ bool ODqCompParser::ResolveForwardDecl(OValSymFunc * fwdfunc, OValSymFunc *& vsf
   return true;
 }
 
-bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope, OScope * body_parent_scope,
+bool ODqCompParser::FinishFunctionDecl(OValSymFunc *& vsfunc, OScope * decl_scope, OScope * body_parent_scope,
                                        bool ahidden_decl, bool aallow_external, const string & aowner_desc)
 {
   if (!vsfunc || !decl_scope || !body_parent_scope)
   {
-    return false;
-  }
-
-  OTypeFunc * tfunc = dynamic_cast<OTypeFunc *>(vsfunc->ptype);
-  if (!tfunc)
-  {
-    return false;
-  }
-
-  if (!ParseAttributes(false))
-  {
-    SkipToModuleStatementStart();
-    curvsfunc = nullptr;
-    delete vsfunc;
-    return false;
-  }
-
-  if (!ValidateFunctionDecl(vsfunc, aallow_external, aowner_desc))
-  {
-    curvsfunc = nullptr;
-    delete vsfunc;
     return false;
   }
 
@@ -1980,6 +1959,25 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
     delete vsfunc;
     vsfunc = nullptr;
   };
+
+  OTypeFunc * tfunc = dynamic_cast<OTypeFunc *>(vsfunc->ptype);
+  if (!tfunc)
+  {
+    return false;
+  }
+
+  if (!ParseAttributes(false))
+  {
+    SkipToModuleStatementStart();
+    cleanup_new_func();
+    return false;
+  }
+
+  if (!ValidateFunctionDecl(vsfunc, aallow_external, aowner_desc))
+  {
+    cleanup_new_func();
+    return false;
+  }
 
   scf->SkipWhite();
   bool has_body = scf->CheckSymbol(":", false) || scf->CheckSymbol("{", false);
@@ -2135,48 +2133,42 @@ bool ODqCompParser::FinishFunctionDecl(OValSymFunc * vsfunc, OScope * decl_scope
   return true;
 }
 
-bool ODqCompParser::ReadCompoundMethod(OCompoundType * compound_type, EMemberVisibility avisibility)
+bool ODqCompParser::ParseMethodHeader(const string & after_token, string & rmethod_name,
+                                      EObjectSpecFuncKind & rspec_kind)
 {
-  string sid;
-
   scf->SkipWhite();
   bool specfunc_decl = scf->CheckSymbol("*");
 
-  if (not scf->ReadIdentifier(sid))
+  if (not scf->ReadIdentifier(rmethod_name))
   {
-    Error(DQERR_ID_EXP_AFTER, "func");
+    Error(DQERR_ID_EXP_AFTER, after_token);
     return false;
   }
-  if (IsReservedIntrinsicName(sid))
+  if (IsReservedIntrinsicName(rmethod_name))
   {
-    Error(DQERR_INTRINSIC_NAME_RESERVED, sid);
+    Error(DQERR_INTRINSIC_NAME_RESERVED, rmethod_name);
     RecoverFailedFunctionDecl();
     return false;
   }
 
-  EObjectSpecFuncKind objspecfunc_kind = OSF_NONE;
-  string method_name = sid;
+  rspec_kind = OSF_NONE;
   if (specfunc_decl)
   {
-    objspecfunc_kind = ObjectSpecFuncKindFromName(sid);
-    if (OSF_NONE == objspecfunc_kind)
+    rspec_kind = ObjectSpecFuncKindFromName(rmethod_name);
+    if (OSF_NONE == rspec_kind)
     {
-      ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID, sid);
+      ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID, rmethod_name);
       RecoverFailedFunctionDecl();
       return false;
     }
   }
+  return true;
+}
 
-  OTypeFunc    * tfunc  = new OTypeFunc(method_name);
-
-  OValSymFunc  * vsfunc = new OValSymFunc(scpos_statement_start, method_name, tfunc, compound_type->Members());
-  vsfunc->owner_compound_type = compound_type;
-  vsfunc->generated_linkage_name = compound_type->name + "." + method_name;
-  vsfunc->object_specfunc_kind = objspecfunc_kind;
-  vsfunc->member_visibility = avisibility;
-  curvsfunc = vsfunc;
-
-  ParseFunctionSignature(tfunc, false, method_name, true);
+bool ODqCompParser::FinishCompoundMethod(OValSymFunc *& vsfunc, OCompoundType * compound_type)
+{
+  auto * tfunc = static_cast<OTypeFunc *>(vsfunc->ptype);
+  EObjectSpecFuncKind objspecfunc_kind = vsfunc->object_specfunc_kind;
   if ((OSF_DESTROY == objspecfunc_kind) && (!tfunc->params.empty() || tfunc->rettype))
   {
     ErrorTxt(DQERR_SPECIAL_FUNC_SIGNATURE, "Destroy must not have parameters or a return value");
@@ -2192,6 +2184,7 @@ bool ODqCompParser::ReadCompoundMethod(OCompoundType * compound_type, EMemberVis
     RecoverFailedFunctionDecl();
     curvsfunc = nullptr;
     delete vsfunc;
+    vsfunc = nullptr;
     return false;
   }
 
@@ -2199,7 +2192,7 @@ bool ODqCompParser::ReadCompoundMethod(OCompoundType * compound_type, EMemberVis
 
   string owner_desc = object_type ? "object method declaration" : "struct method declaration";
   bool ok = FinishFunctionDecl(vsfunc, compound_type->Members(), compound_type->Members(), true, false, owner_desc);
-  if (ok && object_type && (OSF_NONE != objspecfunc_kind))
+  if (ok && vsfunc && object_type && (OSF_NONE != objspecfunc_kind))
   {
     if (OSF_CREATE == objspecfunc_kind)
     {
@@ -2211,6 +2204,27 @@ bool ODqCompParser::ReadCompoundMethod(OCompoundType * compound_type, EMemberVis
     }
   }
   return ok;
+}
+
+bool ODqCompParser::ReadCompoundMethod(OCompoundType * compound_type, EMemberVisibility avisibility)
+{
+  string method_name;
+  EObjectSpecFuncKind objspecfunc_kind = OSF_NONE;
+  if (!ParseMethodHeader("func", method_name, objspecfunc_kind))
+  {
+    return false;
+  }
+
+  OTypeFunc   * tfunc  = new OTypeFunc(method_name);
+  OValSymFunc * vsfunc = new OValSymFunc(scpos_statement_start, method_name, tfunc, compound_type->Members());
+  vsfunc->owner_compound_type = compound_type;
+  vsfunc->generated_linkage_name = compound_type->name + "." + method_name;
+  vsfunc->object_specfunc_kind = objspecfunc_kind;
+  vsfunc->member_visibility = avisibility;
+  curvsfunc = vsfunc;
+
+  ParseFunctionSignature(tfunc, false, method_name, true);
+  return FinishCompoundMethod(vsfunc, compound_type);
 }
 
 bool ODqCompParser::ReadObjectProperty(OTypeObject * object_type, EMemberVisibility avisibility)
@@ -2664,31 +2678,10 @@ void ODqCompParser::ParseObjectDecl()
 void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)
 {
   string method_name;
-  scf->SkipWhite();
-  bool specfunc_decl = scf->CheckSymbol("*");
-
-  if (not scf->ReadIdentifier(method_name))
-  {
-    Error(DQERR_ID_EXP_AFTER, object_name + ".");
-    return;
-  }
-  if (IsReservedIntrinsicName(method_name))
-  {
-    Error(DQERR_INTRINSIC_NAME_RESERVED, method_name);
-    RecoverFailedFunctionDecl();
-    return;
-  }
-
   EObjectSpecFuncKind objspecfunc_kind = OSF_NONE;
-  if (specfunc_decl)
+  if (!ParseMethodHeader(object_name + ".", method_name, objspecfunc_kind))
   {
-    objspecfunc_kind = ObjectSpecFuncKindFromName(method_name);
-    if (OSF_NONE == objspecfunc_kind)
-    {
-      ErrorTxt(DQERR_OBJ_SPEC_FUNC_INVALID, method_name);
-      RecoverFailedFunctionDecl();
-      return;
-    }
+    return;
   }
 
   OTypeFunc * tfunc = new OTypeFunc(method_name);
@@ -2712,15 +2705,13 @@ void ODqCompParser::ParseQualifiedObjectFunction(const string & object_name)
     return;
   }
 
-  OValSymFunc  * vsfunc = new OValSymFunc(scpos_statement_start, method_name, tfunc, compound_type->Members());
+  OValSymFunc * vsfunc = new OValSymFunc(scpos_statement_start, method_name, tfunc, compound_type->Members());
   vsfunc->owner_compound_type = compound_type;
   vsfunc->generated_linkage_name = compound_type->name + "." + method_name;
   vsfunc->object_specfunc_kind = objspecfunc_kind;
   curvsfunc = vsfunc;
 
-  InjectObjectReceiver(vsfunc, compound_type);
-  string owner_desc = compound_type->IsObject() ? "object method declaration" : "struct method declaration";
-  FinishFunctionDecl(vsfunc, compound_type->Members(), compound_type->Members(), true, false, owner_desc);
+  FinishCompoundMethod(vsfunc, compound_type);
 }
 
 void ODqCompParser::ParseSubFunction()

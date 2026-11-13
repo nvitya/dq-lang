@@ -205,7 +205,21 @@ public:
   void ApplyTargetDefaults();
   string ProcessCommandLineOpts(int argc, char ** argv);
   static void PrintUsage();
-  static bool CommandLineOptionHasValue(const string & option);
+  static inline bool CommandLineOptionHasValue(const string & option)
+  {
+    return (option == "--target") || (option == "--pkg-path") || (option == "--pkg_path")
+           || (option == "--pkg") || (option == "--build")
+           || (option == "--build-suffix") || (option == "--build-root")
+           || (option == "--package-build-root")
+           || (option == "--sysroot")
+           || (option == "--mod-root") || (option == "--mod-name") || (option == "--ifstack")
+           || (option == "--source-overlay")
+           || (option == "--langserver-source")
+           || (option == "--langserver-result")
+           || (option == "--langserver-known-interfaces")
+           || (option == "--clientProcessId")
+           || (option == "-o");
+  }
 
   void InitializeCompilerExecutable(const string & argv0);
   vector<string> DefaultPackagePaths() const;

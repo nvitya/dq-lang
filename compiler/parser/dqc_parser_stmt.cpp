@@ -1505,12 +1505,7 @@ void ODqCompParserStmt::ParseStmtDelete()
 
   CheckStatementClose();
 
-  auto * delstmt = new OStmtDelete(scpos_statement_start, ptrexpr, clear_after_free, memfree_func);
-  if (deleting_object)
-  {
-    delstmt->object_dtor_func = delete_object_type->FindSpecialMethod(OSF_DESTROY);
-  }
-  curblock->AddStatement(delstmt);
+  curblock->AddStatement(new OStmtDelete(scpos_statement_start, ptrexpr, clear_after_free, memfree_func));
 }
 
 void ODqCompParserStmt::ParseStmtInherited()

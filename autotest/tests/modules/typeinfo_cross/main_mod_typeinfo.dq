@@ -1,4 +1,5 @@
 use ./mod_typeinfo
+use ./mod_typeinfo_peer -- as peer
 use libc/stdio
 
 func *Main():
@@ -22,6 +23,8 @@ func *Main():
     if t2 == nil:
         @.printf("t2.isnull = 1\n") //?check("t2.isnull", 1)
     endif
+
+    @.printf("peer.first = %li\n", @peer.CreatePeerFirst()) //?check("peer.first", 25)
 
     delete o1
     delete o2

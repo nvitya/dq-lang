@@ -5,6 +5,13 @@
   #ifndef EXCEPTIONS
     var exception_setting_mismatch : OExpectedExceptions
   #endif
+
+  func TriggerTargetRaise():
+      try:
+          raise Exception('arm')
+      except Exception:
+      endtry
+  endfunc
 #else
   #ifdef EXCEPTIONS
     var exception_setting_mismatch : OExpectedNoExceptions

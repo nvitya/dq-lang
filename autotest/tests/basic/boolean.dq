@@ -5,6 +5,13 @@ const GVBOOL1  : bool = true
 const BOOL_EQ : bool = (true == true) and (false == false) and not (true == false) and not (false == true)
 const BOOL_NE : bool = (true <> false) and (false <> true) and not (true <> true) and not (false <> false)
 const BOOL_NESTED : bool = (GVBOOL0 == false) == (GVBOOL1 <> false)
+const UINT64_MAX_C : uint64 = 0xFFFFFFFFFFFFFFFF
+const UINT64_ZERO_C : uint64 = 0
+const UINT64_GT_C : bool = UINT64_MAX_C > UINT64_ZERO_C
+const UINT64_LT_C : bool = UINT64_MAX_C < UINT64_ZERO_C
+const ZERO_DENOM_C : int = 0
+const SHORT_AND_C : bool = (ZERO_DENOM_C <> 0) and (10 div ZERO_DENOM_C > 1)
+const SHORT_OR_C  : bool = (ZERO_DENOM_C == 0) or (10 div ZERO_DENOM_C > 1)
 
 type TBool = bool
 
@@ -57,6 +64,10 @@ func *Main():
     printbool("constant equality", BOOL_EQ) //?check('constant equality', true)
     printbool("constant inequality", BOOL_NE) //?check('constant inequality', true)
     printbool("nested constant equality", BOOL_NESTED) //?check('nested constant equality', true)
+    printbool("uint64 const gt", UINT64_GT_C) //?check('uint64 const gt', true)
+    printbool("uint64 const lt", UINT64_LT_C) //?check('uint64 const lt', false)
+    printbool("const short and", SHORT_AND_C) //?check('const short and', false)
+    printbool("const short or", SHORT_OR_C) //?check('const short or', true)
     printf("equality truth table = %d,%d,%d,%d\n", b0 == b0, b0 == b1, b1 == b0, b1 == b1)
     //?check('equality truth table', '1,0,0,1')
     printf("inequality truth table = %d,%d,%d,%d\n", b0 <> b0, b0 <> b1, b1 <> b0, b1 <> b1)

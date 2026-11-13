@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.10"
+#define DQ_COMPILER_VERSION  "0.96.11"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.11:
+  - #error and #warning directives
 v0.96.10:
   - `#define` symbols are exported like normal `const` symbols, but they merged into the `@def.` scope
 v0.96.9:

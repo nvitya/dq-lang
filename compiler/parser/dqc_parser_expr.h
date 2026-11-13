@@ -55,6 +55,7 @@ public: // expressions
   OExpr * ParseAnyValueMethod(OExpr * receiver_expr, OLValueExpr * receiver, const string & membername);
   OExpr * ParseExprPostfix();
   OExpr * ParseExprPrimary();
+  bool ParseStringLiteral(string & result);
   bool ParseStringInterpolation(string & result);
   OExpr * ParseExplicitCastExpr(bool * rattempted = nullptr);
 

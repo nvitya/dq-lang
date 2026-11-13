@@ -5,11 +5,11 @@ This folder contains a VSCode extension for `.dq`, `.dqh`, and `.dqi` files. It 
 ## What it covers
 
 - DQ keywords such as `func`, `var`, `const`, `if`, `while`, `endfunc`
-- Preprocessor directives such as `#if`, `#ifdef`, `#define`, `#include`, `#srcdep`, and `#{endif}`
+- Preprocessor directives such as `#if`, `#ifdef`, `#define`, `#include`, `#srcdep`, `#error`, `#warning`, and `#{endif}`
 - Attributes such as `[[external]]`
 - Builtins such as `len`, `sizeof`, `round`, `ceil`, `floor`
 - Core types seen in this repository such as `int`, `cchar`, `embstr`, `float32`, `float64`
-- Strings, numbers, operators, pointers like `^int` and `p^`, namespace access like `@def.MAXVAL`
+- Strings with constant interpolation such as `"value = \{VALUE:04X}"`, numbers, operators, pointers like `^int` and `p^`, namespace access like `@def.MAXVAL`
 - Test directives such as `//?check(...)` and `//?error(...)`
 - Snippets for common DQ constructs
 - Pressing Enter after a new `if`, `for`, `while`, `func`, `object`, or `struct` header ending in `:` indents the body and adds its matching `end...` closer; it does not add one when an indented body is already nearby

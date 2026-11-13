@@ -73,7 +73,7 @@
       "patterns": [
         {
           "name": "meta.preprocessor.dq",
-          "begin": "^\\s*(#(?:if|ifdef|ifndef|elif|elifdef|elifndef|else|endif|define|include|include_once|srcdep|linklib|comp))\\b",
+          "begin": "^\\s*(#(?:if|ifdef|ifndef|elif|elifdef|elifndef|else|endif|define|include|include_once|srcdep|linklib|error|warning|comp))\\b",
           "beginCaptures": {
             "1": {
               "name": "entity.name.function.preprocessor.dq"
@@ -81,6 +81,9 @@
           },
           "end": "$",
           "patterns": [
+            {
+              "include": "#comments"
+            },
             {
               "include": "#strings"
             },
@@ -100,7 +103,7 @@
         },
         {
           "name": "meta.preprocessor.inline.dq",
-          "begin": "(#\\{)\\s*(define|if|ifdef|ifndef|elif|elifdef|elifndef|else|endif|include|include_once|srcdep|linklib|comp)\\b",
+          "begin": "(#\\{)\\s*(define|if|ifdef|ifndef|elif|elifdef|elifndef|else|endif|include|include_once|srcdep|linklib|error|warning|comp)\\b",
           "beginCaptures": {
             "1": {
               "name": "punctuation.definition.preprocessor.dq"
@@ -116,6 +119,9 @@
             }
           },
           "patterns": [
+            {
+              "include": "#comments"
+            },
             {
               "include": "#strings"
             },
@@ -167,6 +173,46 @@
       "patterns": [
         {
           "name": "string.quoted.double.dq",
+          "begin": "\"\"\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.dq"
+            }
+          },
+          "end": "\"\"\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.dq"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#string-content"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.dq",
+          "begin": "'''",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.dq"
+            }
+          },
+          "end": "'''",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.dq"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#string-content"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.double.dq",
           "begin": "\"",
           "beginCaptures": {
             "0": {
@@ -181,8 +227,7 @@
           },
           "patterns": [
             {
-              "name": "constant.character.escape.dq",
-              "match": "\\\\."
+              "include": "#string-content"
             }
           ]
         },
@@ -202,8 +247,7 @@
           },
           "patterns": [
             {
-              "name": "constant.character.escape.dq",
-              "match": "\\\\."
+              "include": "#string-content"
             }
           ]
         }
@@ -368,6 +412,42 @@
         {
           "name": "keyword.operator.dq",
           "match": "\\[\\[|\\]\\]|=xor=|=div=|=rem=|=mod=|<<=|>>=|&=|\\|=|->|<>|<=|>=|<<|>>|\\+=|-=|\\*=|/=|:=|\\^|[-+*/%=&|~<>@.:]"
+        }
+      ]
+    },
+    "string-content": {
+      "patterns": [
+        {
+          "include": "#string-interpolation"
+        },
+        {
+          "name": "constant.character.escape.dq",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "string-interpolation": {
+      "name": "meta.interpolation.dq",
+      "contentName": "meta.embedded.line.dq",
+      "begin": "\\\\\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.interpolation.begin.dq"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.interpolation.end.dq"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.other.format-specifier.dq",
+          "match": ":[^}\\r\\n]*"
+        },
+        {
+          "include": "$self"
         }
       ]
     }

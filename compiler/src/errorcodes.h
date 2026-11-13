@@ -309,6 +309,8 @@ DEF_DQ_ERR(DQERR_EXPR_VS_NOT_ADDRESSABLE,          "ExprVsNotAddressable",   "\"
 DEF_DQ_ERR(DQERR_CDIR_KW_MISSING,                  "CDirKwMissing",          "Compiler directive keyword is missing");
 DEF_DQ_ERR(DQERR_CDIR_CLOSER_MISSING,              "CDirClose",              "Compiler directive closer \"}\" is missing");
 DEF_DQ_ERR(DQERR_CDIR_UNKNOWN,                     "CDirUnknown",            "Unknown compiler directive \"$1\"");
+DEF_DQ_ERR(DQERR_CDIR_ERROR,                       "CDirError",              "$1");
+DEF_DQ_ERR(DQERR_CDIR_MESSAGE,                     "CDirMessage",            "#$1 requires a quoted message string");
 DEF_DQ_ERR(DQERR_CDIR_DEF_ID_MISSING,              "CDirDefIdMissing",       "#define error: identifier is missing");
 DEF_DQ_ERR(DQERR_CDIR_COND_ID_MISSING,             "CDirCondIdMissing",      "$1 error: identifier is missing");
 DEF_DQ_ERR(DQERR_CDIR_ELCOND_WITHOUT_IF,           "CDirElCondWithoutIf",    "$1 without previous #if...!");
@@ -334,6 +336,7 @@ DEF_DQ_ERR(DQERR_CDIR_EXPR_TYPE,                   "CDirExprType",           "Co
 // WARNINGS
 //-----------------------------------------------------------------------------
 
+DEF_DQ_WARN(DQWARN_CDIR_WARNING,                  "CDirWarning",            "$1");
 DEF_DQ_WARN(DQWARN_ATTR_IGNORED_FOR,               "AttrIgnored",            "Attribute \"$1\" is not applicable to $2 and will be ignored");
 DEF_DQ_WARN(DQWARN_EMBSTR_STORAGE_SIZE,              "EmbStrStorageSize",        "embstr($1) storage size ($2) is not divisible by 4");
 DEF_DQ_WARN(DQWARN_METHOD_USE_NO_EFFECT,           "MethodUseNoEffect",      "Method-body use \"$1\" has no effect");

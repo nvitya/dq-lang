@@ -87,6 +87,7 @@ public:
 
   // Warnings
 
+  void WarningTxt(const TDiagDefWarn & adiag, string_view atext, OScPosition * ascpos = nullptr);
   void Warning(const TDiagDefWarn & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos = nullptr);
   void Warning(const TDiagDefWarn & adiag, string_view par1, string_view par2, OScPosition * ascpos = nullptr);
   void Warning(const TDiagDefWarn & adiag, string_view par1, OScPosition * ascpos = nullptr);

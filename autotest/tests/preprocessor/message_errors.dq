@@ -1,0 +1,17 @@
+#error "some error" //?error(CDirError)
+#warning "some warning" //?warning(CDirWarning)
+#{error 'inline error'} //?error(CDirError)
+
+#error //?error(CDirMessage)
+#warning 123 //?error(CDirMessage)
+#error "unterminated //?error(StrLiteral)
+
+var runtime_value : int = 123
+#warning "value = \{runtime_value}" //?error(InterpolationConstant)
+#error "value = \{123:Q}" //?error(InterpolationFormat)
+#warning "value = \{123" //?error(InterpolationClose)
+#{warning "value = \{123:Q}"} //?error(InterpolationFormat)
+
+func *Main():
+    #error "in \{DQ.FUNCNAME}" //?error(CDirError)
+endfunc

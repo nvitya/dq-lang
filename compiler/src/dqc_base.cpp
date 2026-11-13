@@ -375,7 +375,7 @@ void ODqCompBase::StatementError(const TDiagDefErr & adiag, OScPosition * scpos,
   StatementError(adiag, "", "", "", scpos, atryrecover);
 }
 
-void ODqCompBase::Warning(const TDiagDefWarn & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos)
+void ODqCompBase::WarningTxt(const TDiagDefWarn & adiag, string_view atext, OScPosition * ascpos)
 {
   if (suppress_warnings) return;
 
@@ -393,9 +393,14 @@ void ODqCompBase::Warning(const TDiagDefWarn & adiag, string_view par1, string_v
     //epos = &scpos_statement_start;
   }
 
-  PrintDiagnostic("WARNING", adiag.strid, FormatDiagMsg(adiag.text, par1, par2, par3), epos);
+  PrintDiagnostic("WARNING", adiag.strid, atext, epos);
 
   ++warncnt;
+}
+
+void ODqCompBase::Warning(const TDiagDefWarn & adiag, string_view par1, string_view par2, string_view par3, OScPosition * ascpos)
+{
+  WarningTxt(adiag, FormatDiagMsg(adiag.text, par1, par2, par3), ascpos);
 }
 
 void ODqCompBase::Warning(const TDiagDefWarn & adiag, string_view par1, string_view par2, OScPosition * ascpos)

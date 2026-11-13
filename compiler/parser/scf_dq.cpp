@@ -612,6 +612,16 @@ void OScFeederDq::ParseDirective()
   else if (inactive_code)
   {
     // ignore the directives in the inactive code
+    if ("error" == sid || "warning" == sid)
+    {
+      // Consume the literal without evaluating interpolations, including in #{...}.
+      SetDirectiveExprMode(true);
+      SkipWhite();
+      string ignored;
+      ReadQuotedString(ignored);
+      SkipWhite();
+      SetDirectiveExprMode(false);
+    }
     if (not FindDirectiveEnd())
     {
       return;
@@ -620,6 +630,11 @@ void OScFeederDq::ParseDirective()
   else if ("define" == sid)
   {
     ParseDirectiveDefine();
+  }
+  else if ("error" == sid || "warning" == sid)
+  {
+    g_compiler->ParseDirectiveMessage(scpos_start_directive, sid);
+    FindDirectiveEnd();
   }
   else if ("include" == sid)
   {

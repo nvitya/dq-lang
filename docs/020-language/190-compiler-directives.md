@@ -124,6 +124,30 @@ The condition must be a compile-time `bool` and can use only names already
 visible at that point. A variable whose value is known only at runtime cannot
 supply the condition.
 
+## Compile-Time Messages
+
+`#error "message"` emits an error and causes compilation to fail.
+`#warning "message"` emits a warning and allows compilation to continue.
+Their diagnostic identifiers are `CDirError` and `CDirWarning`, respectively.
+
+Messages use the same string syntax, escapes, and constant interpolations as
+ordinary string literals, including format specifications:
+
+```dq
+#define API_LEVEL = 2
+
+#if API_LEVEL < 3
+    #error "API level \{API_LEVEL} is too old; level 3 is required"
+#endif
+
+#warning "Building with API level \{API_LEVEL:04X}"
+```
+
+Interpolation names must already be visible at the directive's location, and
+their values must be constant. Both directives are ignored in inactive
+conditional branches. Inline forms such as `#{warning "message"}` are also
+supported.
+
 ## Target and Feature Definitions
 
 The compiler supplies names for the selected target and enabled features:

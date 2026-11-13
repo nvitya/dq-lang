@@ -2839,6 +2839,46 @@ void ODqCompParser::ParseFunction()
 // Table-driven binary operator parser: shared logic for all precedence levels
 
 
+void ODqCompParser::ParseDirectiveMessage(const OScPosition & scpos, const string & directive)
+{
+  OScPosition * saved_errorpos = errorpos;
+  OStmtBlock * saved_block = curblock;
+  OScPosition position = scpos;
+
+  errorpos = &position;
+  // Interpolations resolve in the current scope without emitting runtime code.
+  curblock = nullptr;
+  scf->SetDirectiveExprMode(true);
+
+  scf->SkipWhite();
+  string message;
+  if (scf->curp >= scf->bufend || (*scf->curp != '"' && *scf->curp != '\''))
+  {
+    Error(DQERR_CDIR_MESSAGE, directive);
+  }
+  else
+  {
+    OScPosition literalpos;
+    scf->SaveCurPos(literalpos);
+    if (ParseStringLiteral(message))
+    {
+      if (directive == "warning") WarningTxt(DQWARN_CDIR_WARNING, message, &position);
+      else ErrorTxt(DQERR_CDIR_ERROR, message, &position);
+    }
+    else
+    {
+      // Recover past the literal so its interpolation braces cannot close #{...}.
+      scf->SetCurPos(literalpos);
+      scf->ReadQuotedString(message);
+    }
+  }
+  scf->SkipWhite();
+
+  errorpos = saved_errorpos;
+  curblock = saved_block;
+  scf->SetDirectiveExprMode(false);
+}
+
 OValSymConst * ODqCompParser::ParseDefineConst(const OScPosition & scpos, const string & sid)
 {
   OScPosition    saved_stmtpos = scpos_statement_start;

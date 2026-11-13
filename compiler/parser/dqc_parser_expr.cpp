@@ -3636,12 +3636,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   {
     char quotech = *scf->curp;
     string strval;
-    bool interpolation_failed = false;
-    if (scf->ReadQuotedString(strval, [this, &interpolation_failed](string & value)
-        {
-          interpolation_failed = !ParseStringInterpolation(value);
-          return !interpolation_failed;
-        }))
+    if (ParseStringLiteral(strval))
     {
       int64_t char_value = 0;
       if (('\'' == quotech) && DecodeSingleUtf8Scalar(strval, char_value))
@@ -3652,7 +3647,6 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     }
     else
     {
-      if (!interpolation_failed) ErrorTxt(DQERR_LIT_STRING, "Unterminated string literal");
       return nullptr;
     }
   }
@@ -5209,6 +5203,19 @@ OExpr * ODqCompParserExpr::ParseBuiltinDefined()
   bool ok;
   bool defined = IsSymbolDefined(namespace_name, symbol_name, ok);
   return ok ? new OBoolLit(defined) : nullptr;
+}
+
+bool ODqCompParserExpr::ParseStringLiteral(string & result)
+{
+  bool interpolation_failed = false;
+  if (scf->ReadQuotedString(result, [this, &interpolation_failed](string & value)
+      {
+        interpolation_failed = !ParseStringInterpolation(value);
+        return !interpolation_failed;
+      })) return true;
+
+  if (!interpolation_failed) ErrorTxt(DQERR_LIT_STRING, "Unterminated string literal");
+  return false;
 }
 
 bool ODqCompParserExpr::ParseStringInterpolation(string & result)

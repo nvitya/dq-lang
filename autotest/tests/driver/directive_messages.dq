@@ -1,0 +1,65 @@
+//?exitcode(0)
+
+use dqautotest
+use file
+
+var run <- OTestRun()
+
+func CompileSource(source : strslice, succeeds : bool):
+    var source_path : str = TempPath('.dq')
+    var output_path : str = TempPath('.o')
+    FileWriteText(source_path, source)
+    run.RunCompiler(['-c', '-o', output_path, source_path])
+    if (run.exitcode == 0) <> succeeds:
+        Fail('unexpected compiler exit code')
+        run.PrintRunOutput()
+    endif
+    RemoveTemp(output_path)
+    RemoveTemp(source_path)
+endfunc
+
+func *Main():
+    CompileSource('''
+        #define LEVEL = 15
+        const NAME : rostr = "board"
+        #error "\\{NAME}: level \\{LEVEL:04X}, enabled=\\{true}; $1 $2 $3"
+        #warning 'some warning; $1 $2 $3'
+        #error ""
+        #warning ""
+        func *Main():
+        endfunc
+        ''', false)
+    run.ExpectOutputContains('(3,1) ERROR(CDirError): board: level 000F, enabled=true; $1 $2 $3')
+    run.ExpectOutputContains('(4,1) WARNING(CDirWarning): some warning; $1 $2 $3')
+    run.ExpectOutputContains('(5,1) ERROR(CDirError): \n')
+    run.ExpectOutputContains('(6,1) WARNING(CDirWarning): \n')
+
+    CompileSource('''
+        #warning /* comment */ "module warning"
+        func *Main():
+            const LOCAL : int = 42
+            #warning "\\{DQ.FUNCNAME}: \\{LOCAL}"
+            var value : int = #{warning "inline \\{LOCAL:04X}" /* comment */} LOCAL
+        endfunc
+        ''', true)
+    run.ExpectOutputContains('(1,1) WARNING(CDirWarning): module warning')
+    run.ExpectOutputContains('(4,5) WARNING(CDirWarning): Main: 42')
+    run.ExpectOutputContains('WARNING(CDirWarning): inline 002A')
+
+    CompileSource('''
+        #if false
+            #error "inactive \\{UNKNOWN}"
+            #warning "inactive warning"
+            #if true
+                #error "nested inactive error"
+            #endif
+        #endif
+        func *Main():
+            var value : int = #{if false} #{error /* before */ "inactive } \\{UNKNOWN}" /* after */} 0 #{else} 1 #{endif}
+        endfunc
+        ''', true)
+    run.ExpectOutputNotContains('ERROR(')
+    run.ExpectOutputNotContains('WARNING(')
+
+    exit_code = TestResult()
+endfunc

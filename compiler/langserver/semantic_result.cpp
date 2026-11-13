@@ -11,9 +11,14 @@
 
 #include <fstream>
 #include <algorithm>
+#include <filesystem>
+#include <unordered_map>
 #include <unordered_set>
 
+#include "comp_options.h"
+#include "dqc.h"
 #include "dq_module.h"
+#include "dq_utils.h"
 #include "module_intf.h"
 #include "jsontools.h"
 #include "semantic_result.h"
@@ -216,6 +221,55 @@ void AddCompoundMembers(TJsonNode & json_parent, const OCompoundType & compound)
   }
 }
 
+struct SFileStamp
+{
+  int64_t filesize = 0;
+  int64_t filetime = 0;
+
+  bool operator==(const SFileStamp &) const = default;
+};
+
+bool TryFileStamp(const string & path_str, SFileStamp & rstamp)
+{
+  error_code ec;
+  filesystem::path path(path_str);
+  uintmax_t size = filesystem::file_size(path, ec);
+  if (ec) return false;
+  auto mtime = filesystem::last_write_time(path, ec);
+  if (ec) return false;
+  rstamp.filesize = int64_t(size);
+  rstamp.filetime = FileTimeTicks(mtime);
+  return true;
+}
+
+unordered_map<string, SFileStamp> LoadKnownInterfaces(const string & filename)
+{
+  unordered_map<string, SFileStamp> result;
+  if (filename.empty()) return result;
+  ifstream input(filename, ios::binary);
+  if (!input) return result;
+  string text((istreambuf_iterator<char>(input)), istreambuf_iterator<char>());
+  TJsonNode root;
+  if (!root.TryParse(text) || root.GetKind() != nkArray) return result;
+  for (int i = 0; i < root.GetCount(); ++i)
+  {
+    const TJsonNode & entry = root.Child(i);
+    if (entry.GetKind() != nkObject) continue;
+    const TJsonNode * path = entry.Child("path");
+    const TJsonNode * size = entry.Child("size");
+    const TJsonNode * mtime = entry.Child("mtime");
+    if (!path || path->GetKind() != nkString || !size || size->GetKind() != nkNumber
+        || !mtime || mtime->GetKind() != nkNumber) continue;
+    try
+    {
+      result[SourcePathIdentity(path->GetAsString()).string()] = {
+          stoll(size->GetAsString()), stoll(mtime->GetAsString())};
+    }
+    catch (...) {}
+  }
+  return result;
+}
+
 } // namespace
 
 bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, string & rerror)
@@ -246,12 +300,54 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
       }
     }
   }
+  unordered_map<string, SFileStamp> known_interfaces =
+      LoadKnownInterfaces(g_opt.langserver_known_interfaces_filename);
+  unordered_map<const OScope *, string> scope_to_interface;
+  if (g_module)
+  {
+    for (const OModuleIntf * mod : g_module->loaded_modules)
+    {
+      if (mod && !mod->partial_interface && mod->scope_pub && !mod->interface_filename.empty())
+      {
+        scope_to_interface[mod->scope_pub] = SourcePathIdentity(mod->interface_filename).string();
+      }
+    }
+  }
+  unordered_map<string, SFileStamp> emitted_interfaces;
+
   TJsonNode & json_namespaces = result.Add("namespaces").GetAsObject();
   TJsonNode & json_module_namespaces = result.Add("moduleNamespaces").GetAsArray();
+  TJsonNode & json_cached_namespaces = result.Add("cachedNamespaces").GetAsArray();
+  TJsonNode & json_namespace_interfaces = result.Add("namespaceInterfaces").GetAsArray();
   for (const auto & [ns_name, scope] : g_namespaces)
   {
     if (!scope) continue;
     json_module_namespaces.Add().SetAsString(ns_name);
+    if (auto mod_it = scope_to_interface.find(scope); mod_it != scope_to_interface.end())
+    {
+      SFileStamp stamp;
+      if (TryFileStamp(mod_it->second, stamp))
+      {
+        auto known_it = known_interfaces.find(mod_it->second);
+        auto emitted_it = emitted_interfaces.find(mod_it->second);
+        if ((known_it != known_interfaces.end() && known_it->second == stamp)
+            || (emitted_it != emitted_interfaces.end() && emitted_it->second == stamp))
+        {
+          TJsonNode & entry = json_cached_namespaces.Add().GetAsObject();
+          entry.Add("namespace", ns_name);
+          entry.Add("interface", mod_it->second);
+          entry.Add("size", static_cast<long long>(stamp.filesize));
+          entry.Add("mtime", static_cast<long long>(stamp.filetime));
+          continue;
+        }
+        TJsonNode & entry = json_namespace_interfaces.Add().GetAsObject();
+        entry.Add("namespace", ns_name);
+        entry.Add("interface", mod_it->second);
+        entry.Add("size", static_cast<long long>(stamp.filesize));
+        entry.Add("mtime", static_cast<long long>(stamp.filetime));
+        emitted_interfaces[mod_it->second] = stamp;
+      }
+    }
     TJsonNode & json_symbols = json_namespaces.Add(ns_name).GetAsArray();
     for (const auto & [name, type] : scope->typesyms)
     {
@@ -292,6 +388,37 @@ bool WriteDqLanguageServerSemanticResult(const string & filename, bool success, 
       {
         const string & source = module->source_dependencies.front().filename;
         if (used_module_sources.insert(source).second) json_used_module_sources.Add().SetAsString(source);
+      }
+    }
+  }
+
+  TJsonNode & json_source_dependencies = result.Add("sourceDependencies").GetAsArray();
+  unordered_set<string> recorded_dependencies;
+  auto record_dependency = [&](const SSourceDependency & dep)
+  {
+    if (dep.filename.empty()) return;
+    string normalized = SourcePathIdentity(dep.filename).string();
+    if (!recorded_dependencies.insert(normalized).second) return;
+    TJsonNode & entry = json_source_dependencies.Add().GetAsObject();
+    entry.Add("path", normalized);
+    entry.Add("size", static_cast<long long>(dep.filesize));
+    entry.Add("mtime", static_cast<long long>(dep.filetime));
+  };
+  if (g_compiler && g_compiler->scf)
+  {
+    for (const SSourceDependency & dep : g_compiler->scf->source_dependencies)
+    {
+      record_dependency(dep);
+    }
+  }
+  if (g_module)
+  {
+    for (const OModuleIntf * mod : g_module->loaded_modules)
+    {
+      if (!mod) continue;
+      for (const SSourceDependency & dep : mod->source_dependencies)
+      {
+        record_dependency(dep);
       }
     }
   }

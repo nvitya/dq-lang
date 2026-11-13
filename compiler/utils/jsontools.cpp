@@ -201,9 +201,9 @@ inline string ParseJsonString(const char *& p)
 	return out;
 }
 
-inline string EncodeJsonString(const string & s)
+inline void AppendEncodedJsonString(string & out, const string & s)
 {
-	string out;
+	out.reserve(out.size() + s.size() + 2);
 	out.push_back('"');
 
 	static const char *  hex = "0123456789ABCDEF";
@@ -250,6 +250,12 @@ inline string EncodeJsonString(const string & s)
 	}
 
 	out.push_back('"');
+}
+
+inline string EncodeJsonString(const string & s)
+{
+	string out;
+	AppendEncodedJsonString(out, s);
 	return out;
 }
 
@@ -679,6 +685,20 @@ TJsonNode & TJsonNode::Add(const string & name, const string & s)
 	return AddInternal(nkString, name, s);
 }
 
+TJsonNode & TJsonNode::Add(const string & name, TJsonNode && child)
+{
+	GetAsObject();
+	auto n = make_unique<TJsonNode>(std::move(child));
+	n->FName = name;
+	n->FParent = this;
+	for (auto & gc : n->FChildren)
+	{
+		gc->FParent = n.get();
+	}
+	FChildren.emplace_back(std::move(n));
+	return *FChildren.back();
+}
+
 TJsonNode & TJsonNode::Add()
 {
 	GetAsArray();
@@ -961,45 +981,50 @@ void TJsonNode::ParseValueIntoThis(const char *& p)
 
 /* ---------- formatting ---------- */
 
-string TJsonNode::FormatCompact() const
+void TJsonNode::AppendCompact(string & out) const
 {
-	ostringstream o;
-
 	switch (FKind)
 	{
 	case nkNull:
-		return "null";
+		out += "null";
+		return;
 	case nkBool:
-		return FValue;
 	case nkNumber:
-		return FValue;
+		out += FValue;
+		return;
 	case nkString:
-		return EncodeJsonString(FValue);
+		AppendEncodedJsonString(out, FValue);
+		return;
 
 	case nkArray:
-		o << "[";
+		out.push_back('[');
 		for (size_t i = 0; i < FChildren.size(); ++i)
 		{
-			if (i)  o << ",";
-
-			o << FChildren[i]->FormatCompact();
+			if (i) out.push_back(',');
+			FChildren[i]->AppendCompact(out);
 		}
-		o << "]";
-		return o.str();
+		out.push_back(']');
+		return;
 
 	case nkObject:
-		o << "{";
+		out.push_back('{');
 		for (size_t i = 0; i < FChildren.size(); ++i)
 		{
-			if (i)	o << ",";
-			o << EncodeJsonString(FChildren[i]->FName) << ":" << FChildren[i]->FormatCompact();
+			if (i) out.push_back(',');
+			AppendEncodedJsonString(out, FChildren[i]->FName);
+			out.push_back(':');
+			FChildren[i]->AppendCompact(out);
 		}
-		o << "}";
-		return o.str();
+		out.push_back('}');
+		return;
 	}
+}
 
-	return
-	{};
+string TJsonNode::FormatCompact() const
+{
+	string out;
+	AppendCompact(out);
+	return out;
 }
 
 string TJsonNode::FormatPretty(const string & pad, const string & indent) const

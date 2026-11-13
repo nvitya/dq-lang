@@ -186,6 +186,7 @@ public:
   string          source_overlay_filename;
   string          langserver_source_filename;
   string          langserver_result_filename;
+  string          langserver_known_interfaces_filename;
 
   vector<OCmdLineDefine>  cmdline_defines;
   vector<string>          link_libraries;

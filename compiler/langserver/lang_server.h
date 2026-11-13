@@ -18,6 +18,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -57,13 +58,25 @@ struct SDocumentSymbol
   vector<SDocumentSymbol> children;
 };
 
+struct SWorkerDependency
+{
+  string path;
+  int64_t filesize = 0;
+  int64_t filetime = 0;
+  uint64_t staged_revision = 0;
+};
+
+using SSymbolListPtr = shared_ptr<const vector<SDocumentSymbol>>;
+
 struct SWorkerResult
 {
+  bool success = false;
   vector<SDiagnostic> diagnostics;
   vector<SDocumentSymbol> document_symbols;
-  unordered_map<string, vector<SDocumentSymbol>> namespaces;
+  unordered_map<string, SSymbolListPtr> namespaces;
   unordered_set<string> module_namespaces;
   vector<filesystem::path> used_module_sources;
+  vector<SWorkerDependency> dependencies;
 };
 
 class ODqLanguageServer
@@ -90,14 +103,25 @@ private:
   {
     filesystem::path path;
     string text;
+    uint64_t revision = 0;
+  };
+  struct SCachedInterfaceSymbols
+  {
+    int64_t filesize = 0;
+    int64_t filetime = 0;
+    SSymbolListPtr symbols;
   };
   unordered_map<string, SStagedSource> staged_sources;
   unordered_map<string, SDocument> documents;
   unordered_map<string, vector<SDocumentSymbol>> document_symbols;
-  unordered_map<string, vector<SDocumentSymbol>> namespaces;
-  unordered_map<string, unordered_map<string, vector<SDocumentSymbol>>> document_local_namespaces;
+  unordered_map<string, SSymbolListPtr> namespaces;
+  unordered_map<string, unordered_map<string, SSymbolListPtr>> document_local_namespaces;
+  unordered_map<string, SCachedInterfaceSymbols> cached_interface_namespaces;
+  unordered_map<string, SWorkerResult> worker_cache;
   unordered_set<string> module_namespaces;
   uint64_t document_revision = 0;
+  bool known_interfaces_dirty = true;
+  bool analysis_dirty = false;
   bool initialize_received = false;
   bool initialized = false;
   bool shutdown_requested = false;
@@ -105,12 +129,15 @@ private:
   int exit_status = 0;
 
   void Handle(const TJsonNode & request);
-  void Respond(const TJsonNode & request, const TJsonNode & result);
+  void Respond(const TJsonNode & request, TJsonNode result);
   void RespondError(const TJsonNode * request, int code, string_view message);
   void PublishDiagnostics(const SDocument & document, const vector<SDiagnostic> & diagnostics);
   TJsonNode DocumentSymbolsJson(const SDocument & document) const;
   TJsonNode DefinitionJson(const SDocument & document, int line, int character) const;
+  void FlushPendingAnalysis();
   void Reanalyze();
+  bool IsWorkerCacheFresh(const SWorkerResult & cached) const;
+  bool WriteKnownInterfaces(filesystem::path & rpath);
   bool StageDocuments(filesystem::path & rmanifest, filesystem::path & rbuild_root);
   SWorkerResult RunWorker(const filesystem::path & source, const filesystem::path & manifest,
                           const filesystem::path & build_root);

@@ -28,6 +28,9 @@
 #if defined(_WIN32)
   #include <fcntl.h>
   #include <io.h>
+#else
+  #include <poll.h>
+  #include <unistd.h>
 #endif
 
 using namespace std;
@@ -77,6 +80,17 @@ static string FileUri(const filesystem::path & path)
     }
   }
   return "file://" + encoded;
+}
+
+static bool HasPendingInput()
+{
+  if (cin.rdbuf()->in_avail() > 0) return true;
+#if !defined(_WIN32)
+  struct pollfd pfd{STDIN_FILENO, POLLIN, 0};
+  return (poll(&pfd, 1, 0) > 0) && ((pfd.revents & POLLIN) != 0);
+#else
+  return false;
+#endif
 }
 
 static bool ReadMessage(string & rpayload)
@@ -384,8 +398,16 @@ static void AddDocumentSymbol(TJsonNode & symbols, const SDocument & document, c
 }
 
 
+void ODqLanguageServer::FlushPendingAnalysis()
+{
+  if (!analysis_dirty) return;
+  analysis_dirty = false;
+  Reanalyze();
+}
+
 int ODqLanguageServer::Run()
 {
+  cin.sync_with_stdio(false);
   string payload;
   while (ReadMessage(payload))
   {
@@ -402,16 +424,18 @@ int ODqLanguageServer::Run()
     }
     Handle(request);
     if (should_exit) break;
+    if (analysis_dirty && !shutdown_requested && !HasPendingInput()) FlushPendingAnalysis();
   }
+  if (analysis_dirty && !should_exit && !shutdown_requested) FlushPendingAnalysis();
   return exit_status;
 }
 
-void ODqLanguageServer::Respond(const TJsonNode & request, const TJsonNode & result)
+void ODqLanguageServer::Respond(const TJsonNode & request, TJsonNode result)
 {
   TJsonNode response(nkObject);
   response.Add("jsonrpc", "2.0");
   AddJsonId(response, &request);
-  response.Add("result").SetAsJson(result.GetAsJson(true));
+  response.Add("result", std::move(result));
   WriteMessage(response.GetAsJson(true));
 }
 
@@ -460,6 +484,7 @@ bool ODqLanguageServer::StageDocuments(filesystem::path & rmanifest, filesystem:
       filesystem::remove(staged.path, ec);
       staged.path = std::move(path);
       staged.text = document.text;
+      staged.revision = document.revision;
     }
     TJsonNode & file = files.Add().GetAsObject();
     file.Add("source", identity);
@@ -481,110 +506,227 @@ bool ODqLanguageServer::StageDocuments(filesystem::path & rmanifest, filesystem:
   return bool(output);
 }
 
+bool ODqLanguageServer::WriteKnownInterfaces(filesystem::path & rpath)
+{
+  rpath = temp_root / "known_interfaces.json";
+  if (!known_interfaces_dirty) return true;
+  TJsonNode entries(nkArray);
+  for (const auto & [if_path, cached] : cached_interface_namespaces)
+  {
+    TJsonNode & entry = entries.Add().GetAsObject();
+    entry.Add("path", if_path);
+    entry.Add("size", static_cast<long long>(cached.filesize));
+    entry.Add("mtime", static_cast<long long>(cached.filetime));
+  }
+  ofstream output(rpath, ios::binary | ios::trunc);
+  if (!output) return false;
+  string text = entries.GetAsJson(true);
+  output.write(text.data(), static_cast<streamsize>(text.size()));
+  if (!output) return false;
+  known_interfaces_dirty = false;
+  return true;
+}
+
 SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
                                             const filesystem::path & manifest,
                                             const filesystem::path & build_root)
 {
-  filesystem::path result_path = build_root / "semantic.json";
-  error_code ec;
-  filesystem::remove(result_path, ec);
-  OProcessRunner runner;
-  runner.args = {g_opt.compiler_executable, "--langserver-worker", "--diagnostic-format=jsonl",
-                 "--source-overlay", manifest.string(), "--build-root", build_root.string(),
-                 "--package-build-root", build_root.string(), "--target=" + g_opt.target.name,
-                 "--langserver-result", result_path.string()};
-  if (!g_opt.project_filename.empty()) runner.args.push_back(g_opt.project_filename);
-  runner.args.push_back("--langserver-source");
-  runner.args.push_back(source.string());
-  if (g_opt.no_use_sys) runner.args.push_back("--no-use-sys");
-  g_opt.packages.AppendArguments(runner.args);
-  for (const OCmdLineDefine & define : g_opt.cmdline_defines)
+  for (int attempt = 0; attempt < 2; ++attempt)
   {
-    string arg = "-D" + define.name;
-    if (define.has_bool_value) arg += define.bool_value ? "=true" : "=false";
-    else if (define.has_int_value) arg += "=" + to_string(define.int_value);
-    runner.args.push_back(arg);
-  }
-  runner.Run();
-  if (!runner.stderr_text.empty()) cerr << "dq-lsp worker: " << runner.stderr_text;
-
-  SWorkerResult result;
-  istringstream lines(runner.stdout_text);
-  string line;
-  while (getline(lines, line))
-  {
-    TJsonNode object;
-    string kind;
-    if (!object.TryParse(line) || object.GetKind() != nkObject || !JsonString(object, "kind", kind)
-        || kind != "diagnostic") continue; // worker status output is never protocol data.
-    string path;
-    string message;
-    if (!JsonString(object, "path", path) || !JsonString(object, "message", message)) continue;
-    SDiagnostic diagnostic;
-    diagnostic.path = SourcePathIdentity(path).string();
-    JsonString(object, "severity", diagnostic.severity);
-    if (diagnostic.severity.empty()) diagnostic.severity = "ERROR";
-    JsonString(object, "code", diagnostic.code);
-    diagnostic.message = message;
-    diagnostic.line = int(JsonInteger(JsonChild(object, "line"), 1));
-    diagnostic.column = int(JsonInteger(JsonChild(object, "column"), 1));
-    result.diagnostics.push_back(std::move(diagnostic));
-  }
-
-  ifstream result_file(result_path, ios::binary);
-  string result_text((istreambuf_iterator<char>(result_file)), istreambuf_iterator<char>());
-  TJsonNode root;
-  if (!root.TryParse(result_text) || root.GetKind() != nkObject) return result;
-  const TJsonNode * symbols = JsonChild(root, "documentSymbols");
-  if (symbols && symbols->GetKind() == nkArray)
-  {
-    for (int index = 0; index < symbols->GetCount(); ++index)
+    filesystem::path result_path = build_root / "semantic.json";
+    error_code ec;
+    filesystem::remove(result_path, ec);
+    filesystem::path known_interfaces_path;
+    bool have_known_interfaces = WriteKnownInterfaces(known_interfaces_path);
+    OProcessRunner runner;
+    runner.args = {g_opt.compiler_executable, "--langserver-worker", "--diagnostic-format=jsonl",
+                   "--source-overlay", manifest.string(), "--build-root", build_root.string(),
+                   "--package-build-root", build_root.string(), "--target=" + g_opt.target.name,
+                   "--langserver-result", result_path.string()};
+    if (have_known_interfaces)
     {
-      SDocumentSymbol symbol;
-      if (ReadDocumentSymbol(symbols->Child(index), symbol)) result.document_symbols.push_back(std::move(symbol));
+      runner.args.push_back("--langserver-known-interfaces");
+      runner.args.push_back(known_interfaces_path.string());
     }
-  }
-  const TJsonNode * namespaces_obj = JsonChild(root, "namespaces");
-  if (namespaces_obj && namespaces_obj->GetKind() == nkObject)
-  {
-    for (int index = 0; index < namespaces_obj->GetCount(); ++index)
+    if (!g_opt.project_filename.empty()) runner.args.push_back(g_opt.project_filename);
+    runner.args.push_back("--langserver-source");
+    runner.args.push_back(source.string());
+    if (g_opt.no_use_sys) runner.args.push_back("--no-use-sys");
+    g_opt.packages.AppendArguments(runner.args);
+    for (const OCmdLineDefine & define : g_opt.cmdline_defines)
     {
-      const TJsonNode & ns_value = namespaces_obj->Child(index);
-      if (ns_value.GetKind() != nkArray) continue;
-      string name = ns_value.GetName();
-      vector<SDocumentSymbol> & dst = result.namespaces[name];
-      for (int symbol_index = 0; symbol_index < ns_value.GetCount(); ++symbol_index)
+      string arg = "-D" + define.name;
+      if (define.has_bool_value) arg += define.bool_value ? "=true" : "=false";
+      else if (define.has_int_value) arg += "=" + to_string(define.int_value);
+      runner.args.push_back(arg);
+    }
+    runner.Run();
+    if (!runner.stderr_text.empty()) cerr << "dq-lsp worker: " << runner.stderr_text;
+
+    SWorkerResult result;
+    istringstream lines(runner.stdout_text);
+    string line;
+    while (getline(lines, line))
+    {
+      TJsonNode object;
+      string kind;
+      if (!object.TryParse(line) || object.GetKind() != nkObject || !JsonString(object, "kind", kind)
+          || kind != "diagnostic") continue; // worker status output is never protocol data.
+      string path;
+      string message;
+      if (!JsonString(object, "path", path) || !JsonString(object, "message", message)) continue;
+      SDiagnostic diagnostic;
+      diagnostic.path = SourcePathIdentity(path).string();
+      JsonString(object, "severity", diagnostic.severity);
+      if (diagnostic.severity.empty()) diagnostic.severity = "ERROR";
+      JsonString(object, "code", diagnostic.code);
+      diagnostic.message = message;
+      diagnostic.line = int(JsonInteger(JsonChild(object, "line"), 1));
+      diagnostic.column = int(JsonInteger(JsonChild(object, "column"), 1));
+      result.diagnostics.push_back(std::move(diagnostic));
+    }
+
+    ifstream result_file(result_path, ios::binary | ios::ate);
+    string result_text;
+    if (result_file)
+    {
+      auto file_size = result_file.tellg();
+      if (file_size > 0)
       {
-        const TJsonNode & object = ns_value.Child(symbol_index);
-        string symbol_name;
-        if (object.GetKind() != nkObject || !JsonString(object, "name", symbol_name)) continue;
-        SDocumentSymbol symbol;
-        symbol.name = symbol_name;
-        symbol.kind = int(JsonInteger(JsonChild(object, "kind"), 13));
-        JsonString(object, "type", symbol.type_name);
-        dst.push_back(std::move(symbol));
+        result_text.resize(static_cast<size_t>(file_size));
+        result_file.seekg(0);
+        result_file.read(result_text.data(), file_size);
       }
     }
-  }
-  const TJsonNode * module_namespaces = JsonChild(root, "moduleNamespaces");
-  if (module_namespaces && module_namespaces->GetKind() == nkArray)
-  {
-    for (int index = 0; index < module_namespaces->GetCount(); ++index)
+    TJsonNode root;
+    if (!root.TryParse(result_text) || root.GetKind() != nkObject) return result;
+    const TJsonNode * success_node = JsonChild(root, "success");
+    result.success = success_node && (success_node->GetKind() == nkBool) && success_node->GetAsBoolean();
+    const TJsonNode * symbols = JsonChild(root, "documentSymbols");
+    if (symbols && symbols->GetKind() == nkArray)
     {
-      const TJsonNode & name = module_namespaces->Child(index);
-      if (name.GetKind() == nkString) result.module_namespaces.insert(name.GetAsString());
+      for (int index = 0; index < symbols->GetCount(); ++index)
+      {
+        SDocumentSymbol symbol;
+        if (ReadDocumentSymbol(symbols->Child(index), symbol)) result.document_symbols.push_back(std::move(symbol));
+      }
     }
-  }
-  const TJsonNode * used_module_sources = JsonChild(root, "usedModuleSources");
-  if (used_module_sources && used_module_sources->GetKind() == nkArray)
-  {
-    for (int index = 0; index < used_module_sources->GetCount(); ++index)
+    const TJsonNode * namespaces_obj = JsonChild(root, "namespaces");
+    if (namespaces_obj && namespaces_obj->GetKind() == nkObject)
     {
-      const TJsonNode & path = used_module_sources->Child(index);
-      if (path.GetKind() == nkString) result.used_module_sources.emplace_back(path.GetAsString());
+      for (int index = 0; index < namespaces_obj->GetCount(); ++index)
+      {
+        const TJsonNode & ns_value = namespaces_obj->Child(index);
+        if (ns_value.GetKind() != nkArray) continue;
+        string name = ns_value.GetName();
+        auto dst = make_shared<vector<SDocumentSymbol>>();
+        dst->reserve(static_cast<size_t>(ns_value.GetCount()));
+        for (int symbol_index = 0; symbol_index < ns_value.GetCount(); ++symbol_index)
+        {
+          const TJsonNode & object = ns_value.Child(symbol_index);
+          string symbol_name;
+          if (object.GetKind() != nkObject || !JsonString(object, "name", symbol_name)) continue;
+          SDocumentSymbol symbol;
+          symbol.name = symbol_name;
+          symbol.kind = int(JsonInteger(JsonChild(object, "kind"), 13));
+          JsonString(object, "type", symbol.type_name);
+          dst->push_back(std::move(symbol));
+        }
+        result.namespaces[name] = std::move(dst);
+      }
     }
+    const TJsonNode * ns_interfaces = JsonChild(root, "namespaceInterfaces");
+    if (ns_interfaces && ns_interfaces->GetKind() == nkArray)
+    {
+      for (int index = 0; index < ns_interfaces->GetCount(); ++index)
+      {
+        const TJsonNode & entry = ns_interfaces->Child(index);
+        string ns_name;
+        string if_path;
+        if (entry.GetKind() != nkObject || !JsonString(entry, "namespace", ns_name)
+            || !JsonString(entry, "interface", if_path)) continue;
+        auto ns_it = result.namespaces.find(ns_name);
+        if (ns_it == result.namespaces.end()) continue;
+        SCachedInterfaceSymbols cached;
+        cached.filesize = static_cast<int64_t>(JsonInteger(JsonChild(entry, "size"), 0));
+        cached.filetime = static_cast<int64_t>(JsonInteger(JsonChild(entry, "mtime"), 0));
+        cached.symbols = ns_it->second;
+        cached_interface_namespaces[SourcePathIdentity(if_path).string()] = std::move(cached);
+        known_interfaces_dirty = true;
+      }
+    }
+    bool cache_miss = false;
+    const TJsonNode * cached_namespaces = JsonChild(root, "cachedNamespaces");
+    if (cached_namespaces && cached_namespaces->GetKind() == nkArray)
+    {
+      for (int index = 0; index < cached_namespaces->GetCount(); ++index)
+      {
+        const TJsonNode & entry = cached_namespaces->Child(index);
+        string ns_name;
+        string if_path;
+        if (entry.GetKind() != nkObject || !JsonString(entry, "namespace", ns_name)
+            || !JsonString(entry, "interface", if_path)) continue;
+        string normalized_if = SourcePathIdentity(if_path).string();
+        int64_t if_size = static_cast<int64_t>(JsonInteger(JsonChild(entry, "size"), -1));
+        int64_t if_mtime = static_cast<int64_t>(JsonInteger(JsonChild(entry, "mtime"), -1));
+        auto cached_it = cached_interface_namespaces.find(normalized_if);
+        if ((cached_it != cached_interface_namespaces.end())
+            && (cached_it->second.filesize == if_size)
+            && (cached_it->second.filetime == if_mtime)
+            && cached_it->second.symbols)
+        {
+          result.namespaces[ns_name] = cached_it->second.symbols;
+        }
+        else
+        {
+          cached_interface_namespaces.erase(normalized_if);
+          known_interfaces_dirty = true;
+          cache_miss = true;
+        }
+      }
+    }
+    if (cache_miss && attempt == 0) continue;
+
+    const TJsonNode * module_namespaces_arr = JsonChild(root, "moduleNamespaces");
+    if (module_namespaces_arr && module_namespaces_arr->GetKind() == nkArray)
+    {
+      for (int index = 0; index < module_namespaces_arr->GetCount(); ++index)
+      {
+        const TJsonNode & name = module_namespaces_arr->Child(index);
+        if (name.GetKind() == nkString) result.module_namespaces.insert(name.GetAsString());
+      }
+    }
+    const TJsonNode * used_module_sources = JsonChild(root, "usedModuleSources");
+    if (used_module_sources && used_module_sources->GetKind() == nkArray)
+    {
+      for (int index = 0; index < used_module_sources->GetCount(); ++index)
+      {
+        const TJsonNode & path = used_module_sources->Child(index);
+        if (path.GetKind() == nkString) result.used_module_sources.emplace_back(path.GetAsString());
+      }
+    }
+    const TJsonNode * source_deps = JsonChild(root, "sourceDependencies");
+    if (source_deps && source_deps->GetKind() == nkArray)
+    {
+      for (int index = 0; index < source_deps->GetCount(); ++index)
+      {
+        const TJsonNode & entry = source_deps->Child(index);
+        string dep_path;
+        if (entry.GetKind() != nkObject || !JsonString(entry, "path", dep_path)) continue;
+        SWorkerDependency dep;
+        dep.path = SourcePathIdentity(dep_path).string();
+        dep.filesize = static_cast<int64_t>(JsonInteger(JsonChild(entry, "size"), 0));
+        dep.filetime = static_cast<int64_t>(JsonInteger(JsonChild(entry, "mtime"), 0));
+        if (auto staged_it = staged_sources.find(dep.path); staged_it != staged_sources.end())
+        {
+          dep.staged_revision = staged_it->second.revision;
+        }
+        result.dependencies.push_back(std::move(dep));
+      }
+    }
+    return result;
   }
-  return result;
+  return {};
 }
 
 void ODqLanguageServer::PublishDiagnostics(const SDocument & document, const vector<SDiagnostic> & diagnostics)
@@ -749,14 +891,40 @@ TJsonNode ODqLanguageServer::DefinitionJson(const SDocument & document, int line
   return result;
 }
 
+bool ODqLanguageServer::IsWorkerCacheFresh(const SWorkerResult & cached) const
+{
+  if (!cached.success) return false;
+  if (cached.dependencies.empty()) return false;
+  for (const SWorkerDependency & dep : cached.dependencies)
+  {
+    auto staged_it = staged_sources.find(dep.path);
+    if (staged_it != staged_sources.end())
+    {
+      if ((dep.staged_revision == 0) || (dep.staged_revision != staged_it->second.revision))
+      {
+        return false;
+      }
+      continue;
+    }
+    if (dep.staged_revision != 0) return false;
+    error_code ec;
+    filesystem::path disk_path(dep.path);
+    uintmax_t size = filesystem::file_size(disk_path, ec);
+    if (ec || int64_t(size) != dep.filesize) return false;
+    auto filetime = filesystem::last_write_time(disk_path, ec);
+    if (ec || FileTimeTicks(filetime) != dep.filetime) return false;
+  }
+  return true;
+}
+
 void ODqLanguageServer::Reanalyze()
 {
   filesystem::path manifest;
   filesystem::path build_root;
   unordered_map<string, vector<SDiagnostic>> all_diagnostics;
   unordered_map<string, vector<SDocumentSymbol>> all_document_symbols;
-  unordered_map<string, vector<SDocumentSymbol>> all_namespaces;
-  unordered_map<string, unordered_map<string, vector<SDocumentSymbol>>> all_document_local_namespaces;
+  unordered_map<string, SSymbolListPtr> all_namespaces;
+  unordered_map<string, unordered_map<string, SSymbolListPtr>> all_document_local_namespaces;
   unordered_set<string> all_module_namespaces;
   if (StageDocuments(manifest, build_root))
   {
@@ -772,22 +940,29 @@ void ODqLanguageServer::Reanalyze()
     size_t open_document_count = analysis_sources.size();
     for (size_t source_index = 0; source_index < analysis_sources.size(); ++source_index)
     {
-      SWorkerResult worker_result = RunWorker(analysis_sources[source_index], manifest, build_root);
-      for (SDiagnostic & diagnostic : worker_result.diagnostics)
+      string norm_source = SourcePathIdentity(analysis_sources[source_index]).string();
+      auto cache_it = worker_cache.find(norm_source);
+      if ((cache_it == worker_cache.end()) || !IsWorkerCacheFresh(cache_it->second))
       {
-        all_diagnostics[diagnostic.path].push_back(std::move(diagnostic));
+        worker_cache[norm_source] = RunWorker(analysis_sources[source_index], manifest, build_root);
+        cache_it = worker_cache.find(norm_source);
       }
-      for (SDocumentSymbol & symbol : worker_result.document_symbols)
+      const SWorkerResult & worker_result = cache_it->second;
+      for (const SDiagnostic & diagnostic : worker_result.diagnostics)
       {
-        all_document_symbols[symbol.path].push_back(std::move(symbol));
+        all_diagnostics[diagnostic.path].push_back(diagnostic);
       }
-      for (auto & [ns_name, ns_symbols] : worker_result.namespaces)
+      for (const SDocumentSymbol & symbol : worker_result.document_symbols)
+      {
+        all_document_symbols[symbol.path].push_back(symbol);
+      }
+      for (const auto & [ns_name, ns_symbols] : worker_result.namespaces)
       {
         if ((ns_name == ".") || (ns_name == ".."))
         {
-          all_document_local_namespaces[SourcePathIdentity(analysis_sources[source_index]).string()][ns_name] = ns_symbols;
+          all_document_local_namespaces[norm_source][ns_name] = ns_symbols;
         }
-        all_namespaces[ns_name] = std::move(ns_symbols);
+        all_namespaces[ns_name] = ns_symbols;
       }
       all_module_namespaces.insert(worker_result.module_namespaces.begin(), worker_result.module_namespaces.end());
       if (source_index < open_document_count)
@@ -863,7 +1038,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     trigger_characters.Add().SetAsString(".");
     trigger_characters.Add().SetAsString("@");
     result.Add("serverInfo").GetAsObject().Add("name", "dq-comp");
-    Respond(request, result);
+    Respond(request, std::move(result));
     return;
   }
   if (method == "initialized")
@@ -871,7 +1046,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     if (initialize_received && !shutdown_requested)
     {
       initialized = true;
-      Reanalyze();
+      analysis_dirty = true;
     }
     return;
   }
@@ -883,9 +1058,10 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
       if (IsRequest(request)) RespondError(&request, -32002, "Server not initialized");
       return;
     }
+    FlushPendingAnalysis();
     shutdown_requested = true;
     TJsonNode result(nkNull);
-    Respond(request, result);
+    Respond(request, std::move(result));
     return;
   }
   if (method == "exit")
@@ -914,6 +1090,8 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     return;
   }
 
+  if (IsRequest(request)) FlushPendingAnalysis();
+
   const TJsonNode * text_document = JsonChild(*params, "textDocument");
   if (!text_document || text_document->GetKind() != nkObject) return;
   string uri;
@@ -922,7 +1100,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
   {
     auto it = documents.find(uri);
     TJsonNode result = it == documents.end() ? TJsonNode(nkArray) : DocumentSymbolsJson(it->second);
-    Respond(request, result);
+    Respond(request, std::move(result));
     return;
   }
   if (method == "textDocument/definition")
@@ -931,14 +1109,14 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     if (!position || position->GetKind() != nkObject)
     {
       TJsonNode result(nkArray);
-      Respond(request, result);
+      Respond(request, std::move(result));
       return;
     }
     int line = int(JsonInteger(JsonChild(*position, "line"), 0));
     int character = int(JsonInteger(JsonChild(*position, "character"), 0));
     auto it = documents.find(uri);
     TJsonNode result = it == documents.end() ? TJsonNode(nkArray) : DefinitionJson(it->second, line, character);
-    Respond(request, result);
+    Respond(request, std::move(result));
     return;
   }
   if (method == "textDocument/completion")
@@ -947,7 +1125,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     if (it == documents.end())
     {
       TJsonNode result(nkArray);
-      Respond(request, result);
+      Respond(request, std::move(result));
       return;
     }
     const SDocument & document = it->second;
@@ -999,7 +1177,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
          if (ns_name == "." || ns_name == "..") continue;
          AddCompletionItem(result, ns_name, 9); // 9 = Module/Namespace
        }
-       Respond(request, result);
+       Respond(request, std::move(result));
        return;
     }
     
@@ -1012,11 +1190,11 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
         if (local_namespaces != document_local_namespaces.end())
         {
           auto local_it = local_namespaces->second.find(ns_name);
-          if (local_it != local_namespaces->second.end()) return &local_it->second;
+          if (local_it != local_namespaces->second.end()) return local_it->second.get();
         }
       }
       auto it = namespaces.find(ns_name);
-      return it == namespaces.end() ? nullptr : &it->second;
+      return it == namespaces.end() ? nullptr : it->second.get();
     };
     if (scope_name == "..")
     {
@@ -1078,12 +1256,15 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
         }
       }
     }
-    Respond(request, result);
+    Respond(request, std::move(result));
     return;
   }
   if (method == "textDocument/didSave")
   {
-    if (documents.contains(uri)) Reanalyze();
+    if (documents.contains(uri))
+    {
+      analysis_dirty = true;
+    }
     return;
   }
   if (method == "textDocument/didClose")
@@ -1091,7 +1272,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
     auto it = documents.find(uri);
     if (it != documents.end()) PublishDiagnostics(it->second, vector<SDiagnostic>());
     documents.erase(uri);
-    Reanalyze();
+    analysis_dirty = true;
     return;
   }
   string path = FilePathFromUri(uri);
@@ -1114,7 +1295,7 @@ void ODqLanguageServer::Handle(const TJsonNode & request)
   document.text = text_value->GetAsString();
   document.revision = ++document_revision;
   document.version = JsonInteger(JsonChild(*text_document, "version"), document.version + 1);
-  Reanalyze();
+  analysis_dirty = true;
 }
 
 int RunDqLanguageServer()

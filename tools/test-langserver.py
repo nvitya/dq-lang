@@ -210,6 +210,17 @@ def run_cache(compiler):
                 change_document(main, main_text + '\n', 2)
                 assert not analyze(), diagnostics
                 assert artifacts() == cached, 'An unrelated edit rebuilt unchanged module interfaces'
+                comp = request('textDocument/completion', {
+                    'textDocument': {'uri': main.as_uri()},
+                    'position': {'line': 1, 'character': main_text.splitlines()[1].index('VALUE')}
+                })
+                comp_items = comp.get('items', []) if isinstance(comp, dict) else comp
+                assert any(item['label'] == 'VALUE' for item in comp_items), comp_items
+                defn = request('textDocument/definition', {
+                    'textDocument': {'uri': main.as_uri()},
+                    'position': {'line': 1, 'character': main_text.splitlines()[1].index('VALUE')}
+                })
+                assert defn and defn[0]['uri'] == include.as_uri(), defn
                 change_document(include, original, 2)
                 assert not analyze(), diagnostics
                 assert artifacts() == cached, 'Identical buffer text invalidated the cache'

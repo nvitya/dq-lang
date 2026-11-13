@@ -608,6 +608,12 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
       if (!value) return "Missing result path after --langserver-result";
       langserver_result_filename = value;
     }
+    else if ("--langserver-known-interfaces" == v)
+    {
+      const char * value = require_value(i);
+      if (!value) return "Missing path after --langserver-known-interfaces";
+      langserver_known_interfaces_filename = value;
+    }
     else if ("--no-use-sys" == v)  no_use_sys = true;
     else if ("--exceptions" == v)     SetExceptions(true);
     else if ("--no-exceptions" == v)  SetExceptions(false);
@@ -823,6 +829,7 @@ bool OCompOptions::CommandLineOptionHasValue(const string & option)
          || (option == "--source-overlay")
          || (option == "--langserver-source")
          || (option == "--langserver-result")
+         || (option == "--langserver-known-interfaces")
          || (option == "--clientProcessId")
          || (option == "-o");
 }

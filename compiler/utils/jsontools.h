@@ -117,6 +117,7 @@ public:
   TJsonNode& Add(const string& name, bool b);
   TJsonNode& Add(const string& name, double d);
   TJsonNode& Add(const string& name, const string& s);
+  TJsonNode& Add(const string& name, TJsonNode&& child);
 
   TJsonNode& Add(); // array item
 
@@ -166,5 +167,6 @@ private:
   void ParseValueIntoThis(const char*& p);
 
   string FormatPretty(const string& pad, const string& indent) const;
+  void   AppendCompact(string& out) const;
   string FormatCompact() const;
 };

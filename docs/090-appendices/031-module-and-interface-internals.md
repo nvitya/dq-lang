@@ -28,6 +28,16 @@ Public bodies are serialized only when importer-side compilation requires them,
 such as implemented inline assembly templates. Ordinary function bodies remain
 in source/code generation and are not general interface payloads.
 
+Source `#define` values are serialized separately from ordinary public constants.
+A `DQMIF_DEFINE` marker precedes the existing constant record format; loading it
+populates the module's definition map without adding a public module symbol.
+Imports merge this map into the current module's `@def` scope. Only explicit
+reexports carry imported definitions into subsequent interfaces; source
+definitions in the implementation section are not exported.
+Typed definitions reuse constant/type serialization, with separate linker names
+and exported storage for aggregates. Built-in and command-line definitions are
+not included. Format version 1.29 requires older interfaces to be regenerated.
+
 ## Identity and Dependencies
 
 Every interface records canonical module identity, target/ABI-relevant context,

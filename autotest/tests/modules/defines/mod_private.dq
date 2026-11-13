@@ -1,0 +1,6 @@
+//?notest
+#define PUBLIC_FEATURE
+
+implementation
+use ./mod_defines
+#define PRIVATE_SPEED : uint = MAX_CLOCK_SPEED

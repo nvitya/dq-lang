@@ -1,0 +1,18 @@
+use libc/stdio
+use ./mod_bridge
+use ./mod_defines
+use ./mod_defines as repeated only(BOARD_NAME)
+
+#if MAX_CLOCK_SPEED == 200000000 and Defined(@def.FEATURE_DISABLED) and not FEATURE_DISABLED
+    const CONFIG_OK : int = 1
+#else
+    const CONFIG_OK : int = 0
+#endif
+
+func *Main():
+    printf("clock = %lu %lu\n", MAX_CLOCK_SPEED, @def.MAX_CLOCK_SPEED) //?check("clock", "200000000 200000000")
+    printf("bridge = %lu\n", BRIDGE_SPEED) //?check("bridge", 200000001)
+    printf("config = %li\n", CONFIG_OK) //?check("config", 1)
+    printf("names = %s %s\n", BOARD_NAME.pchar, @def.BOARD_NAME.pchar) //?check("names", "ordinary-constant module-board")
+    printf("aggregate = %u %lu\n", uint(BYTES[2]), CLOCK.speed) //?check("aggregate", "8 200000000")
+endfunc

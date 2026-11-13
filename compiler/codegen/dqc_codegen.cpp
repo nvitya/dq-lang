@@ -267,6 +267,11 @@ void ODqCompCodegen::GenerateIr()
       intf->module_init_func->GenGlobalDecl(true, nullptr);
     }
 
+    for (const auto & [define_name, value] : intf->exported_defines)
+    {
+      value->GenGlobalImportDecl();
+    }
+
     for (OIntfDecl * decl : intf->declarations)
     {
       if (!decl)

@@ -1492,6 +1492,11 @@ public:
       CollectDeclarationDependencies(decl, root->name);
     }
 
+    for (const auto & [define_name, value] : root->exported_defines)
+    {
+      CollectValueDependencies(value, root->name);
+    }
+
     for (OModuleUse * use : root->used_modules)
     {
       if (!use || !use->module || use->is_private) continue;
@@ -1812,6 +1817,11 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer,
     {
       return false;
     }
+  }
+
+  for (const auto & [define_name, value] : exported_defines)
+  {
+    if (!writer.AddRecEmpty(DQMIF_DEFINE) || !value->WriteDqmIfDecl(writer)) return false;
   }
 
   return true;
@@ -2473,7 +2483,7 @@ bool OModuleIntf::ReadEnumDecl(ODqmIfReader & reader)
   return AddPublicType(enum_type) != nullptr;
 }
 
-bool OModuleIntf::ReadConstDecl(ODqmIfReader & reader)
+bool OModuleIntf::ReadConstDecl(ODqmIfReader & reader, bool adefine)
 {
   string declname;
   if (!reader.ReadString(declname) || !reader.NextRec())
@@ -2518,6 +2528,11 @@ bool OModuleIntf::ReadConstDecl(ODqmIfReader & reader)
   vsym->declaration_position = std::move(declaration_pos);
   vsym->owner_module_name = name;
   ApplyDqmIfAttributes(vsym, attrs);
+  if (adefine)
+  {
+    exported_defines.emplace(declname, vsym);
+    return true;
+  }
   return AddPublicValSym(vsym) != nullptr;
 }
 
@@ -3592,6 +3607,11 @@ bool OModuleIntf::ReadDqmIfRecords(ODqmIfReader & reader)
         if (!reader.SkipGroup(DQMIF_ENUM_BEGIN, DQMIF_ENUM_END)) return false;
       }
       else if (!ReadEnumDecl(reader)) return false;
+    }
+    else if (DQMIF_DEFINE == reader.recid)
+    {
+      if (!reader.ExpectEmpty(DQMIF_DEFINE) || !reader.NextRec()
+          || DQMIF_CONST_BEGIN != reader.recid || !ReadConstDecl(reader, true)) return false;
     }
     else if (DQMIF_CONST_BEGIN == reader.recid)
     {

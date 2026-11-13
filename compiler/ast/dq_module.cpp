@@ -108,6 +108,17 @@ ODecl * OModule::DeclareType(bool apublic, OType * atype, OType * abefore)
   return result;
 }
 
+void OModule::DeclareDefine(bool apublic, OValSymConst * avalue)
+{
+  if (g_defines->DefineValSym(avalue) != avalue) return;
+  if (apublic) exported_defines.emplace(avalue->name, avalue);
+  avalue->module = this;
+  // Defines have separate storage names, since ordinary constants may shadow them.
+  avalue->attr_has_linkage_name = true;
+  avalue->attr_linkage_name = LinkerSymbolNameForModule(name, "@def." + avalue->name);
+  DeclareHiddenValSym(apublic, avalue);
+}
+
 ODecl * OModule::DeclareValSym(bool apublic, OValSym * avalsym)
 {
   bool effective_public = apublic;
@@ -452,6 +463,15 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
   }
 
   used_modules.push_back(use);
+
+  // Import definitions independently of namespace/selective symbol imports.
+  // Only reexports expose imported definitions to this module's callers.
+  // Repeated and diamond imports keep the definition already in scope.
+  for (const auto & [define_name, value] : intf->exported_defines)
+  {
+    if (areexport && !ais_private) exported_defines.emplace(define_name, value);
+    g_defines->valsyms.emplace(define_name, value);
+  }
 
   if ((MUM_ALL == amerge_mode || MUM_ONLY == amerge_mode || MUM_EXCLUDE == amerge_mode) && amerge_scope)
   {

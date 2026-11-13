@@ -1,0 +1,3 @@
+//?notest
+use ./mod_defines as config --
+#define BRIDGE_SPEED : uint = MAX_CLOCK_SPEED + 1

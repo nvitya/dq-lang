@@ -676,7 +676,7 @@ void OScFeederDq::ParseDirectiveDefine()
   OValSymConst * defineval = g_compiler->ParseDefineConst(scpos_start_directive, sid);
   if (defineval)
   {
-    g_defines->DefineValSym(defineval);
+    g_module->DeclareDefine(!implementation_section, defineval);
   }
   FindDirectiveEnd();
   g_compiler->errorpos = nullptr;  // return to the default error position (statement start)

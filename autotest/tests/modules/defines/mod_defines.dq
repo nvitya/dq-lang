@@ -1,0 +1,10 @@
+//?notest
+const BOARD_NAME : rostr = "ordinary-constant"
+#define MAX_CLOCK_SPEED : uint = 200000000
+#define BOARD_NAME : rostr = "module-board"
+#define FEATURE_DISABLED : bool = false
+#define BYTES : [3]uint8 = [2, 4, 8]
+struct SClock:
+    speed : uint
+endstruct
+#define CLOCK : SClock = {speed: MAX_CLOCK_SPEED}

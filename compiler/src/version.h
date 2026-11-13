@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.9"
+#define DQ_COMPILER_VERSION  "0.96.10"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.10:
+  - `#define` symbols are exported like normal `const` symbols, but they merged into the `@def.` scope
 v0.96.9:
   - Module-qualify object vtable and typeinfo linker symbols
   - Fix boolean constant folding for unsigned/64-bit comparisons and short-circuiting

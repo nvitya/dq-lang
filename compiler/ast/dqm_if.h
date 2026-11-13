@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    27 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    27 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    29 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    29 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -202,6 +202,7 @@ TDqmIfRecId  DQMIF_ENUM_END               = 0x024F;  // 0
 
 // 0300: Constants
 
+TDqmIfRecId  DQMIF_DEFINE                = 0x0301;  // 0: next constant belongs to @def
 TDqmIfRecId  DQMIF_CONST_BEGIN            = 0x0300;  // str: constant name
 // exp.:     type spec
 // exp.:     DQMIF_VALUE_INLINE / DQMIF_VALUE_LINKED

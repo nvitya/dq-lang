@@ -1,0 +1,5 @@
+//?notest
+use ./mod_defines reexport
+
+implementation
+#define PRIVATE_FEATURE

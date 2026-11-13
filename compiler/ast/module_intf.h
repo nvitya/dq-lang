@@ -74,7 +74,7 @@ private:
   bool ReadFunctionRefTypeSpec(ODqmIfReader & reader, bool aobject_ref, OType *& rtype);
   bool ReadTypeDecl(ODqmIfReader & reader);
   bool ReadEnumDecl(ODqmIfReader & reader);
-  bool ReadConstDecl(ODqmIfReader & reader);
+  bool ReadConstDecl(ODqmIfReader & reader, bool adefine = false);
   bool ReadVarDecl(ODqmIfReader & reader);
   bool ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner_type, bool amethod);
   bool ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype);
@@ -112,6 +112,7 @@ private:
   void WriteCompoundDump(ostream & out, OCompoundType * atype, const string & indent);
 
 public:
+  map<string, OValSymConst *> exported_defines;
   vector<SSourceDependency> source_dependencies;
   vector<pair<string, string>> module_sources;
   int64_t  object_filesize = 0;

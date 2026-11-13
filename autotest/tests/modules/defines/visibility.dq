@@ -1,0 +1,22 @@
+use libc/stdio
+use ./mod_bridge
+use ./mod_private
+
+// B's definitions are visible in A, but A's ordinary use must not leak them.
+const HIDDEN_B : bool = not Defined(MAX_CLOCK_SPEED) and not Defined(@def.MAX_CLOCK_SPEED)
+const HIDDEN_TYPE : bool = not Defined(SClock)
+const PRIVATE_IMPORT_HIDDEN : bool = Defined(PUBLIC_FEATURE) and not Defined(PRIVATE_SPEED)
+
+use ./mod_reexport
+
+// Reexporting B exposes its definitions and types, including aggregate storage.
+const EXPORTED_B : bool = Defined(MAX_CLOCK_SPEED) and Defined(@def.MAX_CLOCK_SPEED)
+const PRIVATE_HIDDEN : bool = not Defined(@def.PRIVATE_FEATURE)
+
+func *Main():
+    printf("hidden = %d %d\n", HIDDEN_B, HIDDEN_TYPE) //?check("hidden", "1 1")
+    printf("private import = %d\n", PRIVATE_IMPORT_HIDDEN) //?check("private import", 1)
+    printf("bridge = %lu\n", BRIDGE_SPEED) //?check("bridge", 200000001)
+    printf("exported = %d %d\n", EXPORTED_B, PRIVATE_HIDDEN) //?check("exported", "1 1")
+    printf("values = %lu %u %lu\n", @def.MAX_CLOCK_SPEED, uint(BYTES[2]), CLOCK.speed) //?check("values", "200000000 8 200000000")
+endfunc

@@ -50,10 +50,30 @@ target settings.
 
 Definitions belong to the `@def` namespace and are normally available by their
 short names. Use `@def.BUFFER_SIZE` if a local declaration has the same name.
-DQ definitions provide constant values; they do not perform C-style textual
-macro substitution. For ordinary program constants, use `const`. Definitions
-are useful when the build configuration and conditional compilation need to
-refer to the same setting.
+A `use` makes the imported module's public definitions available in `@def`.
+Imported definitions are visible within the importing module, but reach its
+callers only when that import uses `reexport`. For example, if A uses B and MAIN
+uses A, MAIN sees B's definitions only if A reexports B. Definitions declared
+after `implementation` stay private to their module.
+
+This works with cached modules. Namespace-only and selective imports also make
+definitions available within the importing module. Repeated imports keep the
+definition already in scope. Command-line, project, and target definitions are
+build inputs available to every module; they are not exported by modules.
+
+Use `const` for ordinary program data such as clock frequencies, limits, strings,
+and lookup tables. Use `#define` for configuration and feature selection, such
+as MCU families, board capabilities, and optional functionality:
+
+```dq
+#define MCUF_RK
+const MAX_CLOCK_SPEED : uint = 200000000
+```
+
+A typed `#define` is useful when the value itself is a configuration setting.
+Both constants and definitions can be used in expressions and conditional
+compilation. Definitions provide constant values, not C-style textual macro
+substitution.
 
 ## Conditional Compilation
 

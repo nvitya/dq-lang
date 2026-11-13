@@ -1604,7 +1604,7 @@ int OCompoundType::AnalyzeLiteral(OStructLit * literal, uint32_t aflags, bool co
     {
       if (promoted_union_entry)
       {
-        entry.value = new OStructLit({{entry.name, entry.value}}, false);
+        entry.value = new OStructLit({{entry.name, entry.value, nullptr, {}}}, false);
       }
       if (!g_compiler->ConvertExprToType(field->ptype, &entry.value,
                                          aflags | EXPCF_ALLOW_LAZY_EMBSTR))

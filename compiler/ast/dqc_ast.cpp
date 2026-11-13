@@ -179,6 +179,15 @@ bool ODqCompAst::ResolveCompoundMemberBase(OLValueExpr * lval, OType * srctype, 
   return false;
 }
 
+OLValueVar * ODqCompAst::CreateVarExpr(OValSym * vs)
+{
+  if (curvsfunc && vs)
+  {
+    curvsfunc->AddCapture(vs);
+  }
+  return new OLValueVar(vs);
+}
+
 ODecl * ODqCompAst::AddDeclVar(OScPosition & scpos, string aid, OType * atype)
 {
   OValSym * pvalsym = atype->CreateValSym(scpos, aid);
@@ -1342,7 +1351,7 @@ OExpr * ODqCompAst::CreateImplicitObjectMemberExpr(const string & sid, OValSym *
       Error(DQERR_MEMBER_UNKNOWN, sid, curvsfunc->owner_compound_type->name);
       return nullptr;
     }
-    return new OPropertyExpr(new OLValueVar(curvsfunc->receiver_arg), property);
+    return new OPropertyExpr(CreateVarExpr(curvsfunc->receiver_arg), property);
   }
 
   int midx = decl_type->FindMemberIndex(sid);
@@ -1356,7 +1365,7 @@ OExpr * ODqCompAst::CreateImplicitObjectMemberExpr(const string & sid, OValSym *
     return nullptr;
   }
 
-  return new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, vs);
+  return new OLValueMember(CreateVarExpr(curvsfunc->receiver_arg), decl_type, midx, vs);
 }
 
 bool ODqCompAst::ObjectMemberAccessAllowed(OCompoundType * decl_type, OValSym * member) const

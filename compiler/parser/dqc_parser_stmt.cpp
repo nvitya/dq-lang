@@ -998,7 +998,10 @@ void ODqCompParserStmt::ReadStatementBlock(OStmtBlock * stblock, const string bl
     for (auto chunk : split_view)
     {
       string chunkstr = string(string_view(chunk));
-      if (scf->CheckSymbol(chunkstr.c_str()))
+      bool is_word = !chunkstr.empty() && ((chunkstr[0] >= 'a' && chunkstr[0] <= 'z')
+          || (chunkstr[0] >= 'A' && chunkstr[0] <= 'Z') || ('_' == chunkstr[0]));
+      bool matched = is_word ? scf->CheckKeyword(chunkstr.c_str()) : scf->CheckSymbol(chunkstr.c_str());
+      if (matched)
       {
         endfound = true;
         if (rendstr)  *rendstr = chunkstr;
@@ -1679,9 +1682,9 @@ void ODqCompParserStmt::ParseStmtFor()
     return new OIntLit(1);
   };
 
-  auto make_compare = [](OValSym * var, ECompareOp op, OExpr * right) -> OExpr *
+  auto make_compare = [this](OValSym * var, ECompareOp op, OExpr * right) -> OExpr *
   {
-    return new OCompareExpr(op, new OLValueVar(var), right);
+    return new OCompareExpr(op, CreateVarExpr(var), right);
   };
 
   auto find_loopvar = [&](const string & name) -> OValSym *
@@ -2135,6 +2138,24 @@ void ODqCompParserStmt::ParseStmtIf()
     ReadStatementBlock(branch->body, "endif|elif|else", &endstr);
     branch->body->scope->RevertFirstAssignments();
 
+    if ("}" == endstr) // for braces mode
+    {
+      scf->SkipWhite();
+      if (scf->CheckKeyword("elif"))
+      {
+        endstr = "elif";
+      }
+      else if (scf->CheckKeyword("else"))
+      {
+        endstr = "else";
+      }
+      else
+      {
+        scf->CheckKeyword("endif");  // optional endif after closing brace
+        endstr = "endif";
+      }
+    }
+
     if ("endif" == endstr)
     {
       break;  // if closed
@@ -2148,9 +2169,9 @@ void ODqCompParserStmt::ParseStmtIf()
         StatementError(DQERR_CONDEXPR_MISSING_FOR, "elif");
         break;
       }
-      if (TK_BOOL != cond->ResolvedType()->kind)
+      if (!cond->ResolvedType() || TK_BOOL != cond->ResolvedType()->kind)
       {
-        Error(DQERR_BOOL_EXPR_EXPECTED, cond->ResolvedType()->name);
+        Error(DQERR_BOOL_EXPR_EXPECTED, cond->ResolvedType() ? cond->ResolvedType()->name : "<void>");
         // continue for better error recovery
       }
 
@@ -2170,26 +2191,6 @@ void ODqCompParserStmt::ParseStmtIf()
       continue;
     }
 
-    if ("}" == endstr) // for braces mode
-    {
-      scf->SkipWhite();
-      if (scf->CheckSymbol("endif"))
-      {
-        endstr = "endif";
-        continue;
-      }
-      if (scf->CheckSymbol("elif"))
-      {
-        endstr = "elif";
-        continue;
-      }
-      if (scf->CheckSymbol("else"))
-      {
-        endstr = "else";
-        continue;
-      }
-    }
-
     break;
   }
 
@@ -2201,7 +2202,7 @@ void ODqCompParserStmt::ParseStmtIf()
     {
       // check if this vs presents in all the other scopes
       bool initok = true;
-      for (int bi = 1; bi < st->branches.size(); ++bi)
+      for (size_t bi = 1; bi < st->branches.size(); ++bi)
       {
         OScope * scp = st->branches[bi]->body->scope;
         if (not scp->FirstAssigned(vs))

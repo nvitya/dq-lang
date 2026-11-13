@@ -153,6 +153,8 @@ void OScFeederBase::Reset()
   curfile = nullptr;
   curp = nullptr;
   bufend = nullptr;
+  prevp = nullptr;
+  prevlen = 0;
   clstart = nullptr;
   curline = 1;
   curcol  = 1;
@@ -161,6 +163,10 @@ void OScFeederBase::Reset()
 
 string OScFeederBase::PrevStr()
 {
+  if (!prevp || prevlen <= 0)
+  {
+    return "";
+  }
   string result(prevp, prevlen);
   return result;
 }
@@ -393,7 +399,12 @@ bool OScFeederBase::SearchPattern(const char * checkstr, bool aconsume)  // read
   char *    newclstart = clstart;
 
   // check start pos cycle
-  while (cps < bufend - csslen)
+  if (!bufend || (cps > bufend) || (size_t(bufend - cps) < csslen))
+  {
+    return false;
+  }
+  char * limit = bufend - csslen;
+  while (cps <= limit)
   {
     // check chars cycle
     p = cps;
@@ -484,6 +495,10 @@ bool OScFeederBase::CheckKeyword(const char * checkstring, bool aconsume)
   };
 
   const size_t len = strlen(checkstring);
+  if (!curfile || !curfile->pstart || (curp > bufend))
+  {
+    return false;
+  }
   if ((curp > curfile->pstart && is_identifier_char(curp[-1]))
       || (size_t(bufend - curp) > len && is_identifier_char(curp[len])))
   {
@@ -556,10 +571,10 @@ bool OScFeederBase::IsNumChar()
 
 bool OScFeederBase::ReadInt64Value(int64_t & rvalue)
 {
-  char *   p = curp;
-  int64_t  result = 0;
-  int64_t  signmul = 1;
-  bool     bok = false;
+  char *    p = curp;
+  uint64_t  result = 0;
+  int64_t   signmul = 1;
+  bool      bok = false;
 
   SaveCurPos(prevpos);  // for precise error position tracking
   prevp = curp;
@@ -568,7 +583,7 @@ bool OScFeederBase::ReadInt64Value(int64_t & rvalue)
     char c = *p;
     if ((c >= '0') and (c <= '9'))
     {
-      result = result * 10 + (c - '0');
+      result = result * 10 + uint64_t(c - '0');
       bok = true;
     }
     else if ((c == '-') and (p == curp))
@@ -593,7 +608,7 @@ bool OScFeederBase::ReadInt64Value(int64_t & rvalue)
     curp = p; // consume
     curcol = (curp - clstart) + 1;
     last_token_end_line = curline;
-    rvalue = result;
+    rvalue = (signmul < 0) ? int64_t(0ULL - result) : int64_t(result);
   }
 
   return bok;
@@ -947,7 +962,7 @@ bool OScFeederBase::ReadFloatFracExp(double & rvalue)
 
   double fpval = rvalue;
 
-  if ('.' == *curp)
+  if ((curp < bufend) && ('.' == *curp))
   {
     // parse fractional part
     ++curp;
@@ -968,21 +983,29 @@ bool OScFeederBase::ReadFloatFracExp(double & rvalue)
     }
   }
 
-  if (('e' == *curp) || ('E' == *curp))
+  if ((curp < bufend) && (('e' == *curp) || ('E' == *curp)))
   {
     // parse exponential part
     ++curp;
     double fpexp = 0.0;
     double fpexpsign = 1;
+    if (curp < bufend)
+    {
+      if ('-' == *curp)
+      {
+        fpexpsign = -1;
+        ++curp;
+      }
+      else if ('+' == *curp)
+      {
+        ++curp;
+      }
+    }
     bool expok = false;
     while (curp < bufend)
     {
       char c = *curp;
-      if ('-' == c)
-      {
-        fpexpsign = -1;
-      }
-      else if (c >= '0' and c <= '9')
+      if (c >= '0' and c <= '9')
       {
         fpexp = fpexp * 10 + (c - '0');
         expok = true;

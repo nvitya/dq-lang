@@ -46,9 +46,9 @@ public:
 
   OTypeInt(const string name, uint8_t abitlength, bool asigned, ETypeKind akind = TK_INT)
   :
+    super(name, akind),
     bitlength(abitlength),
-    issigned(asigned),
-    super(name, akind)
+    issigned(asigned)
   {
     bytesize = ((abitlength + 7) >> 3);
     alignsize = bytesize;
@@ -61,6 +61,7 @@ public:
 
   int64_t NormalizeConstant(uint64_t rawbits) const;
   int64_t ConvertConstant(int64_t value) const;
+  bool ConvertFloatConstant(double d, int64_t & out) const;
 
   LlType * CreateLlType() override
   {

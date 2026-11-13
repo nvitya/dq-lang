@@ -104,6 +104,13 @@ void OScFeederDq::Reset()
 {
   super::Reset();
 
+  while (curcond)
+  {
+    OScfCondition * p = curcond->parent;
+    delete curcond;
+    curcond = p;
+  }
+
   for (OScFile * f : scfiles)
   {
     delete f;
@@ -114,6 +121,9 @@ void OScFeederDq::Reset()
   source_dependencies.clear();
   main_source_path.clear();
   header_source_path.clear();
+  inactive_code = false;
+  preproc_closer_brace = true;
+  directive_expr_mode = false;
   implementation_section = false;
   asm_mode = false;
 }
@@ -578,7 +588,7 @@ void OScFeederDq::ParseDirective()
 
   if (CheckSymbol("{"))
   {
-    preproc_closer_brace = "}";
+    preproc_closer_brace = true;
     SkipSpaces(false);
   }
   else
@@ -847,7 +857,7 @@ void OScFeederDq::PreprocError2(const TDiagDefErr & adiag, string_view par1, str
   {
     if (preproc_closer_brace)
     {
-      if (ReadToChar('{')) // find the closing
+      if (ReadToChar('}')) // find the closing
       {
         CheckSymbol("}"); // consume
       }
@@ -1039,7 +1049,9 @@ bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a cond
         PreprocError2(DQERR_CDIR_COND_WRONG_INC, "#endif", "#if");
       }
       inactive_code = curcond->parent_inactive;
+      OScfCondition * finished = curcond;
       curcond = curcond->parent;
+      delete finished;
       if (g_opt.verblevel >= VERBLEVEL_DEBUG)
       {
         print("{}: #endif {}\n", scpos_start_directive.Format(), (inactive_code ? "(inactive)" : ""));

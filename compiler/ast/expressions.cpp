@@ -214,7 +214,6 @@ LlValue * OLValueExpr::GenerateObjectAddress(OScope * scope)
 {
   ptype = avalsym->ptype;
   pvalsym = avalsym;
-  if (g_compiler->curvsfunc) g_compiler->curvsfunc->AddCapture(avalsym);
 }
 
 LlValue * OLValueVar::GenerateAddress(OScope * scope)
@@ -614,12 +613,11 @@ OLValueExpr * OLValueMember::Clone() const
 
 LlValue * OLValueIndex::GenerateAddress(OScope * scope)
 {
-  LlValue * ll_index = indexexpr->Generate(scope);
+  LlValue * ll_index = ToNativeInt(indexexpr->Generate(scope), indexexpr->ResolvedType());
 
   if (TK_ARRAY == containertype->kind)
   {
     // Fixed array: GEP with {0, index} into [N x T]
-    ll_index = ll_builder.CreateSExtOrTrunc(ll_index, LlNativeIntType());
     LlValue * baseaddr = base->GenerateAddress(scope);
     LlValue * ll_zero = LlNativeIntConst(0);
     return ll_builder.CreateGEP(
@@ -673,7 +671,7 @@ LlValue * OLValueIndex::Generate(OScope * scope)
   OType * resolved_container = containertype->ResolveAlias();
   if (auto * strtype = dynamic_cast<OTypeString *>(resolved_container))
   {
-    return strtype->GenerateGetChar(scope, base, indexexpr->Generate(scope));
+    return strtype->GenerateGetChar(scope, base, ToNativeInt(indexexpr->Generate(scope), indexexpr->ResolvedType()));
   }
   if (IsObjectReferenceExpr())
   {
@@ -774,21 +772,21 @@ LlValue * OArraySliceExpr::Generate(OScope * scope)
 
   LlValue * zero = LlNativeIntConst(0);
 
-  LlValue * start = (startexpr ? startexpr->Generate(scope) : zero);
-  LlValue * end   = (endexpr   ? endexpr->Generate(scope) : len);
+  LlValue * start = (startexpr ? ToNativeInt(startexpr->Generate(scope), startexpr->ResolvedType()) : zero);
+  LlValue * end   = (endexpr   ? ToNativeInt(endexpr->Generate(scope), endexpr->ResolvedType())     : ToNativeUInt(len));
   if (end_inclusive && endexpr)
   {
-    end = ll_builder.CreateBinaryIntrinsic(llvm::Intrinsic::sadd_sat, ToNativeInt(end),
+    end = ll_builder.CreateBinaryIntrinsic(llvm::Intrinsic::sadd_sat, end,
         LlNativeIntConst(1), nullptr, "slice.end.inclusive");
   }
 
   LlValue * descaddr = CreateEntryBlockAlloca(ptype->GetLlType(), nullptr, "arr.slice.desc");
   OTypeArraySlice::CallRuntimeFunc(scope, "RawArrayGetSlice", {
       data_ptr,
-      ToNativeInt(len),
+      ToNativeUInt(len),
       llvm::ConstantInt::get(g_builtins->native_int->GetLlType(), elemtype->bytesize),
-      ToNativeInt(start),
-      ToNativeInt(end),
+      start,
+      end,
       descaddr
   });
   return ll_builder.CreateLoad(ptype->GetLlType(), descaddr, "arr.slice");
@@ -854,14 +852,14 @@ LlValue * OArrayIndexOfExpr::Generate(OScope * scope)
 
   if (TK_DYNSTR == elemtype->ResolveAlias()->kind)
   {
-    return g_builtins->type_str->GenerateArrayIndexOf(scope, dataptr, ToNativeInt(length), value);
+    return g_builtins->type_str->GenerateArrayIndexOf(scope, dataptr, ToNativeUInt(length), value);
   }
 
   LlValue * valueaddr = CreateEntryBlockAlloca(elemtype->GetLlType(), nullptr, "arr.indexof.value");
   ll_builder.CreateStore(value->Generate(scope), valueaddr);
   return OTypeArraySlice::CallRuntimeFunc(scope, "RawArrayIndexOf", {
       dataptr,
-      ToNativeInt(length),
+      ToNativeUInt(length),
       llvm::ConstantInt::get(g_builtins->native_int->GetLlType(), elemtype->bytesize),
       valueaddr
   });
@@ -1715,7 +1713,6 @@ LlValue * OIifExpr::Generate(OScope * scope)
   }
 
   LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
-  LlBasicBlock * cond_bb  = ll_builder.GetInsertBlock();
   LlBasicBlock * true_bb  = LlBasicBlock::Create(ll_ctx, "iif.true", ll_func);
   LlBasicBlock * false_bb = LlBasicBlock::Create(ll_ctx, "iif.false", ll_func);
   LlBasicBlock * merge_bb = LlBasicBlock::Create(ll_ctx, "iif.end", ll_func);
@@ -2080,6 +2077,25 @@ OPointerIndexExpr::~OPointerIndexExpr()
   ptype = alloc_type->GetPointerType();
 }
 
+static void EmitCtorCallWithCleanup(OScope * scope, LlValue * ll_self, OTypeFunc * ctor_type,
+                                    LlFuncType * ll_calltype, LlValue * ll_callee,
+                                    const vector<OExpr *> & ctor_args)
+{
+  OCallLifetimeCleanup cleanup(scope, ctor_args);
+  vector<LlValue *> ll_args;
+  ll_args.push_back(ll_self);
+  for (size_t i = 0; i < ctor_args.size(); ++i)
+  {
+    LlValue * arg_val = ctor_args[i]->Generate(scope);
+    OFuncParam * param = (ctor_type && (i + 1) < ctor_type->params.size()) ? ctor_type->params[i + 1] : nullptr;
+    cleanup.CaptureArgument(ctor_args[i], arg_val, param);
+    ll_args.push_back(arg_val);
+  }
+  cleanup.Prepare();
+  scope->GenerateCallOrInvoke(ll_calltype, ll_callee, ll_args);
+  cleanup.Cleanup();
+}
+
 LlValue * ONewExpr::Generate(OScope * scope)
 {
   if (!memalloc_func || !memalloc_func->ll_func)
@@ -2106,20 +2122,10 @@ LlValue * ONewExpr::Generate(OScope * scope)
 
   if (ctor_func)
   {
-    OCallLifetimeCleanup cleanup(scope, ctor_args);
     auto * ctor_type = dynamic_cast<OTypeFunc *>(ctor_func->ptype ? ctor_func->ptype->ResolveAlias() : nullptr);
-    vector<LlValue *> ll_args;
-    ll_args.push_back(ll_ptr);
-    for (size_t i = 0; i < ctor_args.size(); ++i)
-    {
-      LlValue * arg_val = ctor_args[i]->Generate(scope);
-      OFuncParam * param = (ctor_type && (i + 1) < ctor_type->params.size()) ? ctor_type->params[i + 1] : nullptr;
-      cleanup.CaptureArgument(ctor_args[i], arg_val, param);
-      ll_args.push_back(arg_val);
-    }
-    cleanup.Prepare();
-    scope->GenerateCallOrInvoke(static_cast<LlFuncType *>(ctor_func->ptype->GetLlType()), ctor_func->ll_func, ll_args);
-    cleanup.Cleanup();
+    EmitCtorCallWithCleanup(scope, ll_ptr, ctor_type,
+                            static_cast<LlFuncType *>(ctor_func->ptype->GetLlType()),
+                            ctor_func->ll_func, ctor_args);
   }
 
   return ll_ptr;
@@ -2200,23 +2206,11 @@ LlValue * ODynamicNewObjectExpr::Generate(OScope * scope)
     ll_builder.CreateCondBr(ll_ctor_is_null, bb_done, bb_ctor_call);
 
     ll_builder.SetInsertPoint(bb_ctor_call);
-    vector<LlValue *> ll_args;
-    ll_args.push_back(ll_ptr);
-    for (OExpr * arg : ctor_args)
-    {
-      ll_args.push_back(arg->Generate(scope));
-    }
-
-    LlFuncType * ll_calltype = nullptr;
-    if (ctor_func)
-    {
-      ll_calltype = static_cast<LlFuncType *>(static_cast<OTypeFunc *>(ctor_func->ptype)->GetLlType());
-    }
-    else
-    {
-      ll_calltype = LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {ptr_type}, false);
-    }
-    scope->GenerateCallOrInvoke(ll_calltype, ll_ctor, ll_args);
+    auto * ctor_type = ctor_func ? dynamic_cast<OTypeFunc *>(ctor_func->ptype ? ctor_func->ptype->ResolveAlias() : nullptr) : nullptr;
+    LlFuncType * ll_calltype = ctor_func
+        ? static_cast<LlFuncType *>(static_cast<OTypeFunc *>(ctor_func->ptype)->GetLlType())
+        : LlFuncType::get(llvm::Type::getVoidTy(ll_ctx), {ptr_type}, false);
+    EmitCtorCallWithCleanup(scope, ll_ptr, ctor_type, ll_calltype, ll_ctor, ctor_args);
     ll_builder.CreateBr(bb_done);
 
     ll_builder.SetInsertPoint(bb_done);
@@ -3064,7 +3058,6 @@ LlValue * OIndirectCallExpr::Generate(OScope * scope)
   LlFunction * ll_parent = ll_builder.GetInsertBlock()->getParent();
   LlBasicBlock * ok_bb = LlBasicBlock::Create(ll_ctx, "cb.call.ok", ll_parent);
   LlBasicBlock * trap_bb = LlBasicBlock::Create(ll_ctx, "cb.call.trap", ll_parent);
-  LlBasicBlock * prev_bb = ll_builder.GetInsertBlock();
 
   ll_builder.CreateCondBr(ll_is_null, trap_bb, ok_bb);
 

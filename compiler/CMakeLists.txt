@@ -29,6 +29,9 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 
 # Enable Debug symbols
 add_compile_options(-g)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  add_compile_options(-Wall -Wextra -Wno-unused-parameter)
+endif()
 
 include_directories(src)
 include_directories(ast)
@@ -36,7 +39,6 @@ include_directories(types)
 include_directories(parser)
 include_directories(builtins)
 include_directories(codegen)
-include_directories(src_test)
 include_directories(utils)
 include_directories(tools)
 include_directories(langserver)
@@ -47,11 +49,10 @@ file(GLOB SRC_TYPES     CONFIGURE_DEPENDS "types/*.cpp")
 file(GLOB SRC_CODEGEN   CONFIGURE_DEPENDS "codegen/*.cpp")
 file(GLOB SRC_PARSER    CONFIGURE_DEPENDS "parser/*.cpp")
 file(GLOB SRC_BUILTINS  CONFIGURE_DEPENDS "builtins/*.cpp")
-file(GLOB SRC_SRC_TEST  CONFIGURE_DEPENDS "src_test/*.cpp")
 file(GLOB SRC_UTILS     CONFIGURE_DEPENDS "utils/*.cpp")
 file(GLOB SRC_LANGSERVER CONFIGURE_DEPENDS "langserver/*.cpp")
 
-add_executable(dq-comp ${SRC_SRC} ${SRC_AST} ${SRC_TYPES} ${SRC_PARSER} ${SRC_CODEGEN} ${SRC_BUILTINS} ${SRC_SRC_TEST} ${SRC_UTILS} ${SRC_LANGSERVER})
+add_executable(dq-comp ${SRC_SRC} ${SRC_AST} ${SRC_TYPES} ${SRC_PARSER} ${SRC_CODEGEN} ${SRC_BUILTINS} ${SRC_UTILS} ${SRC_LANGSERVER})
 add_executable(dq-run tools/main_dq_run.cpp ${SRC_UTILS})
 add_executable(dq-inline-asm-test
     test/inline_asm_target_test.cpp

@@ -15,6 +15,8 @@
 #include "dqc.h"
 #include "scf_dq.h"
 #include "comp_options.h"
+#include "otype_int.h"
+#include "otype_enum.h"
 
 LlContext      ll_ctx;
 LlBuilder      ll_builder(ll_ctx, llvm::ConstantFolder(),
@@ -57,9 +59,8 @@ void ll_init_debug_info()
       llvm::dwarf::DW_LANG_C_plus_plus, di_main_file, "dqc", false, "", 0);
 }
 
-LlValue * ToNativeInt(LlValue * value)
+static LlValue * ResizeIntValue(LlValue * value, LlType * dst, bool issigned, const char * prefix)
 {
-  LlType * dst = g_builtins->type_int->GetLlType();
   if (value->getType() == dst)
   {
     return value;
@@ -72,35 +73,47 @@ LlValue * ToNativeInt(LlValue * value)
   unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
   if (srcbits < dstbits)
   {
-    return ll_builder.CreateZExt(value, dst, "embstr.int.ext");
+    string name = string(prefix) + ".ext";
+    return issigned ? ll_builder.CreateSExt(value, dst, name)
+                    : ll_builder.CreateZExt(value, dst, name);
   }
   if (srcbits > dstbits)
   {
-    return ll_builder.CreateTrunc(value, dst, "embstr.int.trunc");
+    return ll_builder.CreateTrunc(value, dst, string(prefix) + ".trunc");
   }
   return value;
 }
 
+static bool IsSignedIntOrEnumType(OType * srctype)
+{
+  OType * resolved = srctype ? srctype->ResolveAlias() : nullptr;
+  if (auto * enumtype = dynamic_cast<OTypeEnum *>(resolved))
+  {
+    resolved = enumtype->storage_type;
+  }
+  if (auto * inttype = dynamic_cast<OTypeInt *>(resolved))
+  {
+    return inttype->issigned;
+  }
+  return true;
+}
+
+LlValue * ToNativeInt(LlValue * value, bool issigned)
+{
+  return ResizeIntValue(value, g_builtins->type_int->GetLlType(), issigned, "int");
+}
+
+LlValue * ToNativeInt(LlValue * value, OType * srctype)
+{
+  return ToNativeInt(value, IsSignedIntOrEnumType(srctype));
+}
+
+LlValue * ToNativeUInt(LlValue * value)
+{
+  return ResizeIntValue(value, g_builtins->type_uint->GetLlType(), false, "uint");
+}
+
 LlValue * ToCharValue(LlValue * value)
 {
-  LlType * dst = g_builtins->type_char->GetLlType();
-  if (value->getType() == dst)
-  {
-    return value;
-  }
-  if (!value->getType()->isIntegerTy())
-  {
-    return value;
-  }
-  unsigned srcbits = value->getType()->getIntegerBitWidth();
-  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
-  if (srcbits < dstbits)
-  {
-    return ll_builder.CreateZExt(value, dst, "embstr.ch.ext");
-  }
-  if (srcbits > dstbits)
-  {
-    return ll_builder.CreateTrunc(value, dst, "embstr.ch.trunc");
-  }
-  return value;
+  return ResizeIntValue(value, g_builtins->type_char->GetLlType(), false, "ch");
 }

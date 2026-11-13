@@ -55,30 +55,6 @@ static LlValue * LlConstUInt(uint64_t value)
   return llvm::ConstantInt::get(LlNativeUIntType(), value);
 }
 
-static LlValue * ToNativeUInt(LlValue * value)
-{
-  LlType * dst = LlNativeUIntType();
-  if (value->getType() == dst)
-  {
-    return value;
-  }
-  if (!value->getType()->isIntegerTy())
-  {
-    return value;
-  }
-  unsigned srcbits = value->getType()->getIntegerBitWidth();
-  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
-  if (srcbits < dstbits)
-  {
-    return ll_builder.CreateZExt(value, dst, "u.ext");
-  }
-  if (srcbits > dstbits)
-  {
-    return ll_builder.CreateTrunc(value, dst, "u.trunc");
-  }
-  return value;
-}
-
 static LlValue * LlBool(bool value)
 {
   return llvm::ConstantInt::get(g_builtins->type_bool->GetLlType(), value);
@@ -727,7 +703,7 @@ LlValue * OTypeDynArray::GenerateRefCount(OScope * scope, LlValue * dynaddr)
 
 LlValue * OTypeDynArray::GenerateElementAddress(OScope * scope, LlValue * dynaddr, LlValue * index)
 {
-  index = ToNativeUInt(index);
+  index = ToNativeInt(index);
   LlFunction * func = ll_builder.GetInsertBlock()->getParent();
   LlBasicBlock * bb_bounds = LlBasicBlock::Create(ll_ctx, "dyn.index.bounds", func);
   LlBasicBlock * bb_element = LlBasicBlock::Create(ll_ctx, "dyn.index.element", func);

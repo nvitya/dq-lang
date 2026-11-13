@@ -79,6 +79,7 @@ static string TypeKindName(ETypeKind akind)
     case TK_UNION:        return "union";
     case TK_FUNCTION:     return "function";
     case TK_FUNCREF:      return "funcref";
+    case TK_ANYVALUE:     return "anyvalue";
     case TK_OBJECT_TYPE:  return "object_type";
   }
 

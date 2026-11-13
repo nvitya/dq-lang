@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.6"
+#define DQ_COMPILER_VERSION  "0.96.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.7:
+  - Several compiler code correctness and safety fixes
 v0.96.6:
   - Language server performance improvements: caching introduced
 v0.96.5:

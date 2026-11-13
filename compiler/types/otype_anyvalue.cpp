@@ -43,30 +43,6 @@ static LlType * LlI64Type()
 
 
 
-static LlValue * ToNativeUInt(LlValue * value)
-{
-  LlType * dst = g_builtins->type_uint->GetLlType();
-  if (value->getType() == dst)
-  {
-    return value;
-  }
-  if (!value->getType()->isIntegerTy())
-  {
-    return value;
-  }
-  unsigned srcbits = value->getType()->getIntegerBitWidth();
-  unsigned dstbits = static_cast<llvm::IntegerType *>(dst)->getBitWidth();
-  if (srcbits < dstbits)
-  {
-    return ll_builder.CreateZExt(value, dst, "any.u.ext");
-  }
-  if (srcbits > dstbits)
-  {
-    return ll_builder.CreateTrunc(value, dst, "any.u.trunc");
-  }
-  return value;
-}
-
 static LlValue * ToFloat(LlValue * value, OTypeFloat * target)
 {
   LlType * dst = target->GetLlType();
@@ -351,9 +327,9 @@ LlValue * GenerateAnyValueMethodCall(OScope * scope, OLValueExpr * receiver, EAn
     case AVM_IS_INT:     return CallAnyValueFunc(scope, "AnyValIsInt", {addr});
     case AVM_IS_SINT:    return CallAnyValueFunc(scope, "AnyValIsSInt", {addr});
     case AVM_IS_UINT:    return CallAnyValueFunc(scope, "AnyValIsUint", {addr});
-    case AVM_AS_INT:     return CallAnyValueFunc(scope, "AnyValAsInt", {addr, ToNativeInt(args[0]->Generate(scope))});
+    case AVM_AS_INT:     return CallAnyValueFunc(scope, "AnyValAsInt", {addr, ToNativeInt(args[0]->Generate(scope), args[0]->ResolvedType())});
     case AVM_AS_UINT:    return CallAnyValueFunc(scope, "AnyValAsUint", {addr, ToNativeUInt(args[0]->Generate(scope))});
-    case AVM_SET_INT:    CallAnyValueFunc(scope, "AnyValSetInt", {addr, ToNativeInt(args[0]->Generate(scope))}); return nullptr;
+    case AVM_SET_INT:    CallAnyValueFunc(scope, "AnyValSetInt", {addr, ToNativeInt(args[0]->Generate(scope), args[0]->ResolvedType())}); return nullptr;
     case AVM_SET_UINT:   CallAnyValueFunc(scope, "AnyValSetUInt", {addr, ToNativeUInt(args[0]->Generate(scope))}); return nullptr;
     case AVM_IS_CHAR:    return CallAnyValueFunc(scope, "AnyValIsChar", {addr});
     case AVM_AS_CHAR:    return CallAnyValueFunc(scope, "AnyValAsChar", {addr, args[0]->Generate(scope)});

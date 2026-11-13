@@ -146,7 +146,6 @@ void ODqCompCodegen::GenerateExceptBranchMatch(OExceptBranch * branch, LlBasicBl
   LlFunction * ll_func = ll_builder.GetInsertBlock()->getParent();
   LlBasicBlock * bb_check = LlBasicBlock::Create(ll_ctx, "exc.check", ll_func);
 
-  LlBasicBlock * bb_start = ll_builder.GetInsertBlock();
   ll_builder.CreateCondBr(is_null, bb_next, bb_check);
 
   ll_builder.SetInsertPoint(bb_check);

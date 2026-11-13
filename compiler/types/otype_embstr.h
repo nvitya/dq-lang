@@ -70,7 +70,7 @@ private:
   using        super = OType;
 
   map<uint32_t, OTypeEmbStr *>  sized_types;  // cached sized variants
-  map<LlValue *, LlValue *>      descriptor_caches;  // fixed storage address -> shared descriptor
+  map<pair<LlFunction *, LlValue *>, LlValue *> descriptor_caches;  // (function, fixed storage) -> shared descriptor
 
   bool IsCCharPointerType(OType * type) const;
 

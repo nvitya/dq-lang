@@ -194,7 +194,9 @@ LlValue * OTypeEmbStr::GenerateDescriptor(OScope * scope, LlValue * embstraddr)
     return ll_builder.CreateLoad(GetLlType(), embstraddr, "embstr.desc");
   }
 
-  auto cache_it = descriptor_caches.find(embstraddr);
+  LlFunction * curfunc = ll_builder.GetInsertBlock()->getParent();
+  auto cache_key = make_pair(curfunc, embstraddr);
+  auto cache_it = descriptor_caches.find(cache_key);
   if (cache_it != descriptor_caches.end())
   {
     return cache_it->second;
@@ -209,16 +211,17 @@ LlValue * OTypeEmbStr::GenerateDescriptor(OScope * scope, LlValue * embstraddr)
   ll_builder.CreateStore(dataptr, ptraddr);
   ll_builder.CreateStore(llvm::ConstantInt::getSigned(LlEmbStrLenType(), DQTI_CHARLEN_INVALID), lenaddr);
   ll_builder.CreateStore(LlU32((maxlen - 1) & DQTI_MAXCHLEN_MASK), infoaddr);
-  descriptor_caches[embstraddr] = descaddr;
+  descriptor_caches[cache_key] = descaddr;
   return descaddr;
 }
 
 LlValue * OTypeEmbStr::GenerateCapturedAddress(LlValue * descaddr)
 {
+  LlFunction * curfunc = ll_builder.GetInsertBlock()->getParent();
   LlValue * ptraddr = ll_builder.CreateStructGEP(GetDescriptorLlType(), descaddr, 0, "embstr.capture.ptr.addr");
   LlValue * dataptr = ll_builder.CreateLoad(LlPtrType(), ptraddr, "embstr.capture.ptr");
   // Captures must share the owner's cached length as well as its character buffer.
-  descriptor_caches[dataptr] = descaddr;
+  descriptor_caches[make_pair(curfunc, dataptr)] = descaddr;
   return dataptr;
 }
 
@@ -270,11 +273,13 @@ LlValue * OTypeEmbStr::GenerateMetaField(OScope * scope, LlValue * embstraddr, E
   switch (field)
   {
     case ESMF_LENGTH:
-      return ToNativeInt(CallEmbStrFunc("EmbStrLen", {descaddr}));
+      return ToNativeUInt(CallEmbStrFunc("EmbStrLen", {descaddr}));
     case ESMF_MAXLENGTH:
-      return ToNativeInt(CallEmbStrFunc("EmbStrMaxLen", {descaddr}));
+      return ToNativeUInt(CallEmbStrFunc("EmbStrMaxLen", {descaddr}));
     case ESMF_STORAGE_SIZE:
-      return ToNativeInt(CallEmbStrFunc("EmbStrStorageSize", {descaddr}));
+      return ToNativeUInt(CallEmbStrFunc("EmbStrStorageSize", {descaddr}));
+    case ESMF_PCHAR:
+      return GenerateDataPtr(scope, embstraddr);
   }
   return LlNativeInt(0);
 }
@@ -401,15 +406,15 @@ LlValue * OTypeEmbStr::GenerateMethodCall(OScope * scope, LlValue * embstraddr,
 
     case ESM_INSERT:
     {
-      LlValue * index = ToNativeInt(args[0]->Generate(scope));
+      LlValue * index = ToNativeInt(args[0]->Generate(scope), args[0]->ResolvedType());
       return GenerateEmbStrMethodSource(scope, args[1], "EmbStrInsertPtr", "EmbStrInsertDesc",
                                          "EmbStrInsertChar", dstdesc, index);
     }
 
     case ESM_DELETE:
     {
-      LlValue * index = ToNativeInt(args[0]->Generate(scope));
-      LlValue * count = (args.size() > 1 ? ToNativeInt(args[1]->Generate(scope)) : LlNativeInt(1));
+      LlValue * index = ToNativeInt(args[0]->Generate(scope), args[0]->ResolvedType());
+      LlValue * count = (args.size() > 1 ? ToNativeInt(args[1]->Generate(scope), args[1]->ResolvedType()) : LlNativeInt(1));
       return CallEmbStrFunc("EmbStrDelete", {dstdesc, index, count});
     }
 

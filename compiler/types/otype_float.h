@@ -45,8 +45,8 @@ public:
 
   OTypeFloat(const string name, uint8_t abitlength)
   :
-    bitlength(abitlength),
-    super(name, TK_FLOAT)
+    super(name, TK_FLOAT),
+    bitlength(abitlength)
   {
     bytesize = ((abitlength + 7) >> 3);
     alignsize = bytesize;

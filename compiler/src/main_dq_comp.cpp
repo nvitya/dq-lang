@@ -49,12 +49,6 @@
 #include "scope_builtins.h"
 #include "scope_defines.h"
 
-#define CALL_TESTCODE 0
-
-#if CALL_TESTCODE
-  #include "testcode.h"
-#endif
-
 using namespace std;
 
 void print_backtrace()
@@ -127,18 +121,20 @@ void my_crash_handler()
   abort();
 }
 
-void signal_handler(int signal)
+void signal_handler(int sig)
 {
-  cerr << "Caught signal " << signal << endl;
-
-#if HAS_STACKTRACE
-  // Capture the current stacktrace
-  auto trace = stacktrace::current();
-  // Print it (default formatting includes line numbers if -g is used)
-  cout << trace << endl;
+#if !defined(_WIN32)
+  constexpr char msg[] = "Caught fatal signal, terminating.\n";
+  if (write(STDERR_FILENO, msg, sizeof(msg) - 1) < 0) {}
+#if HAS_EXECINFO
+  void * frames[64];
+  int nframes = backtrace(frames, 64);
+  backtrace_symbols_fd(frames, nframes, STDERR_FILENO);
 #endif
-
-  exit(signal);
+  _exit(128 + sig);
+#else
+  _Exit(128 + sig);
+#endif
 }
 
 //--------------------------------------------------------------------
@@ -211,11 +207,6 @@ int main(int argc, char ** argv)
   // Top level error handlers for stack tracing
   set_terminate(my_crash_handler);  // uncaught exception handler with stacktrace
   signal(SIGSEGV, signal_handler);  // separate method for segfaults for stacktrace
-
-  #if CALL_TESTCODE
-    print("Calling testcode...\n");
-    testcode();
-  #endif
 
   g_opt.InitializeCompilerExecutable(argc > 0 ? argv[0] : "");
   g_opt.packages.paths = g_opt.DefaultPackagePaths();
@@ -332,5 +323,5 @@ int main(int argc, char ** argv)
   delete g_compiler;
 
   //printf("\n");
-  return r;
+  return (r > 0) ? 1 : 0;
 }

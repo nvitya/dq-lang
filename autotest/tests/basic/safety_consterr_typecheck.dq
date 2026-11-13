@@ -1,0 +1,8 @@
+// Compile-time integer constant error guard tests
+
+const BAD_DIV : int = 10 div 0          //?error(IntConstExpr), error(ConstExprInvalid)
+const BAD_MOD : int = 10 mod 0          //?error(IntConstExpr), error(ConstExprInvalid)
+const BAD_SHL : int = 1 << 64           //?error(IntConstExpr), error(ConstExprInvalid)
+const BAD_SHR : int = 1 >> -1           //?error(IntConstExpr), error(ConstExprInvalid)
+const INF_VAL : float = 0.5 / (1.5 - 1.5)
+const BAD_RND : int = Round(INF_VAL)    //?error(IntConstExpr), error(ConstExprInvalid)

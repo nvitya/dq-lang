@@ -95,8 +95,8 @@ public:
 
   char *               curp = nullptr;    // current parsing position
   char *               bufend = nullptr;
-  char *               prevp;             // previous token start position
-  int                  prevlen;           // usually signs token length
+  char *               prevp = nullptr;   // previous token start position
+  int                  prevlen = 0;       // usually signs token length
 
   int                  curline = 0;       // for debug info generation the current line and column must be tracked continuously
   int                  curcol  = 0;

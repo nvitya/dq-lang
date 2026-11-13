@@ -422,11 +422,31 @@ int ODqLanguageServer::Run()
       RespondError(nullptr, -32600, "Invalid Request");
       continue;
     }
-    Handle(request);
-    if (should_exit) break;
-    if (analysis_dirty && !shutdown_requested && !HasPendingInput()) FlushPendingAnalysis();
+    try
+    {
+      Handle(request);
+      if (should_exit) break;
+      if (analysis_dirty && !shutdown_requested && !HasPendingInput()) FlushPendingAnalysis();
+    }
+    catch (const exception & e)
+    {
+      if (IsRequest(request)) RespondError(&request, -32603, e.what());
+    }
+    catch (...)
+    {
+      if (IsRequest(request)) RespondError(&request, -32603, "Internal server error");
+    }
   }
-  if (analysis_dirty && !should_exit && !shutdown_requested) FlushPendingAnalysis();
+  if (analysis_dirty && !should_exit && !shutdown_requested)
+  {
+    try
+    {
+      FlushPendingAnalysis();
+    }
+    catch (...)
+    {
+    }
+  }
   return exit_status;
 }
 
@@ -560,6 +580,7 @@ SWorkerResult ODqLanguageServer::RunWorker(const filesystem::path & source,
       else if (define.has_int_value) arg += "=" + to_string(define.int_value);
       runner.args.push_back(arg);
     }
+    runner.exec_timeout_ms = 30000;
     runner.Run();
     if (!runner.stderr_text.empty()) cerr << "dq-lsp worker: " << runner.stderr_text;
 

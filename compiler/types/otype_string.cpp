@@ -382,11 +382,11 @@ LlValue * OTypeString::GenerateSlice(OScope * scope, OLValueExpr * receiver, OEx
 {
   LlValue * descaddr = TextInfoAlloca();
   LlValue * zero = LlNativeInt(0);
-  LlValue * start = start_expr ? ToNativeInt(start_expr->Generate(scope)) : zero;
+  LlValue * start = start_expr ? ToNativeInt(start_expr->Generate(scope), start_expr->ResolvedType()) : zero;
   LlValue * end = nullptr;
   if (end_expr)
   {
-    end = ToNativeInt(end_expr->Generate(scope));
+    end = ToNativeInt(end_expr->Generate(scope), end_expr->ResolvedType());
     if (end_inclusive)
     {
       end = ll_builder.CreateBinaryIntrinsic(llvm::Intrinsic::sadd_sat, end, LlNativeInt(1), nullptr, "str.slice.end.incl");
@@ -420,7 +420,7 @@ LlValue * OTypeString::GenerateWCharAt(OScope * scope, OLValueExpr * receiver, O
 {
   return CallDynStrFunc(scope, "StrfWCharAt", {
       GenerateTextInfoValue(scope, receiver),
-      ToNativeInt(index->Generate(scope))
+      ToNativeInt(index->Generate(scope), index->ResolvedType())
   });
 }
 
@@ -428,8 +428,8 @@ LlValue * OTypeString::GenerateWCharSlice(OScope * scope, OLValueExpr * receiver
                                           OExpr * end_expr, bool end_inclusive)
 {
   LlValue * zero = LlNativeInt(0);
-  LlValue * start = start_expr ? ToNativeInt(start_expr->Generate(scope)) : zero;
-  LlValue * end = end_expr ? ToNativeInt(end_expr->Generate(scope)) : GenerateWcLen(scope, receiver);
+  LlValue * start = start_expr ? ToNativeInt(start_expr->Generate(scope), start_expr->ResolvedType()) : zero;
+  LlValue * end = end_expr ? ToNativeInt(end_expr->Generate(scope), end_expr->ResolvedType()) : GenerateWcLen(scope, receiver);
   if (end_inclusive)
   {
     end = ll_builder.CreateAdd(end, LlNativeInt(1), "str.wchar.slice.end.incl");
@@ -477,13 +477,13 @@ LlValue * OTypeDynString::GenerateArrayIndexOf(OScope * scope, LlValue * dataptr
 LlValue * OTypeDynString::GenerateLength(OScope * scope, LlValue * straddr)
 {
   (void)scope;
-  return ToNativeInt(CallDynStrFunc(scope, "DynStrGetLength", {straddr}));
+  return ToNativeUInt(CallDynStrFunc(scope, "DynStrGetLength", {straddr}));
 }
 
 LlValue * OTypeDynString::GenerateCapacity(OScope * scope, LlValue * straddr)
 {
   (void)scope;
-  return ToNativeInt(CallDynStrFunc(scope, "DynStrGetCapacity", {straddr}));
+  return ToNativeUInt(CallDynStrFunc(scope, "DynStrGetCapacity", {straddr}));
 }
 
 LlValue * OTypeDynString::GenerateRefCount(OScope * scope, LlValue * straddr)
@@ -505,7 +505,7 @@ LlValue * OTypeDynString::GenerateGetChar(OScope * scope, OLValueExpr * receiver
 
 void OTypeDynString::GenerateSetChar(OScope * scope, OLValueExpr * receiver, OExpr * index, OExpr * value)
 {
-  CallDynStrFunc(scope, "DynStrSetChar", {receiver->GenerateAddress(scope), ToNativeInt(index->Generate(scope)), value->Generate(scope)});
+  CallDynStrFunc(scope, "DynStrSetChar", {receiver->GenerateAddress(scope), ToNativeInt(index->Generate(scope), index->ResolvedType()), value->Generate(scope)});
 }
 
 LlValue * OTypeDynString::GenerateMetaField(OScope * scope, LlValue * straddr, EStringMetaField field)
@@ -652,11 +652,11 @@ LlValue * OTypeDynString::GenerateMethodCall(OScope * scope, OLValueExpr * recei
       CallDynStrFunc(scope, "DynStrInsert", {straddr, LlNativeInt(0), GenerateTextInfoAddress(scope, args[0]), LlI32(-1)});
       return nullptr;
     case STRM_INSERT:
-      CallDynStrFunc(scope, "DynStrInsert", {straddr, ToNativeInt(args[0]->Generate(scope)), GenerateTextInfoAddress(scope, args[1]), LlI32(-1)});
+      CallDynStrFunc(scope, "DynStrInsert", {straddr, ToNativeInt(args[0]->Generate(scope), args[0]->ResolvedType()), GenerateTextInfoAddress(scope, args[1]), LlI32(-1)});
       return nullptr;
     case STRM_DELETE:
-      CallDynStrFunc(scope, "DynStrDelete", {straddr, ToNativeInt(args[0]->Generate(scope)),
-          args.size() > 1 ? ToNativeInt(args[1]->Generate(scope)) : LlNativeInt(1)});
+      CallDynStrFunc(scope, "DynStrDelete", {straddr, ToNativeInt(args[0]->Generate(scope), args[0]->ResolvedType()),
+          args.size() > 1 ? ToNativeInt(args[1]->Generate(scope), args[1]->ResolvedType()) : LlNativeInt(1)});
       return nullptr;
     case STRM_CLONE:
     {
@@ -671,7 +671,7 @@ LlValue * OTypeDynString::GenerateMethodCall(OScope * scope, OLValueExpr * recei
       LlValue * tmp = CreateEntryBlockAlloca(g_builtins->type_str->GetLlType(), nullptr, "str.pop.tmp");
       GenerateCreate(scope, tmp);
       CallDynStrFunc(scope, STRM_POP == method ? "DynStrPop" : "DynStrPopFirst",
-          {straddr, ToNativeInt(args[0]->Generate(scope)), tmp});
+          {straddr, ToNativeInt(args[0]->Generate(scope), args[0]->ResolvedType()), tmp});
       return ll_builder.CreateLoad(g_builtins->type_str->GetLlType(), tmp, "str.pop");
     }
     case STRM_POP_CHAR:
@@ -687,6 +687,8 @@ LlValue * OTypeDynString::GenerateMethodCall(OScope * scope, OLValueExpr * recei
     }
     case STRM_TO_WCHARS:
       return GenerateToWchars(scope, receiver);
+    default:
+      break;
   }
   throw logic_error("Unhandled string method");
 }
@@ -697,7 +699,7 @@ LlValue * OTypeStrSlice::GenerateLength(OScope * scope, LlValue * straddr)
 {
   (void)scope;
   LlValue * lenaddr = ll_builder.CreateStructGEP(GetLlType(), straddr, 1, "str.len.addr");
-  return ToNativeInt(ll_builder.CreateLoad(LlU32Type(), lenaddr, "str.len"));
+  return ToNativeUInt(ll_builder.CreateLoad(LlU32Type(), lenaddr, "str.len"));
 }
 
 LlValue * OTypeStrSlice::GeneratePChar(OScope * scope, LlValue * straddr)
@@ -798,7 +800,7 @@ LlValue * OTypeString::GenerateMethodCall(OScope * scope, OExpr * receiver, EStr
       case STRM_RPAD:
       {
         string func_name = (STRM_LPAD == method ? "StrLPad" : "StrRPad");
-        LlValue * target_len = ToNativeInt(args[0]->Generate(scope));
+        LlValue * target_len = ToNativeInt(args[0]->Generate(scope), args[0]->ResolvedType());
         LlValue * arg_tmp = nullptr;
         LlValue * fill_info = GenerateTextInfoValue(scope, args[1], &arg_tmp);
         result = CallDynStrFunc(scope, func_name, {rec_info, target_len, fill_info});
@@ -809,7 +811,7 @@ LlValue * OTypeString::GenerateMethodCall(OScope * scope, OExpr * receiver, EStr
       {
         LlValue * arg_tmp = nullptr;
         LlValue * needle_info = GenerateTextInfoValue(scope, args[0], &arg_tmp);
-        LlValue * start_val = (args.size() > 1 ? ToNativeInt(args[1]->Generate(scope)) : LlNativeInt(0));
+        LlValue * start_val = (args.size() > 1 ? ToNativeInt(args[1]->Generate(scope), args[1]->ResolvedType()) : LlNativeInt(0));
         result = CallDynStrFunc(scope, "StrIndexOf", {rec_info, needle_info, start_val});
         if (arg_tmp) g_builtins->type_str->GenerateDestroy(scope, arg_tmp);
         break;
@@ -967,7 +969,7 @@ LlValue * OTypeRoStr::GenerateBorrow(OScope * scope, OExpr * source, LlValue ** 
 
 LlValue * OTypeRoStr::GenerateLength(OScope * scope, LlValue * straddr)
 {
-  return ToNativeInt(CallDynStrFunc(scope, "RoStrGetLength", {straddr}));
+  return ToNativeUInt(CallDynStrFunc(scope, "RoStrGetLength", {straddr}));
 }
 
 LlValue * OTypeRoStr::GeneratePChar(OScope * scope, LlValue * straddr)

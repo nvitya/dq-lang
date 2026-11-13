@@ -103,8 +103,6 @@ void OStmtBlock::Generate()
 
   if (needs_unwind)
   {
-    LlBasicBlock * resume_insert = ll_builder.GetInsertBlock();
-    
     ll_builder.SetInsertPoint(my_lpad_bb);
     g_compiler->EnsurePersonalityFn(ll_func);
     llvm::LandingPadInst * lpad = ll_builder.CreateLandingPad(

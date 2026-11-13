@@ -1,0 +1,119 @@
+// Regression tests for compiler v0.96.7 correctness & safety fixes
+
+use print
+
+const C_U64_HIGH : uint64 = 0x8000000000000005
+const C_I64_MIN : int64 = -9223372036854775807 - 1
+const C_MIN_DIV_NEG1 : int64 = C_I64_MIN div -1
+const C_MIN_REM_NEG1 : int64 = C_I64_MIN rem -1
+const C_MIN_MOD_NEG1 : int64 = C_I64_MIN mod -1
+const C_NEG_SHR : int64 = -16 >> 2
+
+var g_emb : embstr(32) = 'hello'
+
+func ReadGlobalEmbFirst() -> int:
+    result = g_emb.length
+endfunc
+
+func ReadGlobalEmbSecond(idx : uint8, del_cnt : uint8) -> int:
+    g_emb.Insert(idx, 'X')
+    g_emb.Delete(idx, del_cnt)
+    var p : ^char = g_emb.pchar
+    var ch : int = p^.ord
+    result = g_emb.length * 1000 + ch
+endfunc
+
+object SDynBase:
+    label : str
+
+    func *Create(alabel : str):
+        label = alabel
+    endfunc
+
+    func GetLabel() -> strslice:
+        result = label
+    endfunc
+endobject
+
+object SDynChild(SDynBase):
+    func *Create(alabel : str):
+        inherited Create(alabel + '_child')
+    endfunc
+endobject
+
+func TestSubfnConst(x : int) -> int:
+    const LOCAL_K : int = 7
+    subfn AddConst() -> int:
+        const INNER_REF : int = FirstInt(MISSING_CONST_SYM, LOCAL_K, 0)
+        result = x + INNER_REF
+    endsubfn
+    result = AddConst()
+endfunc
+
+#define BRACE_FLAG = 2
+
+func TestBracesAndPreproc(cond : bool) -> int {
+    #if @def.BRACE_FLAG == 1:
+        var elsewhere : int = 100
+    #elif @def.BRACE_FLAG == 2:
+        var elsewhere : int = 42
+    #else:
+        var elsewhere : int = 0
+    #endif
+
+    var v : int = 0
+    if cond {
+        v = 10
+    }
+    elsewhere = elsewhere + v
+    result = elsewhere
+}
+
+func *Main():
+    PrintLn('u64_high = {}', [C_U64_HIGH >> 1])         //?check('u64_high', 4611686018427387906)
+    PrintLn('min_ops = {},{},{}', [C_MIN_DIV_NEG1 == C_I64_MIN, C_MIN_REM_NEG1, C_MIN_MOD_NEG1]) //?check('min_ops', 'true,0,0')
+    PrintLn('neg_shr = {}', [C_NEG_SHR])                //?check('neg_shr', -4)
+
+    PrintLn('braces = {},{}', [TestBracesAndPreproc(true), TestBracesAndPreproc(false)]) //?check('braces', '52,42')
+
+    PrintLn('g_emb1 = {}', [ReadGlobalEmbFirst()])      //?check('g_emb1', 5)
+    var ins_idx : uint8 = 1
+    var del_cnt : uint8 = 1
+    PrintLn('g_emb2 = {}', [ReadGlobalEmbSecond(ins_idx, del_cnt)]) //?check('g_emb2', 5104)
+
+    // Small unsigned integer indexing (>= 128) must zero-extend instead of sign-extending to negative
+    var arr : [*]int
+    arr.SetLength(205)
+    var i : int = 0
+    while i < 205:
+        arr[i] = i * 2
+        ++i
+    endwhile
+    var u8idx : uint8 = 200
+    PrintLn('dynarr_u8 = {}', [arr[u8idx]])             //?check('dynarr_u8', 400)
+
+    var sl : []int = arr[u8idx : u8idx + 3]
+    PrintLn('slice_u8 = {},{}', [sl.length, sl[0]])     //?check('slice_u8', '3,400')
+
+    var bigstr : str
+    bigstr.SetLength(210, 'a')
+    bigstr[u8idx] = 'Z'
+    var gotc : char = bigstr[u8idx]
+    PrintLn('str_u8 = {}', [gotc == 'Z'])               //?check('str_u8', true)
+
+    var sslice : strslice = bigstr[u8idx : u8idx + 2]
+    PrintLn('strslice_u8 = {}', [sslice.length])        //?check('strslice_u8', 2)
+
+    // Dynamic new object constructor with temporary dynstr argument
+    var ot : type of SDynBase = SDynChild
+    var obj : SDynBase = new ot('dyn' + '_ok')
+    PrintLn('dyn_ctor = {}', [obj.GetLabel()])          //?check('dyn_ctor', 'dyn_ok_child')
+
+    // AnyValue small int methods
+    var av : anyvalue
+    av.SetInt(u8idx)
+    PrintLn('any_u8 = {}', [av.AsInt(0)])               //?check('any_u8', 200)
+
+    // Subfn constant folding
+    PrintLn('subfn_const = {}', [TestSubfnConst(5)])    //?check('subfn_const', 12)
+endfunc

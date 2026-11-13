@@ -3684,7 +3684,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
       return nullptr;
     }
 
-    result = new OLValueVar(vs);
+    result = CreateVarExpr(vs);
     CheckNoReadAccess(static_cast<OLValueVar *>(result), vs, scpos_statement_start);
     if (vs->kind != VSK_FUNCTION and not vs->initialized)
     {
@@ -3822,13 +3822,13 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
         }
         if (VSK_FUNCTION == member->kind)
         {
-          return new OLValueVar(member);
+          return CreateVarExpr(member);
         }
 
         int midx = decl_type->FindMemberIndex(sid);
         if (midx >= 0)
         {
-          auto * member_expr = new OLValueMember(new OLValueVar(curvsfunc->receiver_arg), decl_type, midx, member);
+          auto * member_expr = new OLValueMember(CreateVarExpr(curvsfunc->receiver_arg), decl_type, midx, member);
           CheckNoReadAccess(member_expr, member, scpos_statement_start);
           return member_expr;
         }
@@ -3868,7 +3868,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   result = CreateImplicitObjectMemberExpr(sid, vs, found_scope);
   if (!result)
   {
-    result = new OLValueVar(vs);
+    result = CreateVarExpr(vs);
   }
   if (auto * lvalue = dynamic_cast<OLValueExpr *>(result))
   {
@@ -4392,7 +4392,7 @@ OLValueExpr * ODqCompParserExpr::CreateImplicitMethodReceiver(OCompoundType * me
     return nullptr;
   }
 
-  return new OLValueVar(curvsfunc->receiver_arg);
+  return CreateVarExpr(curvsfunc->receiver_arg);
 }
 
 OExpr * ODqCompParserExpr::ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr * receiver)
@@ -4632,7 +4632,7 @@ OExpr * ODqCompParserExpr::ParseNewExpr()
     OExpr * type_expr = CreateImplicitObjectMemberExpr(typevar_name, vs, found_scope);
     if (!type_expr)
     {
-      type_expr = new OLValueVar(vs);
+      type_expr = CreateVarExpr(vs);
     }
 
     auto * typeref = dynamic_cast<OTypeObjectTypeRef *>(type_expr->ResolvedType());
@@ -4823,7 +4823,7 @@ OExpr * ODqCompParserExpr::ParseInheritedExpr()
   vector<TRawCallArg> rawargs;
   TRawCallArg thisarg;
   scf->SaveCurPos(thisarg.scpos_start);
-  thisarg.expr = new OLValueVar(curvsfunc->receiver_arg);
+  thisarg.expr = CreateVarExpr(curvsfunc->receiver_arg);
   rawargs.push_back(std::move(thisarg));
   if (!ParseRawCallArguments(method_name, rawargs))
   {
@@ -5427,15 +5427,15 @@ OExpr * ODqCompParserExpr::ParseBuiltinLen()
   }
   else if (TK_ARRAY_SLICE == lenvs->ptype->kind || TK_DYN_ARRAY == lenvs->ptype->kind)
   {
-    return new OArrayMetaFieldExpr(new OLValueVar(lenvs), lenvs->ptype, AMF_LENGTH);
+    return new OArrayMetaFieldExpr(CreateVarExpr(lenvs), lenvs->ptype, AMF_LENGTH);
   }
   else if (TK_EMBSTR == lenvs->ptype->kind)
   {
-    return new OEmbStrMetaFieldExpr(new OLValueVar(lenvs), ESMF_LENGTH);
+    return new OEmbStrMetaFieldExpr(CreateVarExpr(lenvs), ESMF_LENGTH);
   }
   else if (TK_DYNSTR == lenvs->ptype->ResolveAlias()->kind || TK_STRSLICE == lenvs->ptype->ResolveAlias()->kind || TK_ROSTR == lenvs->ptype->ResolveAlias()->kind)
   {
-    return new OStringMetaFieldExpr(new OLValueVar(lenvs), SMF_LENGTH);
+    return new OStringMetaFieldExpr(CreateVarExpr(lenvs), SMF_LENGTH);
   }
   else
   {
@@ -5784,7 +5784,6 @@ OExpr * ODqCompParserExpr::ParseBinOpLevel(OExpr * (ODqCompParserExpr::*parse_ne
     }
 
     EBinOp op = BINOP_NONE;
-    bool blocked_assignop = false;
     for (int i = 0; i < nops; ++i)
     {
       bool is_word = ((*ops[i].sym >= 'A') && (*ops[i].sym <= 'Z'))

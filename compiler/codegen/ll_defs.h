@@ -73,7 +73,10 @@ extern vector<LlDiScope *>   di_scope_stack;
 void ll_defs_init();
 void ll_init_debug_info();
 
-LlValue * ToNativeInt(LlValue * value);
+class OType;
+LlValue * ToNativeInt(LlValue * value, bool issigned = true);
+LlValue * ToNativeInt(LlValue * value, OType * srctype);
+LlValue * ToNativeUInt(LlValue * value);
 LlValue * ToCharValue(LlValue * value);
 
 inline llvm::AllocaInst * CreateEntryBlockAlloca(llvm::Type * type, llvm::Value * ArraySize = nullptr, const llvm::Twine & VarName = "")

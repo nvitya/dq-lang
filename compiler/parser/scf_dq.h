@@ -42,10 +42,10 @@ public:
 
   OScfCondition(OScfCondition * aparent, OScPosition astartpos, bool aparent_inactive)
   :
-    parent(aparent),
-    startpos(astartpos),
+    state(FCOND_IF),
     parent_inactive(aparent_inactive),
-    state(FCOND_IF)
+    parent(aparent),
+    startpos(astartpos)
   {
   }
 };

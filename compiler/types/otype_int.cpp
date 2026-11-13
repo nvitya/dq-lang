@@ -78,6 +78,30 @@ bool OValueInt::WriteDqmIfValue(ODqmIfWriter & writer)
   return writer.AddRecI64(DQMIF_VALUE_INLINE, value);
 }
 
+bool OTypeInt::ConvertFloatConstant(double d, int64_t & out) const
+{
+  if (!std::isfinite(d))
+  {
+    return false;
+  }
+  double t = std::trunc(d);
+  if (issigned)
+  {
+    if (t < -9223372036854775808.0 || t >= 9223372036854775808.0)
+    {
+      return false;
+    }
+    out = ConvertConstant(int64_t(t));
+    return true;
+  }
+  if (t < 0.0 || t >= 18446744073709551616.0)
+  {
+    return false;
+  }
+  out = NormalizeConstant(uint64_t(t));
+  return true;
+}
+
 bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
 {
   value = 0;
@@ -100,7 +124,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
       {
         return false;
       }
-      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(-v.value);
+      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(int64_t(0ULL - uint64_t(v.value)));
       return true;
     }
   }
@@ -149,13 +173,13 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
           return false;
         }
 
-        if (static_cast<OTypeInt *>(ResolvedType())->issigned)
+        if (not static_cast<OTypeInt *>(ResolvedType())->ConvertFloatConstant(srcvalue.value, value))
         {
-          value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(int64_t(srcvalue.value));
-        }
-        else
-        {
-          value = static_cast<OTypeInt *>(ResolvedType())->NormalizeConstant(uint64_t(srcvalue.value));
+          if (emit_errors)
+          {
+            g_compiler->Error(DQERR_INT_CONSTEXPR_ERROR);
+          }
+          return false;
         }
         return true;
       }
@@ -216,22 +240,38 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
         return false;
       }
 
-      if      (BINOP_ADD  == ex->op)  value = vleft.value + vright.value;
-      else if (BINOP_SUB  == ex->op)  value = vleft.value - vright.value;
-      else if (BINOP_MUL  == ex->op)  value = vleft.value * vright.value;
+      if      (BINOP_ADD  == ex->op)  value = int64_t(uint64_t(vleft.value) + uint64_t(vright.value));
+      else if (BINOP_SUB  == ex->op)  value = int64_t(uint64_t(vleft.value) - uint64_t(vright.value));
+      else if (BINOP_MUL  == ex->op)  value = int64_t(uint64_t(vleft.value) * uint64_t(vright.value));
 
       else if ((BINOP_IDIV == ex->op) || (BINOP_IREM == ex->op) || (BINOP_IMOD == ex->op))
       {
+        if (0 == vright.value)
+        {
+          if (emit_errors)
+          {
+            g_compiler->Error(DQERR_INT_CONSTEXPR_ERROR);
+          }
+          return false;
+        }
+
         auto * inttype = static_cast<OTypeInt *>(ResolvedType());
         if (inttype->issigned)
         {
-          if      (BINOP_IDIV == ex->op)  value = vleft.value / vright.value;
+          if ((INT64_MIN == vleft.value) && (-1 == vright.value))
+          {
+            value = (BINOP_IDIV == ex->op) ? INT64_MIN : 0;
+          }
+          else if (BINOP_IDIV == ex->op)
+          {
+            value = vleft.value / vright.value;
+          }
           else
           {
             value = vleft.value % vright.value;
             if ((BINOP_IMOD == ex->op) && (value < 0))
             {
-              uint64_t adjustment = (vright.value > 0) ? uint64_t(vright.value) : -uint64_t(vright.value);
+              uint64_t adjustment = (vright.value > 0) ? uint64_t(vright.value) : (0ULL - uint64_t(vright.value));
               value = int64_t(uint64_t(value) + adjustment);
             }
           }
@@ -248,8 +288,30 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
       else if (BINOP_IOR  == ex->op)  value = (vleft.value | vright.value);
       else if (BINOP_IXOR == ex->op)  value = (vleft.value ^ vright.value);
 
-      else if (BINOP_ISHL == ex->op)  value = (vleft.value << vright.value);
-      else if (BINOP_ISHR == ex->op)  value = (vleft.value >> vright.value);
+      else if ((BINOP_ISHL == ex->op) || (BINOP_ISHR == ex->op))
+      {
+        if ((vright.value < 0) || (vright.value >= 64))
+        {
+          if (emit_errors)
+          {
+            g_compiler->Error(DQERR_INT_CONSTEXPR_ERROR);
+          }
+          return false;
+        }
+        uint64_t shift = uint64_t(vright.value);
+        if (BINOP_ISHL == ex->op)
+        {
+          value = int64_t(uint64_t(vleft.value) << shift);
+        }
+        else if (static_cast<OTypeInt *>(ResolvedType())->issigned && (vleft.value < 0))
+        {
+          value = int64_t(~((~uint64_t(vleft.value)) >> shift));
+        }
+        else
+        {
+          value = int64_t(uint64_t(vleft.value) >> shift);
+        }
+      }
 
       else
       {
@@ -274,11 +336,19 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
       {
         return false;
       }
-      if      (RNDMODE_ROUND == ex->mode)  value = (int64_t)std::round(vf.value);
-      else if (RNDMODE_CEIL  == ex->mode)  value = (int64_t)std::ceil(vf.value);
-      else if (RNDMODE_FLOOR == ex->mode)  value = (int64_t)std::floor(vf.value);
-      else                                 value = (int64_t)std::trunc(vf.value);
-      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(value);
+      double rounded;
+      if      (RNDMODE_ROUND == ex->mode)  rounded = std::round(vf.value);
+      else if (RNDMODE_CEIL  == ex->mode)  rounded = std::ceil(vf.value);
+      else if (RNDMODE_FLOOR == ex->mode)  rounded = std::floor(vf.value);
+      else                                 rounded = std::trunc(vf.value);
+      if (not static_cast<OTypeInt *>(ResolvedType())->ConvertFloatConstant(rounded, value))
+      {
+        if (emit_errors)
+        {
+          g_compiler->Error(DQERR_INT_CONSTEXPR_ERROR);
+        }
+        return false;
+      }
       return true;
     }
   }

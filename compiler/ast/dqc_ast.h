@@ -60,6 +60,7 @@ public:
   ODecl * AddDeclFunc(OScPosition & scpos, OValSymFunc * avsfunc);
   ODecl * AddDeclOverloadSet(OScPosition & scpos, OValSymOverloadSet * avsoverload);
   bool    ResolveCompoundMemberBase(OLValueExpr * lval, OType * srctype, OLValueExpr *& memberbase, OCompoundType *& ctype);
+  OLValueVar * CreateVarExpr(OValSym * vs);
   void    CollectIgnoredPlainAssignVars(OLValueExpr * leftexpr, vector<OLValueVar *> & ignored);
   void    CollectPlainAssignTargetLValues(OLValueExpr * leftexpr, vector<OLValueExpr *> & targets);
   OValSym * GetAssignRootValSym(OLValueExpr * leftexpr);

@@ -495,13 +495,13 @@ bool OModule::TypeDeclared(const string aname, OType ** rtype)
   found = scope_priv->FindType(aname, nullptr, false);
   if (found)
   {
-    *rtype = found;
+    if (rtype) *rtype = found;
     return true;
   }
   found = scope_pub->FindType(aname, nullptr, false);
   if (found)
   {
-    *rtype = found;
+    if (rtype) *rtype = found;
     return true;
   }
   return false;
@@ -513,13 +513,13 @@ bool OModule::ValSymDeclared(const string aname, OValSym ** rvalsym)
   found = scope_priv->FindValSym(aname, nullptr, false);
   if (found)
   {
-    *rvalsym = found;
+    if (rvalsym) *rvalsym = found;
     return true;
   }
   found = scope_pub->FindValSym(aname, nullptr, false);
   if (found)
   {
-    *rvalsym = found;
+    if (rvalsym) *rvalsym = found;
     return true;
   }
   return false;

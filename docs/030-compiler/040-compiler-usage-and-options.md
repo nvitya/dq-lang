@@ -29,7 +29,7 @@ Useful options:
 | `--dynstrings`, `--no-dynstrings` | enable or disable heap-backed dynamic strings |
 | `--pkg_path <path>` | add a package search root; repeatable; alias: `--pkg-path` |
 | `--pkg <name:directory>` | map a package directly; repeatable; takes priority over search roots |
-| `--build <tag>` | select `.dqbuild/<tag>` |
+| `--build <tag>`, `--build-tag <tag>` | select `.dqbuild/<tag>` |
 | `--build-suffix <suffix>` | append to the selected build tag |
 | `--build-root <path>` | select the local artifact build root |
 | `--package-build-root <path>` | select a separate package artifact build root |

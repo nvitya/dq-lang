@@ -455,6 +455,57 @@ linkoption = '--gc-sections'
              && HasDiagnostic(project, "ProjectDuplicate"),
          "duplicate static linking diagnostic");
 
+  WriteFile(root / "build-common.dqproj", "build_suffix='${PROJECT_NAME}'\n");
+  struct SBuildCase
+  {
+    string properties;
+    vector<string> arguments;
+    string expected;
+  };
+  for (const SBuildCase & test : vector<SBuildCase>{
+    {"", {}, "arm_m0-bare"},
+    {"", {"--build-tag", "cli"}, "cli"},
+    {"build_tag='board'", {}, "board"},
+    {"build_suffix='debug'", {}, "arm_m0-bare-debug"},
+    {"build_tag='board'; build_suffix='debug'", {}, "board-debug"},
+    {"build_tag='board'; build_suffix='debug'", {"--build", "cli"}, "cli-debug"},
+    {"build_tag='board'; build_suffix='debug'", {"--build-tag", "cli"}, "cli-debug"},
+    {"build_suffix='debug'", {"--build", "first", "--build-tag", "last"}, "last-debug"},
+    {"build_suffix='debug'", {"--build-tag", "first", "--build", "last"}, "last-debug"},
+    {"build_tag='board'; build_suffix='debug'", {"--build-suffix", "release"}, "board-release"},
+    {"build_tag='board'; build_suffix='debug'",
+     {"--build-suffix", "release", "--build", "cli"}, "cli-release"},
+    {"build_tag='${PROJECT_NAME}'; include 'build-common.dqproj'", {}, "build-tags-build-tags"},
+  })
+  {
+    fs::path filename = root / "build-tags.dqproj";
+    WriteFile(filename, "main='main.dq'\ntarget='arm_m0-bare'\n" + test.properties + "\n");
+    Expect(LoadProject(project, filename), "build settings project should parse");
+    vector<string> arguments = {"dq-comp", filename.string()};
+    arguments.insert(arguments.end(), test.arguments.begin(), test.arguments.end());
+    vector<char *> argv;
+    for (string & argument : arguments) argv.push_back(argument.data());
+    Expect(g_opt.ProcessCommandLineOpts(arguments.size(), argv.data()).empty(),
+           "build settings command line should parse");
+    Expect(g_opt.build_tag == test.expected, "resolved build tag should be " + test.expected);
+  }
+  Expect(OCompOptions::CommandLineOptionHasValue("--build-tag"),
+         "build tag alias consumes its value during startup and dq-run argument parsing");
+  for (const string & name : {"build_tag", "build_suffix"})
+  {
+    for (const string & value : {"''", "123", "true"})
+    {
+      WriteFile(root / "invalid-build.dqproj", "main='main.dq'\n" + name + "=" + value + "\n");
+      Expect(!LoadProject(project, root / "invalid-build.dqproj") && HasDiagnostic(project, "ProjectValue"),
+             name + " rejects " + value);
+    }
+    WriteFile(root / "build-common.dqproj", name + "='first'\n");
+    WriteFile(root / "invalid-build.dqproj",
+              "main='main.dq'\ninclude 'build-common.dqproj'\n" + name + "='second'\n");
+    Expect(!LoadProject(project, root / "invalid-build.dqproj") && HasDiagnostic(project, "ProjectDuplicate"),
+           name + " rejects duplicates across project includes");
+  }
+
   fs::create_directories(root / "project-packages" / "selected");
   fs::create_directories(root / "cli-packages" / "selected");
   WriteFile(root / "package-precedence.dqproj", R"(

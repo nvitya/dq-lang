@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.14"
+#define DQ_COMPILER_VERSION  "0.96.15"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.15:
+  - `--build-tag` is a command-line alias for `--build`
+  - Project files support `build_tag` and `build_suffix` with command-line overrides
 v0.96.14:
   - Reject directory include paths without crashing language server workers
 v0.96.13:

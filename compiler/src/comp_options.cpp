@@ -514,8 +514,7 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
   explicit_output = project_has_output ? project_output_filename : "";
   has_dash_o = false;
   has_output = project_has_output;
-  build_tag = target.name;
-  string build_tag_suffix;
+  if (build_tag.empty()) build_tag = target.name;
   bool cli_link_mode = false;
   bool project_argument_seen = false;
   set<string> cli_define_names;
@@ -648,22 +647,22 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
       if (!value) return "Missing module stack after --ifstack";
       ParseModuleUseStack(value, module_use_stack);
     }
-    else if ("--build" == v)
+    else if (("--build" == v) || ("--build-tag" == v))
     {
       const char * value = require_value(i);
-      if (!value) return "Missing build tag after --build";
+      if (!value) return "Missing build tag after " + v;
       build_tag = value;
       if (build_tag.empty())
       {
-        return "Empty build tag after --build";
+        return "Empty build tag after " + v;
       }
     }
     else if ("--build-suffix" == v)
     {
       const char * value = require_value(i);
       if (!value) return "Missing build tag suffix after --build-suffix";
-      build_tag_suffix = value;
-      if (build_tag_suffix.empty())
+      build_suffix = value;
+      if (build_suffix.empty())
       {
         return "Empty build tag suffix after --build-suffix";
       }
@@ -764,7 +763,7 @@ string OCompOptions::ProcessCommandLineOpts(int argc, char ** argv)
       return "Unknown command line switch: " + v;
     }
   }
-  if (!build_tag_suffix.empty()) build_tag += "-" + build_tag_suffix;
+  if (!build_suffix.empty()) build_tag += "-" + build_suffix;
   if (!langserver_source_filename.empty()) input_filename = langserver_source_filename;
   if (ifgen && ifdump)
   {
@@ -798,7 +797,7 @@ void OCompOptions::PrintUsage()
   print("  --targets : list supported compiler targets\n");
   print("  --pkg_path <path> : add a package search root (repeatable, last wins; alias: --pkg-path)\n");
   print("  --pkg <name:directory> : map a package directly (repeatable, last wins; overrides search roots)\n");
-  print("  --build <tag> : select .dqbuild build tag\n");
+  print("  --build <tag>, --build-tag <tag> : select .dqbuild build tag\n");
   print("  --build-suffix <suffix> : append to the selected .dqbuild build tag\n");
   print("  --build-root <path> : select the local artifact build root\n");
   print("  --package-build-root <path> : select a separate package artifact build root\n");

@@ -150,6 +150,8 @@ single-value properties are errors.
 | `main` | path string | once, required | DQ source file compiled as the project entry module. |
 | `output` | path string | once, optional | Final executable or object filename. Normal compiler output defaults apply when omitted. |
 | `target` | string | once, optional | Compiler target name, using the same names accepted by `--target`. |
+| `build_tag` | nonempty string | once, optional | Base name of the `.dqbuild` artifact directory; defaults to the selected target name. |
+| `build_suffix` | nonempty string | once, optional | Append `-<suffix>` to the selected build tag. |
 | `sysroot` | path string | once, optional | Target system root passed to the Clang linker driver for hosted cross builds. |
 | `cpu_features` | string | once, optional | Append LLVM CPU feature flags to the target defaults, separated by commas. |
 | `pkg_path` | path string | repeatable | Add a DQ package search root (`packagepath` is a compatibility alias). |
@@ -171,6 +173,16 @@ single-value properties are errors.
 `main` is required only after the top-level file and all its includes have been
 assembled. An included fragment therefore does not need its own `main`.
 `output` is always optional.
+
+For example:
+
+```text
+build_tag = 'stm32f746'
+build_suffix = 'debug'
+```
+
+This selects `.dqbuild/stm32f746-debug/`. Either property may be used alone,
+and both support project-variable expansion such as `${PROJECT_NAME}`.
 
 The `cpu`, `abi`, and `floatabi` property names are reserved for future target
 tuning. They are currently rejected as unsupported. They are not silently
@@ -440,6 +452,8 @@ explicit command-line selections are then applied on top.
 | Setting | Precedence |
 | --- | --- |
 | Target | `--target` overrides `target`; otherwise the project target overrides the host default. |
+| Build tag | `--build` or its alias `--build-tag` overrides `build_tag`; otherwise the selected target name is used when `build_tag` is absent. |
+| Build suffix | `--build-suffix` overrides `build_suffix`. The effective suffix is appended once to the effective build tag, including a tag selected by `--build`. |
 | CPU features | `--cpu-features=` overrides `cpu_features`; the effective value is appended to the selected target defaults. |
 | Output | `-o` overrides `output`; otherwise normal output defaults apply when the property is absent. |
 | Optimization | `-O0` through `-O3`, `-Os`, and `-Oz` override `optlevel`. |
@@ -493,7 +507,8 @@ statement     := property '=' property-value
                | 'var' identifier '=' variable-value
                | 'include' string
 
-property      := 'main' | 'output' | 'target' | 'pkg_path' | 'packagepath' | 'pkg'
+property      := 'main' | 'output' | 'target' | 'build_tag' | 'build_suffix'
+               | 'pkg_path' | 'packagepath' | 'pkg'
                | 'link' | 'static' | 'linkobject' | 'linkerpath' | 'linkoption'
                | 'linkscript' | 'debuginfo' | 'optlevel' | 'lto'
                | 'exceptions' | 'dynstrings' | 'cpu_features'

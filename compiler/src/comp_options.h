@@ -179,6 +179,7 @@ public:
   string   package_build_root_dir;
   string   sysroot_dir;
   string   build_tag;
+  string   build_suffix;
   vector<string>  module_use_stack;
   OPackageOptions packages;
   string          module_root_dir;
@@ -208,7 +209,7 @@ public:
   static inline bool CommandLineOptionHasValue(const string & option)
   {
     return (option == "--target") || (option == "--pkg-path") || (option == "--pkg_path")
-           || (option == "--pkg") || (option == "--build")
+           || (option == "--pkg") || (option == "--build") || (option == "--build-tag")
            || (option == "--build-suffix") || (option == "--build-root")
            || (option == "--package-build-root")
            || (option == "--sysroot")

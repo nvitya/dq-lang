@@ -474,6 +474,16 @@ bool ODqProjectFile::ParseProperty(const string & name)
       return Fail("ProjectValue", target_error, sp.prevptr);
     }
   }
+  else if (("build_tag" == name) || ("build_suffix" == name))
+  {
+    if (!CheckDuplicate(name)) return false;
+    string & value = ("build_tag" == name ? g_opt.build_tag : g_opt.build_suffix);
+    if (!ReadExpandedString(value)) return false;
+    if (value.empty())
+    {
+      return Fail("ProjectValue", name + " must not be empty", sp.prevptr);
+    }
+  }
   else if ("cpu_features" == name)
   {
     if (!CheckDuplicate(name)) return false;

@@ -21,6 +21,7 @@
 #include <print>
 #include <format>
 #include <filesystem>
+#include <limits>
 
 #include "scf_base.h"
 #include "comp_options.h"
@@ -87,23 +88,32 @@ bool OScFile::Load(const string aname, const string afullpath)
   pend = nullptr;
 
   filesystem::path physical_path = g_source_overlay.PhysicalPath(fullpath);
+  error_code ec;
+  if (!filesystem::is_regular_file(physical_path, ec))
+  {
+    return false;
+  }
   ifstream f(physical_path, ios::binary | ios::ate);
   if (!f)
   {
     return false;
   }
 
-  length = f.tellg();
+  auto file_length = f.tellg();
+  if (file_length < 0 || file_length > numeric_limits<int32_t>::max())
+  {
+    return false;
+  }
+  length = file_length;
   body.resize(length);
   if (length > 0)
   {
     f.seekg(0);
-    f.read(body.data(), length);
-    pstart = body.data();
-    pend = pstart + length;
+    if (!f.read(body.data(), length)) return false;
   }
+  pstart = body.data();
+  pend = pstart + length;
 
-  error_code ec;
   auto ftime = filesystem::last_write_time(physical_path, ec);
   if (ec)
   {

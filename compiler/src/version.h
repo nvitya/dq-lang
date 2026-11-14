@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.13"
+#define DQ_COMPILER_VERSION  "0.96.14"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.14:
+  - Reject directory include paths without crashing language server workers
 v0.96.13:
   - `#include` paths support compile-time string interpolation
   - Constant module imports use `{expression}` instead of `${expression}`

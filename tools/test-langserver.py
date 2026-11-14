@@ -139,7 +139,9 @@ def run_cache(compiler):
         main.write_text(main_text)
         output = root / 'unwritten' / 'project.code-workspace'
         project = root / 'app.dqproj'
-        project.write_text(f"main = 'main.dq'\npkg = 'lib:{library}'\noutput = '{output}'\nlink = true\n")
+        source_root = Path(__file__).resolve().parents[1]
+        project.write_text(f"main = 'main.dq'\npkg = 'lib:{library}'\n"
+                           f"pkg = 'compiler_sources:{source_root}'\noutput = '{output}'\nlink = true\n")
         temporary = root / 'temporary'
         temporary.mkdir()
         environment = dict(os.environ, TMPDIR=str(temporary), TMP=str(temporary), TEMP=str(temporary))
@@ -252,6 +254,10 @@ def run_cache(compiler):
                     ('#include "./', 'StrLiteral'),
                     ('#include ""', 'CDirIncLocalPrefix'),
                     ('#include "./"', 'CDirIncFileLoad'),
+                    ('#include "^/"', 'CDirIncFileLoad'),
+                    # Test the source filesystem as well: temporary directories
+                    # can reject directory streams before their size is queried.
+                    ('#include "compiler_sources/compiler"', 'CDirIncFileLoad'),
                     ('#include "./missing.dqi"', 'CDirIncFileLoad'),
                     ('#include "\\{UNKNOWN}"', 'VsUnknown'),
                     ('#include "\\{7"', 'InterpolationClose'),

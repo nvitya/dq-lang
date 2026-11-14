@@ -1,0 +1,2840 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Documentation for the DQ programming language, libraries and tools" name="description"/>
+<link href="../070-strings-and-characters/" rel="prev"/>
+<link href="../077-text-formatting/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>2.8. String Functions - DQ-lang Project</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../pdf/dq-lang-book.pdf" rel="alternate" title="PDF" type="application/pdf"/></head>
+<body dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#string-functions">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="DQ-lang Project" class="md-header__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            DQ-lang Project
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              2.8. String Functions
+            
+          </span>
+</div>
+</div>
+</div>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<a class="md-header-nav__button md-icon" href="../../pdf/dq-lang-book.pdf" title="PDF">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<path d="M128,0c-17.6,0-32,14.4-32,32v448c0,17.6,14.4,32,32,32h320c17.6,0,32-14.4,32-32V128L352,0H128z" fill="#E2E5E7"></path>
+<path d="m384 128h96l-128-128v96c0 17.6 14.4 32 32 32z" fill="#B0B7BD"></path>
+<polygon fill="#CAD1D8" points="480 224 384 128 480 128"></polygon>
+<path d="M416,416c0,8.8-7.2,16-16,16H48c-8.8,0-16-7.2-16-16V256c0-8.8,7.2-16,16-16h352c8.8,0,16,7.2,16,16  V416z" fill="#F15642"></path>
+<g fill="#fff">
+<path d="m101.74 303.15c0-4.224 3.328-8.832 8.688-8.832h29.552c16.64 0 31.616 11.136 31.616 32.48 0 20.224-14.976 31.488-31.616 31.488h-21.36v16.896c0 5.632-3.584 8.816-8.192 8.816-4.224 0-8.688-3.184-8.688-8.816v-72.032zm16.88 7.28v31.872h21.36c8.576 0 15.36-7.568 15.36-15.504 0-8.944-6.784-16.368-15.36-16.368h-21.36z"></path>
+<path d="m196.66 384c-4.224 0-8.832-2.304-8.832-7.92v-72.672c0-4.592 4.608-7.936 8.832-7.936h29.296c58.464 0 57.184 88.528 1.152 88.528h-30.448zm8.064-72.912v57.312h21.232c34.544 0 36.08-57.312 0-57.312h-21.232z"></path>
+<path d="m303.87 312.11v20.336h32.624c4.608 0 9.216 4.608 9.216 9.072 0 4.224-4.608 7.68-9.216 7.68h-32.624v26.864c0 4.48-3.184 7.92-7.664 7.92-5.632 0-9.072-3.44-9.072-7.92v-72.672c0-4.592 3.456-7.936 9.072-7.936h44.912c5.632 0 8.96 3.344 8.96 7.936 0 4.096-3.328 8.704-8.96 8.704h-37.248v0.016z"></path>
+</g>
+<path d="m400 432h-304v16h304c8.8 0 16-7.2 16-16v-16c0 8.8-7.2 16-16 16z" fill="#CAD1D8"></path>
+</svg>
+</a></nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="DQ-lang Project" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    DQ-lang Project
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../010-project/">
+<span class="md-ellipsis">
+    
+  
+    1. DQ-lang Project
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    1. DQ-lang Project
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    1.1. DQ-lang Project Introduction
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/020-features-and-goals/">
+<span class="md-ellipsis">
+    
+  
+    1.2. Features and Design Goals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/030-getting-started/">
+<span class="md-ellipsis">
+    
+  
+    1.3. Getting Started
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    2. DQ Programming Language
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    2. DQ Programming Language
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../010-basic-syntax/">
+<span class="md-ellipsis">
+    
+  
+    2.1. Basic Syntax
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../020-basic-types-and-conversions/">
+<span class="md-ellipsis">
+    
+  
+    2.2. Basic Types and Conversions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../030-variables-constants-references-and-scope/">
+<span class="md-ellipsis">
+    
+  
+    2.3. Variables, Constants, References, and Scope
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../040-expressions-and-operators/">
+<span class="md-ellipsis">
+    
+  
+    2.4. Expressions and Operators
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../050-statements-and-control-flow/">
+<span class="md-ellipsis">
+    
+  
+    2.5. Statements and Control Flow
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../060-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.6. Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../070-strings-and-characters/">
+<span class="md-ellipsis">
+    
+  
+    2.7. Character and String Types
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    2.8. String Functions
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    2.8. String Functions
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#properties-and-methods-listing">
+<span class="md-ellipsis">
+      
+        2.8.1 Properties and Methods Listing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#standalone-string-helpers-listing">
+<span class="md-ellipsis">
+      
+        2.8.2 Standalone String Helpers Listing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#text-operators">
+<span class="md-ellipsis">
+      
+        2.8.3 Text Operators
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#string-comparison">
+<span class="md-ellipsis">
+      
+        2.8.4 String Comparison
+      
+    </span>
+</a>
+<nav aria-label="2.8.4 String Comparison" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strslicecmp">
+<span class="md-ellipsis">
+      
+        2.8.4.1 StrSliceCmp
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#standalone-string-helpers">
+<span class="md-ellipsis">
+      
+        2.8.5 Standalone String Helpers
+      
+    </span>
+</a>
+<nav aria-label="2.8.5 Standalone String Helpers" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#format">
+<span class="md-ellipsis">
+      
+        2.8.5.1 Format
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strtoint-and-strtofloat">
+<span class="md-ellipsis">
+      
+        2.8.5.2 StrToInt and StrToFloat
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strupper-and-strlower">
+<span class="md-ellipsis">
+      
+        2.8.5.3 StrUpper and StrLower
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strsplit-and-strjoin">
+<span class="md-ellipsis">
+      
+        2.8.5.4 StrSplit and StrJoin
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strreplace">
+<span class="md-ellipsis">
+      
+        2.8.5.5 StrReplace
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strslice">
+<span class="md-ellipsis">
+      
+        2.8.5.6 StrSlice
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strfromwchars">
+<span class="md-ellipsis">
+      
+        2.8.5.7 StrFromWchars
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strfromutf16-and-strfromutf16ptr">
+<span class="md-ellipsis">
+      
+        2.8.5.8 StrFromUtf16 and StrFromUtf16Ptr
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#utf16-fallback-conversion">
+<span class="md-ellipsis">
+      
+        2.8.5.9 UTF16 Fallback Conversion
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#string-properties">
+<span class="md-ellipsis">
+      
+        2.8.6 String Properties
+      
+    </span>
+</a>
+<nav aria-label="2.8.6 String Properties" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#length">
+<span class="md-ellipsis">
+      
+        2.8.6.1 Length
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity">
+<span class="md-ellipsis">
+      
+        2.8.6.2 Capacity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#embedded-storage-size">
+<span class="md-ellipsis">
+      
+        2.8.6.3 Embedded Storage Size
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reference-count">
+<span class="md-ellipsis">
+      
+        2.8.6.4 Reference Count
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#raw-byte-pointer">
+<span class="md-ellipsis">
+      
+        2.8.6.5 Raw Byte Pointer
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#string-methods">
+<span class="md-ellipsis">
+      
+        2.8.7 String Methods
+      
+    </span>
+</a>
+<nav aria-label="2.8.7 String Methods" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#set">
+<span class="md-ellipsis">
+      
+        2.8.7.1 .Set
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#add-append-and-appendchar">
+<span class="md-ellipsis">
+      
+        2.8.7.2 .Add, .Append, and .AppendChar
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#addfmt">
+<span class="md-ellipsis">
+      
+        2.8.7.3 .AddFmt
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#prepend-and-insert">
+<span class="md-ellipsis">
+      
+        2.8.7.4 .Prepend and .Insert
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#delete">
+<span class="md-ellipsis">
+      
+        2.8.7.5 .Delete
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#clear">
+<span class="md-ellipsis">
+      
+        2.8.7.6 .Clear
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setlength-and-truncate">
+<span class="md-ellipsis">
+      
+        2.8.7.7 .SetLength and .Truncate
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pop-and-popfirst">
+<span class="md-ellipsis">
+      
+        2.8.7.8 .Pop and .PopFirst
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#overlapping-source-and-destination">
+<span class="md-ellipsis">
+      
+        2.8.7.9 Overlapping Source and Destination
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#managing-dynamic-storage">
+<span class="md-ellipsis">
+      
+        2.8.8 Managing Dynamic Storage
+      
+    </span>
+</a>
+<nav aria-label="2.8.8 Managing Dynamic Storage" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reserve">
+<span class="md-ellipsis">
+      
+        2.8.8.1 .Reserve
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setcapacity-and-compact">
+<span class="md-ellipsis">
+      
+        2.8.8.2 .SetCapacity and .Compact
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#clone">
+<span class="md-ellipsis">
+      
+        2.8.8.3 .Clone
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#string-utility-methods">
+<span class="md-ellipsis">
+      
+        2.8.9 String Utility Methods
+      
+    </span>
+</a>
+<nav aria-label="2.8.9 String Utility Methods" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#upper-and-lower">
+<span class="md-ellipsis">
+      
+        2.8.9.1 .Upper and .Lower
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#toint-and-tofloat">
+<span class="md-ellipsis">
+      
+        2.8.9.2 .ToInt and .ToFloat
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#indexof-and-lastindexof">
+<span class="md-ellipsis">
+      
+        2.8.9.3 .IndexOf and .LastIndexOf
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#contains-startswith-and-endswith">
+<span class="md-ellipsis">
+      
+        2.8.9.4 .Contains, .StartsWith, and .EndsWith
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#trim-ltrim-and-rtrim">
+<span class="md-ellipsis">
+      
+        2.8.9.5 .Trim, .LTrim, and .RTrim
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#lpad-and-rpad">
+<span class="md-ellipsis">
+      
+        2.8.9.6 .LPad and .RPad
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#byte-indexing-and-slicing">
+<span class="md-ellipsis">
+      
+        2.8.10 Byte Indexing and Slicing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#unicode-operations">
+<span class="md-ellipsis">
+      
+        2.8.11 Unicode Operations
+      
+    </span>
+</a>
+<nav aria-label="2.8.11 Unicode Operations" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#unicode-character-count">
+<span class="md-ellipsis">
+      
+        2.8.11.1 Unicode Character Count
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#unicode-indexing-and-slicing">
+<span class="md-ellipsis">
+      
+        2.8.11.2 Unicode Indexing and Slicing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#towchars">
+<span class="md-ellipsis">
+      
+        2.8.11.3 .ToWchars
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../077-text-formatting/">
+<span class="md-ellipsis">
+    
+  
+    2.9. Text Formatting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../080-arrays-and-slices/">
+<span class="md-ellipsis">
+    
+  
+    2.10. Arrays and Slices
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../090-enumerations/">
+<span class="md-ellipsis">
+    
+  
+    2.11. Enumerations
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../100-structures-and-unions/">
+<span class="md-ellipsis">
+    
+  
+    2.12. Structures and Unions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../110-pointers/">
+<span class="md-ellipsis">
+    
+  
+    2.13. Pointers
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../120-objects-and-properties/">
+<span class="md-ellipsis">
+    
+  
+    2.14. Objects and Properties
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../130-memory-management-and-ownership/">
+<span class="md-ellipsis">
+    
+  
+    2.15. Memory Management and Autofree
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../140-exceptions-and-error-handling/">
+<span class="md-ellipsis">
+    
+  
+    2.16. Exceptions and Error Handling
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../150-anyvalue/">
+<span class="md-ellipsis">
+    
+  
+    2.17. anyvalue
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../170-modules-and-packages/">
+<span class="md-ellipsis">
+    
+  
+    2.18. Modules and Packages
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../180-attributes/">
+<span class="md-ellipsis">
+    
+  
+    2.19. Attributes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../190-compiler-directives/">
+<span class="md-ellipsis">
+    
+  
+    2.20. Compiler Directives
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../200-c-interoperability/">
+<span class="md-ellipsis">
+    
+  
+    2.21. C Interoperability
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../210-assembly-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.22. Assembly Functions
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../030-compiler/">
+<span class="md-ellipsis">
+    
+  
+    3. DQ Compiler and Tools
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    3. DQ Compiler and Tools
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/010-compiler-and-tool-overview/">
+<span class="md-ellipsis">
+    
+  
+    3.1. Compiler and Tool Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/015-runtime-and-program-execution/">
+<span class="md-ellipsis">
+    
+  
+    3.2. Runtime and Program Execution
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/020-linux-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.3. Linux Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/030-windows-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.4. Windows Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/040-compiler-usage-and-options/">
+<span class="md-ellipsis">
+    
+  
+    3.5. Compiler Usage and Options
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/050-project-files/">
+<span class="md-ellipsis">
+    
+  
+    3.6. Project Files
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/060-build-process-and-module-artifacts/">
+<span class="md-ellipsis">
+    
+  
+    3.7. Build Process and Module Artifacts
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/070-targets-and-cross-compilation/">
+<span class="md-ellipsis">
+    
+  
+    3.8. Targets and Cross-Compilation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/080-vscode-setup-and-debugging/">
+<span class="md-ellipsis">
+    
+  
+    3.9. VSCode Setup and Debugging
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../040-packages/">
+<span class="md-ellipsis">
+    
+  
+    4. Standard Packages
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    4. Standard Packages
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/010-library-overview-and-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.1. Library Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/015-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.2. sys
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/020-print/">
+<span class="md-ellipsis">
+    
+  
+    4.3. print
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/040-file/">
+<span class="md-ellipsis">
+    
+  
+    4.4. file
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/050-json/">
+<span class="md-ellipsis">
+    
+  
+    4.5. json
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/060-threads/">
+<span class="md-ellipsis">
+    
+  
+    4.6. threads
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/065-time/">
+<span class="md-ellipsis">
+    
+  
+    4.7. time
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/070-nanonet/">
+<span class="md-ellipsis">
+    
+  
+    4.8. nanonet
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/075-shell/">
+<span class="md-ellipsis">
+    
+  
+    4.9. shell
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/080-additional-standard-packages/">
+<span class="md-ellipsis">
+    
+  
+    4.10. Additional Standard Packages
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    5. Appendices
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    5. Appendices
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/010-example-programs/">
+<span class="md-ellipsis">
+    
+  
+    5.1. Example Programs
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/020-building-the-compiler-from-source/">
+<span class="md-ellipsis">
+    
+  
+    5.2. Building the Compiler from Source
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/030-contributor-and-implementation-notes/">
+<span class="md-ellipsis">
+    
+  
+    5.3. Contributor and Implementation Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/031-module-and-interface-internals/">
+<span class="md-ellipsis">
+    
+  
+    5.4. Module and Interface Internals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/032-exceptions-and-backtraces/">
+<span class="md-ellipsis">
+    
+  
+    5.5. Exceptions and Backtraces
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/033-release-and-cross-builds/">
+<span class="md-ellipsis">
+    
+  
+    5.6. Release and Cross-Build Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/040-glossary-and-index/">
+<span class="md-ellipsis">
+    
+  
+    5.7. Glossary and Index
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/050-documentation-coverage/">
+<span class="md-ellipsis">
+    
+  
+    5.8. Documentation Coverage
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#properties-and-methods-listing">
+<span class="md-ellipsis">
+      
+        2.8.1 Properties and Methods Listing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#standalone-string-helpers-listing">
+<span class="md-ellipsis">
+      
+        2.8.2 Standalone String Helpers Listing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#text-operators">
+<span class="md-ellipsis">
+      
+        2.8.3 Text Operators
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#string-comparison">
+<span class="md-ellipsis">
+      
+        2.8.4 String Comparison
+      
+    </span>
+</a>
+<nav aria-label="2.8.4 String Comparison" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strslicecmp">
+<span class="md-ellipsis">
+      
+        2.8.4.1 StrSliceCmp
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#standalone-string-helpers">
+<span class="md-ellipsis">
+      
+        2.8.5 Standalone String Helpers
+      
+    </span>
+</a>
+<nav aria-label="2.8.5 Standalone String Helpers" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#format">
+<span class="md-ellipsis">
+      
+        2.8.5.1 Format
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strtoint-and-strtofloat">
+<span class="md-ellipsis">
+      
+        2.8.5.2 StrToInt and StrToFloat
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strupper-and-strlower">
+<span class="md-ellipsis">
+      
+        2.8.5.3 StrUpper and StrLower
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strsplit-and-strjoin">
+<span class="md-ellipsis">
+      
+        2.8.5.4 StrSplit and StrJoin
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strreplace">
+<span class="md-ellipsis">
+      
+        2.8.5.5 StrReplace
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strslice">
+<span class="md-ellipsis">
+      
+        2.8.5.6 StrSlice
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strfromwchars">
+<span class="md-ellipsis">
+      
+        2.8.5.7 StrFromWchars
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strfromutf16-and-strfromutf16ptr">
+<span class="md-ellipsis">
+      
+        2.8.5.8 StrFromUtf16 and StrFromUtf16Ptr
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#utf16-fallback-conversion">
+<span class="md-ellipsis">
+      
+        2.8.5.9 UTF16 Fallback Conversion
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#string-properties">
+<span class="md-ellipsis">
+      
+        2.8.6 String Properties
+      
+    </span>
+</a>
+<nav aria-label="2.8.6 String Properties" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#length">
+<span class="md-ellipsis">
+      
+        2.8.6.1 Length
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity">
+<span class="md-ellipsis">
+      
+        2.8.6.2 Capacity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#embedded-storage-size">
+<span class="md-ellipsis">
+      
+        2.8.6.3 Embedded Storage Size
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reference-count">
+<span class="md-ellipsis">
+      
+        2.8.6.4 Reference Count
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#raw-byte-pointer">
+<span class="md-ellipsis">
+      
+        2.8.6.5 Raw Byte Pointer
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#string-methods">
+<span class="md-ellipsis">
+      
+        2.8.7 String Methods
+      
+    </span>
+</a>
+<nav aria-label="2.8.7 String Methods" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#set">
+<span class="md-ellipsis">
+      
+        2.8.7.1 .Set
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#add-append-and-appendchar">
+<span class="md-ellipsis">
+      
+        2.8.7.2 .Add, .Append, and .AppendChar
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#addfmt">
+<span class="md-ellipsis">
+      
+        2.8.7.3 .AddFmt
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#prepend-and-insert">
+<span class="md-ellipsis">
+      
+        2.8.7.4 .Prepend and .Insert
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#delete">
+<span class="md-ellipsis">
+      
+        2.8.7.5 .Delete
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#clear">
+<span class="md-ellipsis">
+      
+        2.8.7.6 .Clear
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setlength-and-truncate">
+<span class="md-ellipsis">
+      
+        2.8.7.7 .SetLength and .Truncate
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pop-and-popfirst">
+<span class="md-ellipsis">
+      
+        2.8.7.8 .Pop and .PopFirst
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#overlapping-source-and-destination">
+<span class="md-ellipsis">
+      
+        2.8.7.9 Overlapping Source and Destination
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#managing-dynamic-storage">
+<span class="md-ellipsis">
+      
+        2.8.8 Managing Dynamic Storage
+      
+    </span>
+</a>
+<nav aria-label="2.8.8 Managing Dynamic Storage" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reserve">
+<span class="md-ellipsis">
+      
+        2.8.8.1 .Reserve
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setcapacity-and-compact">
+<span class="md-ellipsis">
+      
+        2.8.8.2 .SetCapacity and .Compact
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#clone">
+<span class="md-ellipsis">
+      
+        2.8.8.3 .Clone
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#string-utility-methods">
+<span class="md-ellipsis">
+      
+        2.8.9 String Utility Methods
+      
+    </span>
+</a>
+<nav aria-label="2.8.9 String Utility Methods" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#upper-and-lower">
+<span class="md-ellipsis">
+      
+        2.8.9.1 .Upper and .Lower
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#toint-and-tofloat">
+<span class="md-ellipsis">
+      
+        2.8.9.2 .ToInt and .ToFloat
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#indexof-and-lastindexof">
+<span class="md-ellipsis">
+      
+        2.8.9.3 .IndexOf and .LastIndexOf
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#contains-startswith-and-endswith">
+<span class="md-ellipsis">
+      
+        2.8.9.4 .Contains, .StartsWith, and .EndsWith
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#trim-ltrim-and-rtrim">
+<span class="md-ellipsis">
+      
+        2.8.9.5 .Trim, .LTrim, and .RTrim
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#lpad-and-rpad">
+<span class="md-ellipsis">
+      
+        2.8.9.6 .LPad and .RPad
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#byte-indexing-and-slicing">
+<span class="md-ellipsis">
+      
+        2.8.10 Byte Indexing and Slicing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#unicode-operations">
+<span class="md-ellipsis">
+      
+        2.8.11 Unicode Operations
+      
+    </span>
+</a>
+<nav aria-label="2.8.11 Unicode Operations" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#unicode-character-count">
+<span class="md-ellipsis">
+      
+        2.8.11.1 Unicode Character Count
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#unicode-indexing-and-slicing">
+<span class="md-ellipsis">
+      
+        2.8.11.2 Unicode Indexing and Slicing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#towchars">
+<span class="md-ellipsis">
+      
+        2.8.11.3 .ToWchars
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="string-functions">2.8. String Functions</h1>
+<p>Use the reference tables to find string properties, methods, helpers, and
+operators, then follow their links to detailed explanations and examples. For
+storage, conversions, and lifetime rules, see
+<a href="../070-strings-and-characters/">Character and String Types</a>.</p>
+<h2 id="properties-and-methods-listing">2.8.1 Properties and Methods Listing</h2>
+<p>In the <strong>Types</strong> column, <code>*</code> means all string types: <code>str</code>, <code>rostr</code>, <code>strslice</code>
+and <code>embstr</code>.</p>
+<p>Properties are read-only. A result of <code>—</code> means that the method modifies the
+string and returns no value. Lengths, positions, and counts are in <strong>bytes</strong>,
+except for the explicitly Unicode-oriented members <code>.wclen</code> and <code>.wchar[...]</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Property or method</th>
+<th>Types</th>
+<th>Result</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#add-append-and-appendchar"><code>.Add(value)</code></a></td>
+<td><code>str</code>, <code>embstr</code></td>
+<td>—</td>
+<td>Append text or one <code>char</code> byte</td>
+</tr>
+<tr>
+<td><a href="#addfmt"><code>.AddFmt(fmt, args)</code></a></td>
+<td><code>str</code>, <code>embstr</code></td>
+<td>—</td>
+<td>Append formatted values</td>
+</tr>
+<tr>
+<td><a href="#add-append-and-appendchar"><code>.Append(value)</code></a></td>
+<td><code>str</code>, <code>embstr</code></td>
+<td>—</td>
+<td>Alias for <code>.Add(value)</code></td>
+</tr>
+<tr>
+<td><a href="#add-append-and-appendchar"><code>.AppendChar(ch)</code></a></td>
+<td><code>str</code>, <code>embstr</code></td>
+<td>—</td>
+<td>Append one <code>char</code> byte</td>
+</tr>
+<tr>
+<td><a href="#capacity"><code>.capacity</code></a></td>
+<td><code>str</code></td>
+<td><code>int</code></td>
+<td>Allocated capacity for text bytes</td>
+</tr>
+<tr>
+<td><a href="#clear"><code>.Clear()</code></a></td>
+<td><code>str</code>, <code>embstr</code></td>
+<td>—</td>
+<td>Remove all contents; retain storage</td>
+</tr>
+<tr>
+<td><a href="#clear"><code>.Clear(free_storage)</code></a></td>
+<td><code>str</code></td>
+<td>—</td>
+<td>Optionally release the string's storage</td>
+</tr>
+<tr>
+<td><a href="#clone"><code>.Clone()</code></a></td>
+<td><code>str</code></td>
+<td><code>str</code></td>
+<td>Create an independent copy immediately</td>
+</tr>
+<tr>
+<td><a href="#setcapacity-and-compact"><code>.Compact()</code></a></td>
+<td><code>str</code></td>
+<td>—</td>
+<td>Reduce capacity to the current length</td>
+</tr>
+<tr>
+<td><a href="#contains-startswith-and-endswith"><code>.Contains(needle)</code></a></td>
+<td><code>*</code></td>
+<td><code>bool</code></td>
+<td>Test whether text contains a value</td>
+</tr>
+<tr>
+<td><a href="#delete"><code>.Delete(index, count = 1)</code></a></td>
+<td><code>str</code>, <code>embstr</code></td>
+<td>—</td>
+<td>Remove bytes</td>
+</tr>
+<tr>
+<td><a href="#contains-startswith-and-endswith"><code>.EndsWith(suffix)</code></a></td>
+<td><code>*</code></td>
+<td><code>bool</code></td>
+<td>Test the end of the text</td>
+</tr>
+<tr>
+<td><a href="#indexof-and-lastindexof"><code>.IndexOf(needle, start = 0)</code></a></td>
+<td><code>*</code></td>
+<td><code>int</code></td>
+<td>First matching byte offset, or <code>-1</code></td>
+</tr>
+<tr>
+<td><a href="#prepend-and-insert"><code>.Insert(index, value)</code></a></td>
+<td><code>str</code>, <code>embstr</code></td>
+<td>—</td>
+<td>Insert text or a byte at a byte position</td>
+</tr>
+<tr>
+<td><a href="#indexof-and-lastindexof"><code>.LastIndexOf(needle)</code></a></td>
+<td><code>*</code></td>
+<td><code>int</code></td>
+<td>Last matching byte offset, or <code>-1</code></td>
+</tr>
+<tr>
+<td><a href="#length"><code>.length</code></a></td>
+<td><code>*</code></td>
+<td><code>int</code></td>
+<td>Current byte length, excluding the terminator</td>
+</tr>
+<tr>
+<td><a href="#upper-and-lower"><code>.Lower()</code></a></td>
+<td><code>*</code></td>
+<td><code>str</code></td>
+<td>Copy with ASCII letters in lowercase</td>
+</tr>
+<tr>
+<td><a href="#lpad-and-rpad"><code>.LPad(length, fill)</code></a></td>
+<td><code>*</code></td>
+<td><code>str</code></td>
+<td>Copy with padding on the left</td>
+</tr>
+<tr>
+<td><a href="#trim-ltrim-and-rtrim"><code>.LTrim()</code></a><br/><a href="#trim-ltrim-and-rtrim"><code>.LTrim(set)</code></a></td>
+<td><code>*</code></td>
+<td><code>str</code></td>
+<td>Copy without matching bytes at the left end</td>
+</tr>
+<tr>
+<td><a href="#embedded-storage-size"><code>.maxlength</code></a></td>
+<td><code>embstr</code></td>
+<td><code>int</code></td>
+<td>Maximum number of text bytes that fit</td>
+</tr>
+<tr>
+<td><a href="#raw-byte-pointer"><code>.pchar</code></a></td>
+<td><code>*</code></td>
+<td><code>^char</code></td>
+<td>Borrow a pointer to the text bytes</td>
+</tr>
+<tr>
+<td><a href="#pop-and-popfirst"><code>.Pop()</code></a></td>
+<td><code>str</code></td>
+<td><code>char</code></td>
+<td>Remove and return the last byte</td>
+</tr>
+<tr>
+<td><a href="#pop-and-popfirst"><code>.Pop(count)</code></a></td>
+<td><code>str</code></td>
+<td><code>str</code></td>
+<td>Remove and return bytes from the end</td>
+</tr>
+<tr>
+<td><a href="#pop-and-popfirst"><code>.PopFirst()</code></a></td>
+<td><code>str</code></td>
+<td><code>char</code></td>
+<td>Remove and return the first byte</td>
+</tr>
+<tr>
+<td><a href="#pop-and-popfirst"><code>.PopFirst(count)</code></a></td>
+<td><code>str</code></td>
+<td><code>str</code></td>
+<td>Remove and return bytes from the beginning</td>
+</tr>
+<tr>
+<td><a href="#prepend-and-insert"><code>.Prepend(value)</code></a></td>
+<td><code>str</code>, <code>embstr</code></td>
+<td>—</td>
+<td>Insert text or a byte at the beginning</td>
+</tr>
+<tr>
+<td><a href="#reference-count"><code>.refcount</code></a></td>
+<td><code>str</code></td>
+<td><code>int</code></td>
+<td>Number of references sharing the string handler</td>
+</tr>
+<tr>
+<td><a href="#reserve"><code>.Reserve(capacity)</code></a></td>
+<td><code>str</code></td>
+<td>—</td>
+<td>Ensure room for at least this many text bytes</td>
+</tr>
+<tr>
+<td><a href="#lpad-and-rpad"><code>.RPad(length, fill)</code></a></td>
+<td><code>*</code></td>
+<td><code>str</code></td>
+<td>Copy with padding on the right</td>
+</tr>
+<tr>
+<td><a href="#trim-ltrim-and-rtrim"><code>.RTrim()</code></a><br/><a href="#trim-ltrim-and-rtrim"><code>.RTrim(set)</code></a></td>
+<td><code>*</code></td>
+<td><code>str</code></td>
+<td>Copy without matching bytes at the right end</td>
+</tr>
+<tr>
+<td><a href="#set"><code>.Set(value)</code></a></td>
+<td><code>str</code>, <code>embstr</code></td>
+<td>—</td>
+<td>Replace the contents</td>
+</tr>
+<tr>
+<td><a href="#setcapacity-and-compact"><code>.SetCapacity(capacity)</code></a></td>
+<td><code>str</code></td>
+<td>—</td>
+<td>Set capacity, shortening the text if necessary</td>
+</tr>
+<tr>
+<td><a href="#setlength-and-truncate"><code>.SetLength(length, fill)</code></a></td>
+<td><code>str</code></td>
+<td>—</td>
+<td>Resize, filling new bytes with a <code>char</code></td>
+</tr>
+<tr>
+<td><a href="#contains-startswith-and-endswith"><code>.StartsWith(prefix)</code></a></td>
+<td><code>*</code></td>
+<td><code>bool</code></td>
+<td>Test the beginning of the text</td>
+</tr>
+<tr>
+<td><a href="#embedded-storage-size"><code>.storage_size</code></a></td>
+<td><code>embstr</code></td>
+<td><code>int</code></td>
+<td>Buffer size including space for the terminator</td>
+</tr>
+<tr>
+<td><a href="#toint-and-tofloat"><code>.ToFloat()</code></a><br/><a href="#toint-and-tofloat"><code>.ToFloat(defvalue)</code></a></td>
+<td><code>*</code></td>
+<td><code>float</code></td>
+<td>Parse a number; raise on invalid input or return a fallback</td>
+</tr>
+<tr>
+<td><a href="#toint-and-tofloat"><code>.ToInt()</code></a><br/><a href="#toint-and-tofloat"><code>.ToInt(defvalue)</code></a></td>
+<td><code>*</code></td>
+<td><code>int</code></td>
+<td>Parse an integer; raise on invalid input or return a fallback</td>
+</tr>
+<tr>
+<td><a href="#towchars"><code>.ToWchars()</code></a></td>
+<td><code>*</code></td>
+<td><code>[*]wchar</code></td>
+<td>Decode the whole UTF-8 string into Unicode characters</td>
+</tr>
+<tr>
+<td><a href="#trim-ltrim-and-rtrim"><code>.Trim()</code></a><br/><a href="#trim-ltrim-and-rtrim"><code>.Trim(set)</code></a></td>
+<td><code>*</code></td>
+<td><code>str</code></td>
+<td>Copy without matching bytes at either end</td>
+</tr>
+<tr>
+<td><a href="#setlength-and-truncate"><code>.Truncate(length)</code></a></td>
+<td><code>str</code></td>
+<td>—</td>
+<td>Shorten without growing</td>
+</tr>
+<tr>
+<td><a href="#upper-and-lower"><code>.Upper()</code></a></td>
+<td><code>*</code></td>
+<td><code>str</code></td>
+<td>Copy with ASCII letters in uppercase</td>
+</tr>
+<tr>
+<td><a href="#unicode-indexing-and-slicing"><code>.wchar[index]</code></a></td>
+<td><code>*</code></td>
+<td><code>wchar</code></td>
+<td>Read one Unicode character</td>
+</tr>
+<tr>
+<td><a href="#unicode-indexing-and-slicing"><code>.wchar[start:end]</code></a></td>
+<td><code>*</code></td>
+<td><code>[*]wchar</code></td>
+<td>Decode a range of Unicode characters</td>
+</tr>
+<tr>
+<td><a href="#unicode-character-count"><code>.wclen</code></a></td>
+<td><code>*</code></td>
+<td><code>int</code></td>
+<td>Count Unicode characters in UTF-8 text</td>
+</tr>
+</tbody>
+</table>
+<p>Methods returning <code>str</code> require dynamic-string support even when called on an
+embedded string or borrowed view. Numeric conversion, search methods,
+embedded-string mutations, and Unicode decoding remain available with dynamic
+strings disabled. Using <code>str</code> always requires dynamic-string support.</p>
+<p>For equivalents of <code>substring()</code>, <code>substr()</code>, <code>slice()</code>, <code>Left()</code>, <code>Right()</code>, or
+<code>Mid()</code> from other languages, see <a href="#byte-indexing-and-slicing">Byte Indexing and Slicing</a>.
+Use <code>text[start:end]</code> to extract a substring, or <code>text[start:start + count]</code>
+when you have a starting position and a byte count. Positions are zero-based
+byte offsets, and <code>end</code> is excluded. For Unicode character positions, see
+<a href="#unicode-indexing-and-slicing">Unicode Indexing and Slicing</a>.</p>
+<h2 id="standalone-string-helpers-listing">2.8.2 Standalone String Helpers Listing</h2>
+<p>These functions are available through the implicit <code>sys</code> runtime interface;
+ordinary modules need no <code>use</code> declaration. Text parameters accept the string
+types through their normal conversions. Functions returning <code>str</code> require
+dynamic-string support.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Result</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#format"><code>Format(fmt : strslice, args : []anyvalue)</code></a></td>
+<td><code>str</code></td>
+<td>Create formatted text</td>
+</tr>
+<tr>
+<td><a href="#strfromutf16-and-strfromutf16ptr"><code>StrFromUtf16(chars : []char16)</code></a></td>
+<td><code>str</code></td>
+<td>Convert a UTF-16 array to UTF-8</td>
+</tr>
+<tr>
+<td><a href="#utf16-fallback-conversion"><code>StrFromUtf16Fallback(chars : []char16, fallback_wchar : wchar)</code></a></td>
+<td><code>str</code></td>
+<td>Convert UTF-16, replacing malformed sequences</td>
+</tr>
+<tr>
+<td><a href="#strfromutf16-and-strfromutf16ptr"><code>StrFromUtf16Ptr(chars : ^char16, count : int)</code></a></td>
+<td><code>str</code></td>
+<td>Convert an explicit number of UTF-16 code units</td>
+</tr>
+<tr>
+<td><a href="#utf16-fallback-conversion"><code>StrFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar : wchar)</code></a></td>
+<td><code>str</code></td>
+<td>Convert a UTF-16 pointer range with replacement</td>
+</tr>
+<tr>
+<td><a href="#strfromwchars"><code>StrFromWchars(chars : []wchar)</code></a></td>
+<td><code>str</code></td>
+<td>Encode Unicode characters as UTF-8</td>
+</tr>
+<tr>
+<td><a href="#strsplit-and-strjoin"><code>StrJoin(astr : []str, ajoiner : strslice)</code></a></td>
+<td><code>str</code></td>
+<td>Join strings with a separator between elements</td>
+</tr>
+<tr>
+<td><a href="#strupper-and-strlower"><code>StrLower(text : strslice)</code></a></td>
+<td><code>str</code></td>
+<td>Copy with ASCII letters in lowercase</td>
+</tr>
+<tr>
+<td><a href="#strreplace"><code>StrReplace(value : strslice, old_text : strslice, new_text : strslice)</code></a></td>
+<td><code>str</code></td>
+<td>Replace all non-overlapping occurrences of literal text</td>
+</tr>
+<tr>
+<td><a href="#strslice"><code>StrSlice(data : ^char, length : int)</code></a></td>
+<td><code>strslice</code></td>
+<td>Borrow a pointer and an explicit byte count</td>
+</tr>
+<tr>
+<td><a href="#strslicecmp"><code>StrSliceCmp(a : strslice, b : strslice)</code></a></td>
+<td><code>int</code></td>
+<td>Compare two byte ranges</td>
+</tr>
+<tr>
+<td><a href="#strsplit-and-strjoin"><code>StrSplit(astr : strslice, asplitter : strslice)</code></a></td>
+<td><code>[*]str</code></td>
+<td>Split text at each occurrence of a separator</td>
+</tr>
+<tr>
+<td><a href="#strtoint-and-strtofloat"><code>StrToFloat(text : strslice)</code></a><br/><a href="#strtoint-and-strtofloat"><code>StrToFloat(text : strslice, defvalue : float)</code></a></td>
+<td><code>float</code></td>
+<td>Parse a number; raise on invalid input or return a fallback</td>
+</tr>
+<tr>
+<td><a href="#strtoint-and-strtofloat"><code>StrToInt(text : strslice)</code></a><br/><a href="#strtoint-and-strtofloat"><code>StrToInt(text : strslice, defvalue : int)</code></a></td>
+<td><code>int</code></td>
+<td>Parse an integer; raise on invalid input or return a fallback</td>
+</tr>
+<tr>
+<td><a href="#strupper-and-strlower"><code>StrUpper(text : strslice)</code></a></td>
+<td><code>str</code></td>
+<td>Copy with ASCII letters in uppercase</td>
+</tr>
+</tbody>
+</table>
+<h2 id="text-operators">2.8.3 Text Operators</h2>
+<p><code>+</code> concatenates compatible text operands into a new <code>str</code>. <code>+=</code> appends to a
+dynamic string. Both require dynamic-string support.</p>
+<pre><code class="language-dq">var greeting : str = "Hello, " + "world"
+greeting += "!"           // "Hello, world!"
+</code></pre>
+<p>Using <code>+</code> repeatedly to assemble text creates temporary strings and can cause
+repeated heap allocations and copies. Prefer <code>.Add()</code> for plain text and
+<code>.AddFmt()</code> for formatted values, with <code>.Reserve()</code> when the expected size can be
+estimated.</p>
+<h2 id="string-comparison">2.8.4 String Comparison</h2>
+<p>Text values support <code>==</code>, <code>&lt;&gt;</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, and <code>&gt;=</code> across different string
+types, including embedded strings with or without an explicit capacity.
+Strings are compared byte by byte, using unsigned byte values. The first
+difference determines the order; when one string is a prefix of the other,
+the shorter string comes first.</p>
+<pre><code class="language-dq">var name : str = "alpha"
+var limit : rostr = "beta"
+var before : bool = name &lt; limit       // true
+var prefix : bool = "app" &lt; "apple"    // true
+var inside : bool = "a" &lt;= name &lt; "z" // true
+var equal : bool = name == "alpha"     // true
+</code></pre>
+<p>Comparison is case-sensitive. It does not validate UTF-8, normalize Unicode,
+or apply language-specific sorting rules. Known string lengths include internal
+zero bytes; raw C strings end at their first zero.</p>
+<h3 id="strslicecmp">2.8.4.1 StrSliceCmp</h3>
+<pre><code class="language-text">StrSliceCmp(a : strslice, b : strslice) -&gt; int
+</code></pre>
+<p><code>StrSliceCmp(a, b)</code> provides the same bytewise comparison as a function. It
+returns a negative value if <code>a</code> comes before <code>b</code>, zero if equal, and a positive
+value if <code>a</code> comes after <code>b</code>. It compares the entire known byte range without
+requiring a terminator.</p>
+<pre><code class="language-dq">var order : int = StrSliceCmp("app", "apple") // negative
+var same : int = StrSliceCmp("abc", "abc")   // 0
+var a : ^char = "alpha"
+var b : ^char = "beta"
+var before : bool = StrSliceCmp(a, b) &lt; 0     // true: compares text
+</code></pre>
+<p>A raw <code>^char</code> operand compares text when paired with a string value or, for
+ordering, a text literal. Two raw pointer variables compare their addresses;
+use <code>StrSliceCmp</code> to compare their text contents explicitly.</p>
+<h2 id="standalone-string-helpers">2.8.5 Standalone String Helpers</h2>
+<h3 id="format">2.8.5.1 Format</h3>
+<pre><code class="language-text">Format(fmt : strslice, args : []anyvalue) -&gt; str
+</code></pre>
+<p><code>Format(fmt, args)</code> creates a new string using the same placeholders as
+<code>.AddFmt()</code>. Its <code>strslice</code> format parameter accepts substring views directly,
+including text without a terminating zero. See
+<a href="../077-text-formatting/">Text Formatting</a> for the full syntax.</p>
+<pre><code class="language-dq">var label : str = Format("value={:04X}", [255]) // "value=00FF"
+</code></pre>
+<h3 id="strtoint-and-strtofloat">2.8.5.2 StrToInt and StrToFloat</h3>
+<pre><code class="language-text">StrToInt(text : strslice) -&gt; int
+StrToInt(text : strslice, defvalue : int) -&gt; int
+StrToFloat(text : strslice) -&gt; float
+StrToFloat(text : strslice, defvalue : float) -&gt; float
+</code></pre>
+<p><code>StrToInt</code> parses decimal digits with an optional leading <code>+</code> or <code>-</code> and rejects
+values outside the range of <code>int</code>. <code>StrToFloat</code> accepts an optional leading sign,
+a dot or comma decimal separator, and an optional <code>e</code>/<code>E</code> exponent. An exponent
+may have a leading sign and must contain digits. The entire input must match;
+surrounding whitespace and internal zero bytes are rejected. Use <code>.Trim()</code> first
+when surrounding whitespace should be ignored.</p>
+<p>Without <code>defvalue</code>, invalid or empty input raises <code>EStrError</code>. Supplying
+<code>defvalue</code> returns that fallback on conversion errors. When exceptions are
+disabled, the no-fallback form reports a runtime error and returns zero if the
+error handler returns; the fallback form still returns <code>defvalue</code>.</p>
+<pre><code class="language-dq">var count : int = StrToInt("+42")              // 42
+var fallback : int = StrToInt("invalid", -1)   // -1
+var value : float = StrToFloat("1.25e2")       // 125
+var comma : float = StrToFloat("1,5")          // 1.5
+var invalid : float = StrToFloat("1e+", -1)    // -1: missing exponent digits
+</code></pre>
+<h3 id="strupper-and-strlower">2.8.5.3 StrUpper and StrLower</h3>
+<pre><code class="language-text">StrUpper(text : strslice) -&gt; str
+StrLower(text : strslice) -&gt; str
+</code></pre>
+<p>These functions copy the text, converting only ASCII letters. They leave
+non-ASCII bytes unchanged and do not modify the source. The methods <code>.Upper()</code>
+and <code>.Lower()</code> provide the same conversions.</p>
+<pre><code class="language-dq">var text : rostr = "Hello, é!"
+var upper : str = StrUpper(text) // "HELLO, é!"
+var lower : str = StrLower(text) // "hello, é!"
+</code></pre>
+<h3 id="strsplit-and-strjoin">2.8.5.4 StrSplit and StrJoin</h3>
+<pre><code class="language-text">StrSplit(astr : strslice, asplitter : strslice) -&gt; [*]str
+StrJoin(astr : []str, ajoiner : strslice) -&gt; str
+</code></pre>
+<p><code>StrSplit</code> matches the whole separator from left to right, without overlapping
+matches, and returns owned strings. It preserves empty fields, including at
+the beginning and end. Empty input produces one empty field. An empty separator
+raises <code>EStrError</code>; with exceptions disabled it reports a runtime error and
+returns an empty array if the error handler returns.</p>
+<p><code>StrJoin</code> inserts the joiner between array elements, including empty elements.
+An empty array produces an empty string; an empty joiner concatenates the
+elements directly. Both functions require dynamic-string support and handle
+explicit byte ranges, including internal zero bytes.</p>
+<pre><code class="language-dq">var parts : [*]str = StrSplit("one::two::::", "::") // ["one", "two", "", ""]
+var joined : str = StrJoin(parts, "/")             // "one/two//"
+</code></pre>
+<h3 id="strreplace">2.8.5.5 StrReplace</h3>
+<pre><code class="language-text">StrReplace(value : strslice, old_text : strslice, new_text : strslice) -&gt; str
+</code></pre>
+<p>Returns a string with every non-overlapping occurrence of <code>old_text</code> replaced
+by <code>new_text</code>, scanning the original input from left to right. Matching is
+literal and case-sensitive; replacement text is not searched again. An empty
+<code>new_text</code> removes matches. The input is unchanged.</p>
+<p>An empty <code>old_text</code> raises <code>EStrError</code>, consistent with <code>StrSplit</code>'s empty
+separator handling. With exceptions disabled it reports a runtime error and
+returns an empty string if the error handler returns. The function requires
+dynamic-string support and accepts explicit byte ranges, including internal
+zero bytes.</p>
+<pre><code class="language-dq">var replaced : str = StrReplace("one::two::", "::", "/") // "one/two/"
+var removed : str = StrReplace("a--b--", "--", "")       // "ab"
+</code></pre>
+<h3 id="strslice">2.8.5.6 StrSlice</h3>
+<pre><code class="language-text">StrSlice(data : ^char, length : int) -&gt; strslice
+</code></pre>
+<p><code>StrSlice(data, length)</code> borrows exactly <code>length</code> bytes without scanning for a
+terminator or copying the text. The memory must remain alive and stable. A
+negative length raises a runtime error; a <code>nil</code> pointer is valid only with a
+zero length.</p>
+<pre><code class="language-dq">var data : [3]char = ['A', char(0), 'B']
+var view : strslice = StrSlice(%data[0], data.length)
+var bytes : int = view.length // 3: the internal zero does not end the view
+</code></pre>
+<h3 id="strfromwchars">2.8.5.7 StrFromWchars</h3>
+<pre><code class="language-text">StrFromWchars(chars : []wchar) -&gt; str
+</code></pre>
+<p><code>StrFromWchars(chars)</code> encodes Unicode characters as UTF-8. Invalid Unicode
+character values, such as surrogate values, raise a runtime encoding error.</p>
+<pre><code class="language-dq">var chars : [3]wchar = ['A', 'é', '€']
+var text : str = StrFromWchars(chars[:]) // "Aé€"
+</code></pre>
+<h3 id="strfromutf16-and-strfromutf16ptr">2.8.5.8 StrFromUtf16 and StrFromUtf16Ptr</h3>
+<pre><code class="language-text">StrFromUtf16(chars : []char16) -&gt; str
+StrFromUtf16Ptr(chars : ^char16, count : int) -&gt; str
+</code></pre>
+<p><code>StrFromUtf16(chars)</code> converts a UTF-16 array slice to UTF-8, ignoring one final
+zero code unit if present. Internal zeros are preserved. <code>StrFromUtf16Ptr(chars,
+count)</code> converts exactly <code>count</code> code units, including any zeros in that range.
+Surrogate pairs represent one Unicode character; malformed UTF-16 raises a
+runtime encoding error. The pointer form returns empty text for <code>nil</code> or a
+non-positive count.</p>
+<pre><code class="language-dq">var units : [4]char16 = [char16(65), char16(0), char16(66), char16(0)]
+var text : str = StrFromUtf16(units[:])          // "A\0B": 3 bytes
+var prefix : str = StrFromUtf16Ptr(%units[0], 1) // "A"
+</code></pre>
+<h3 id="utf16-fallback-conversion">2.8.5.9 UTF16 Fallback Conversion</h3>
+<pre><code class="language-text">StrFromUtf16Fallback(chars : []char16, fallback_wchar : wchar) -&gt; str
+StrFromUtf16PtrFallback(chars : ^char16, count : int, fallback_wchar : wchar) -&gt; str
+</code></pre>
+<p><code>StrFromUtf16Fallback</code> and <code>StrFromUtf16PtrFallback</code> use the same input bounds
+as their strict counterparts but replace malformed UTF-16 sequences with
+<code>fallback_wchar</code>. Passing <code>wchar(0)</code> as the fallback skips malformed sequences.</p>
+<pre><code class="language-dq">var units : [3]char16 = [char16(0xD800), char16(65), char16(0)]
+var replaced : str = StrFromUtf16Fallback(units[:], '?') // "?A"
+var skipped : str = StrFromUtf16PtrFallback(%units[0], 2, wchar(0)) // "A"
+</code></pre>
+<h2 id="string-properties">2.8.6 String Properties</h2>
+<h3 id="length">2.8.6.1 Length</h3>
+<p><code>.length</code> counts text bytes, including internal zero bytes when the source has a
+known length. It excludes the trailing terminator. <code>str</code> and <code>strslice</code> store
+their lengths; embedded strings and <code>rostr</code> may need to scan for the first zero
+byte when the length is unknown.</p>
+<pre><code class="language-dq">var text : str = "Aé€"
+var bytes : int = text.length  // 6 bytes
+var empty : str
+var zero : int = empty.length // 0, even without an allocated handler
+</code></pre>
+<h3 id="capacity">2.8.6.2 Capacity</h3>
+<p><code>.capacity</code> is the number of text bytes a <code>str</code> can hold before it needs more
+storage. It excludes the extra terminating zero byte and can exceed <code>.length</code>.
+An empty string with no allocated handler has capacity zero.</p>
+<pre><code class="language-dq">var text : str = "abc"
+text.Reserve(100)
+var length : int = text.length     // 3
+var has_room : bool = text.capacity &gt;= 100 // true
+</code></pre>
+<h3 id="embedded-storage-size">2.8.6.3 Embedded Storage Size</h3>
+<p>For <code>embstr(N)</code>, <code>.storage_size</code> is <code>N</code> and <code>.maxlength</code> is <code>N - 1</code>.
+An unsized <code>embstr</code> reports these values for the buffer it references.</p>
+<pre><code class="language-dq">var buffer : embstr(8) = "abc"
+var size : int = buffer.storage_size // 8
+var limit : int = buffer.maxlength   // 7
+buffer.Add("defghi")                 // buffer is "abcdefg": truncated to fit
+</code></pre>
+<h3 id="reference-count">2.8.6.4 Reference Count</h3>
+<p><code>.refcount</code> reports how many references share a dynamic string handler. Assigning
+one <code>str</code> to another shares the handler; modifying one value detaches its storage
+when necessary. A string with no handler has reference count zero. Temporary
+values and function arguments can also retain references.</p>
+<pre><code class="language-dq">var a : str = "abc"
+var b : str = a
+var shared : int = a.refcount // 2
+b[0] = 'X'                   // a is "abc"; b is "Xbc"
+var unique : int = a.refcount // 1
+</code></pre>
+<h3 id="raw-byte-pointer">2.8.6.5 Raw Byte Pointer</h3>
+<p><code>.pchar</code> borrows a pointer to the first text byte without copying or retaining
+storage. <code>str</code>, <code>rostr</code>, and embedded strings provide terminated storage; a
+<code>strslice</code> pointer is <strong>not guaranteed to be zero-terminated</strong>. Copy a slice to
+<code>str</code> or <code>embstr(N)</code> before passing it to a C API that expects a C string.</p>
+<pre><code class="language-dq">var text : str = "hello"
+var pointer : ^char = text.pchar
+var first : char = pointer^ // 'h'
+
+var part : strslice = text[:2] // "he", followed by more source bytes
+var terminated : str = part
+var c_text : ^char = terminated.pchar // points to "he" plus a zero terminator
+</code></pre>
+<p>Keep the source alive and its storage stable while using the pointer. Obtain a
+new pointer after a mutation that can move the text. For <code>str</code>, <code>.pchar</code> returns
+terminated empty text even when the internal handler pointer is <code>nil</code>. C string
+functions see only the prefix before the first zero byte. See
+<a href="../200-c-interoperability/#strings-buffers-and-borrowing">C Interoperability</a>.</p>
+<h2 id="string-methods">2.8.7 String Methods</h2>
+<p>These methods modify <code>str</code> or embedded string storage. Dynamic strings grow as
+needed and preserve other values that share their storage. Embedded strings
+keep their fixed capacity and truncate inserted or appended text to fit. An
+unsized <code>embstr</code> modifies the original buffer through its shared descriptor.</p>
+<p>Text-source arguments accept <code>str</code>, <code>rostr</code>, <code>strslice</code>, <code>embstr(N)</code>, unsized
+<code>embstr</code>, or <code>^char</code>. <code>.Set</code>, <code>.Add</code>, <code>.Append</code>, <code>.Prepend</code>, and <code>.Insert</code> also accept
+one <code>char</code> byte. A <code>wchar</code> variable must be encoded as UTF-8 to append its text;
+it is not a single-byte source.</p>
+<h3 id="set">2.8.7.1 .Set</h3>
+<pre><code class="language-text">.Set(value : strslice)
+.Set(value : char)
+</code></pre>
+<p><code>.Set(value)</code> replaces the contents. For text values, assignment provides the
+same replacement syntax. Embedded destinations truncate the source to fit.</p>
+<pre><code class="language-dq">var text : str = "old"
+text.Set("new")           // "new"
+text.Set('!')             // "!"
+var buffer : embstr(8)
+buffer.Set("abcdefghij")  // "abcdefg"
+</code></pre>
+<h3 id="add-append-and-appendchar">2.8.7.2 .Add, .Append, and .AppendChar</h3>
+<pre><code class="language-text">.Add(value : strslice)
+.Add(value : char)
+.Append(value : strslice)
+.Append(value : char)
+.AppendChar(ch : char)
+</code></pre>
+<p><code>.Add(value)</code> and <code>.Append(value)</code> append text or a <code>char</code> byte. <code>.AppendChar(ch)</code>
+accepts only a <code>char</code>. These methods modify the string and return no value.
+An <code>embstr(N)</code> declaration starts empty, so it can be appended to immediately.</p>
+<pre><code class="language-dq">var text : str = "abc"
+text.Add("def")           // "abcdef"
+text.Append('!')          // "abcdef!"
+text.AppendChar('?')      // "abcdef!?"
+</code></pre>
+<h3 id="addfmt">2.8.7.3 .AddFmt</h3>
+<pre><code class="language-text">.AddFmt(fmt : strslice, args : []anyvalue)
+</code></pre>
+<p><code>.AddFmt(fmt, args)</code> appends text containing formatted
+values. The format parameter is <code>strslice</code>, so substring views can be passed
+directly. An <code>embstr(N)</code> declaration starts empty and can be used directly with
+<code>.AddFmt()</code>. Embedded destinations truncate the output to fit. Placeholder syntax
+and supported value types are explained in <a href="../077-text-formatting/">Text Formatting</a>.</p>
+<pre><code class="language-dq">var text : str = "value="
+text.AddFmt("{:04X}", [255]) // "value=00FF"
+var buffer : embstr(16)
+buffer.AddFmt("{} items", [3]) // "3 items"
+</code></pre>
+<h3 id="prepend-and-insert">2.8.7.4 .Prepend and .Insert</h3>
+<pre><code class="language-text">.Prepend(value : strslice)
+.Prepend(value : char)
+.Insert(index : int, value : strslice)
+.Insert(index : int, value : char)
+</code></pre>
+<p><code>.Prepend(value)</code> inserts at the beginning. <code>.Insert(index, value)</code> inserts before
+the specified byte position. The insertion position is clamped to
+<code>0 .. text.length</code>; <code>$end</code> inserts at the end.</p>
+<pre><code class="language-dq">var text : str = "bc"
+text.Prepend('a')         // "abc"
+text.Insert(1, "--")      // "a--bc"
+text.Insert($end, '!')    // "a--bc!"
+text.Insert(100, '?')     // "a--bc!?": position clamped to the end
+</code></pre>
+<p><strong>Performance:</strong> <code>.Insert()</code> shifts the bytes after the insertion position to
+make room. Inserting near the beginning of a large string can take significant
+time. <code>.Prepend()</code> moves all existing text bytes.</p>
+<h3 id="delete">2.8.7.5 .Delete</h3>
+<pre><code class="language-text">.Delete(index : int, count : int = 1)
+</code></pre>
+<p><code>.Delete(index, count = 1)</code> removes up to <code>count</code> bytes starting at <code>index</code>.
+The position is clamped to <code>0 .. text.length</code>, and the count is limited to the
+remaining bytes. A non-positive count or a position at the end removes nothing.</p>
+<pre><code class="language-dq">var text : str = "abcdef"
+text.Delete(1)            // "acdef"
+text.Delete(2, 100)       // "ac": removes the entire remaining suffix
+text.Delete(100)          // "ac": unchanged
+</code></pre>
+<p><strong>Performance:</strong> <code>.Delete()</code> shifts the bytes after the removed range to close
+the gap. Deleting near the beginning of a large string can take significant
+time because most of the remaining text must move.</p>
+<h3 id="clear">2.8.7.6 .Clear</h3>
+<pre><code class="language-text">.Clear(free_storage : bool = false)  // str
+.Clear()                           // embstr
+</code></pre>
+<p><code>.Clear()</code> makes the string empty and retains its storage for reuse. For <code>str</code>,
+this is equivalent to <code>.Clear(false)</code>. <code>.Clear(true)</code> releases that value's
+reference to the dynamic storage and leaves its length and capacity at zero.
+Other strings sharing the old storage retain their text. Embedded strings
+support only the no-argument form.</p>
+<pre><code class="language-dq">var text : str = "abc"
+text.Reserve(100)
+text.Clear()              // empty; capacity is retained
+text.Add("reused")
+text.Clear(true)          // empty; capacity is 0
+var buffer : embstr(16) = "abc"
+buffer.Clear()            // empty; the 16-byte buffer remains
+</code></pre>
+<h3 id="setlength-and-truncate">2.8.7.7 .SetLength and .Truncate</h3>
+<pre><code class="language-text">.SetLength(length : uint, fill : char)
+.Truncate(length : uint)
+</code></pre>
+<p><code>.SetLength(length, fill)</code> sets the byte length, using the supplied <code>char</code> for
+new bytes when growing. Shortening discards the suffix. <code>.Truncate(length)</code> only
+shortens: a length greater than the current length leaves the text unchanged.
+Lengths must be non-negative.</p>
+<pre><code class="language-dq">var text : str = "abc"
+text.SetLength(5, '.')    // "abc.."
+text.SetLength(4, ' ')    // "abc."
+text.Truncate(2)          // "ab"
+text.Truncate(100)        // "ab": does not grow
+</code></pre>
+<h3 id="pop-and-popfirst">2.8.7.8 .Pop and .PopFirst</h3>
+<pre><code class="language-text">.Pop() -&gt; char
+.Pop(count : int) -&gt; str
+.PopFirst() -&gt; char
+.PopFirst(count : int) -&gt; str
+</code></pre>
+<p><code>.Pop()</code> removes and returns the last <code>char</code>; <code>.PopFirst()</code> removes and returns
+the first. These no-argument forms raise a runtime error on an empty string.</p>
+<p>With a count argument, both methods return a <code>str</code> containing the removed bytes.
+Counts greater than the length remove everything. A non-positive count or an
+empty string returns empty text.</p>
+<pre><code class="language-dq">var text : str = "abcdef"
+var tail : str = text.Pop(2)        // "ef"; text is "abcd"
+var head : str = text.PopFirst(2)   // "ab"; text is "cd"
+var last : char = text.Pop()        // 'd'; text is "c"
+var first : char = text.PopFirst()  // 'c'; text is empty
+var empty : str = text.Pop(10)      // "": count form accepts an empty string
+</code></pre>
+<p><strong>Performance:</strong> Both forms of <code>.PopFirst()</code> shift all remaining text bytes
+to the beginning of the string. This can take significant time for large
+strings, especially when repeatedly removing one byte at a time.</p>
+<h3 id="overlapping-source-and-destination">2.8.7.9 Overlapping Source and Destination</h3>
+<p>Dynamic string mutation preserves the logical source when it aliases the
+destination, including a view into the same string across a reallocation.</p>
+<pre><code class="language-dq">var text : str = "abcd"
+text.Insert(2, text[1:3]) // "abbccd": inserts the original "bc"
+text.Add(text)           // "abbccdabbccd"
+</code></pre>
+<h2 id="managing-dynamic-storage">2.8.8 Managing Dynamic Storage</h2>
+<h3 id="reserve">2.8.8.1 .Reserve</h3>
+<pre><code class="language-text">.Reserve(capacity : uint)
+</code></pre>
+<p><code>.Reserve(capacity)</code> ensures space for at least the specified number of text
+bytes without changing the length or contents. It does not reduce existing
+capacity. Reserving an estimated final size avoids repeated reallocations and
+copying while assembling text. The runtime doubles capacity as needed when a
+growing string exceeds its current allocation.</p>
+<pre><code class="language-dq">var text : str
+text.Reserve(32)
+text.Add("Hello, ")
+text.AddFmt("{}!", ["world"]) // "Hello, world!"
+</code></pre>
+<h3 id="setcapacity-and-compact">2.8.8.2 .SetCapacity and .Compact</h3>
+<pre><code class="language-text">.SetCapacity(capacity : uint)
+.Compact()
+</code></pre>
+<p><code>.SetCapacity(capacity)</code> sets the capacity to the requested number of text bytes.
+Reducing it below <code>.length</code> also truncates the contents. <code>.SetCapacity(0)</code> releases
+the storage. <code>.Compact()</code> sets capacity to the current length. Call these after
+building text when reducing retained storage is useful.</p>
+<pre><code class="language-dq">var text : str = "abcdef"
+text.SetCapacity(4)       // "abcd"; capacity is 4
+text.Reserve(100)
+text.Compact()            // "abcd"; capacity is 4 again
+</code></pre>
+<h3 id="clone">2.8.8.3 .Clone</h3>
+<pre><code class="language-text">.Clone() -&gt; str
+</code></pre>
+<p><code>.Clone()</code> returns an independent copy immediately. Ordinary <code>str</code> assignment
+shares storage and detaches on mutation; use <code>.Clone()</code> when the copy should
+already have its own storage before either value changes.</p>
+<pre><code class="language-dq">var original : str = "abc"
+var copy : str = original.Clone()
+copy[0] = 'X'             // copy is "Xbc"; original is "abc"
+</code></pre>
+<h2 id="string-utility-methods">2.8.9 String Utility Methods</h2>
+<p>These methods work on every string type. They do not modify the original string.
+Needles, prefixes, suffixes, trim sets, and padding accept text or a <code>char</code> byte.
+Searches compare bytes exactly, with case sensitivity and no Unicode
+normalization. Case conversion, trimming, and padding return a new <code>str</code>;
+assign the result to keep it.</p>
+<h3 id="upper-and-lower">2.8.9.1 .Upper and .Lower</h3>
+<pre><code class="language-text">.Upper() -&gt; str
+.Lower() -&gt; str
+</code></pre>
+<p><code>.Upper()</code> and <code>.Lower()</code> return a copy with ASCII letters converted to uppercase
+or lowercase. They preserve non-ASCII bytes, including UTF-8 characters, and do
+not modify the original string. They are equivalent to <code>StrUpper(text)</code> and
+<code>StrLower(text)</code> and require dynamic-string support.</p>
+<pre><code class="language-dq">var text : embstr(32) = "Hello, é!"
+var upper : str = text.Upper() // "HELLO, é!"
+var lower : str = text.Lower() // "hello, é!"; text is still "Hello, é!"
+</code></pre>
+<h3 id="toint-and-tofloat">2.8.9.2 .ToInt and .ToFloat</h3>
+<pre><code class="language-text">.ToInt() -&gt; int
+.ToInt(defvalue : int) -&gt; int
+.ToFloat() -&gt; float
+.ToFloat(defvalue : float) -&gt; float
+</code></pre>
+<p>These methods parse a number using the same rules as
+<a href="#strtoint-and-strtofloat">StrToInt and StrToFloat</a>. Without a fallback, invalid
+or empty text raises <code>EStrError</code>; with <code>defvalue</code>, conversion errors return that
+value. Integer conversion also checks the range of <code>int</code>. Neither method skips
+surrounding whitespace. Both work without dynamic-string support.</p>
+<pre><code class="language-dq">var integer : embstr(16) = "-42"
+var count : int = integer.ToInt()        // -42
+var decimal : rostr = "1,25e2"
+var value : float = decimal.ToFloat()    // 125
+var invalid : strslice = "invalid"
+var fallback : int = invalid.ToInt(-1)   // -1
+var default_value : float = invalid.ToFloat(0) // 0
+var padded : rostr = " 42 "
+var trimmed : int = padded.Trim().ToInt() // 42
+</code></pre>
+<h3 id="indexof-and-lastindexof">2.8.9.3 .IndexOf and .LastIndexOf</h3>
+<pre><code class="language-text">.IndexOf(needle : strslice, start : int = 0) -&gt; int
+.IndexOf(needle : char, start : int = 0) -&gt; int
+.LastIndexOf(needle : strslice) -&gt; int
+.LastIndexOf(needle : char) -&gt; int
+</code></pre>
+<p><code>.IndexOf(needle, start = 0)</code> returns the first matching byte offset at or after
+<code>start</code>. <code>.LastIndexOf(needle)</code> searches for the final occurrence in the entire
+text. Both return <code>-1</code> when no match exists.</p>
+<p><code>.IndexOf</code> clamps <code>start</code> to <code>0 .. text.length</code>. An empty needle matches at the
+normalized start position; <code>.LastIndexOf("")</code> returns <code>text.length</code>.</p>
+<pre><code class="language-dq">var text : rostr = "abcdefabc"
+var first : int = text.IndexOf("abc")      // 0
+var next : int = text.IndexOf("abc", 1)    // 6
+var last : int = text.LastIndexOf("abc")   // 6
+var byte : int = text.IndexOf('d')         // 3
+var missing : int = text.IndexOf("xyz")    // -1
+var end : int = text.IndexOf("", 100)      // 9
+</code></pre>
+<h3 id="contains-startswith-and-endswith">2.8.9.4 .Contains, .StartsWith, and .EndsWith</h3>
+<pre><code class="language-text">.Contains(needle : strslice) -&gt; bool
+.Contains(needle : char) -&gt; bool
+.StartsWith(prefix : strslice) -&gt; bool
+.StartsWith(prefix : char) -&gt; bool
+.EndsWith(suffix : strslice) -&gt; bool
+.EndsWith(suffix : char) -&gt; bool
+</code></pre>
+<p><code>.Contains(needle)</code> tests for a match anywhere. <code>.StartsWith(prefix)</code> and
+<code>.EndsWith(suffix)</code> test only the corresponding end. An empty needle, prefix,
+or suffix matches every text value, including empty text.</p>
+<pre><code class="language-dq">var path : embstr(32) = "docs/reference.md"
+var found : bool = path.Contains("reference") // true
+var prefix : bool = path.StartsWith("docs/")  // true
+var suffix : bool = path.EndsWith(".md")      // true
+var case_match : bool = path.EndsWith(".MD")  // false
+</code></pre>
+<h3 id="trim-ltrim-and-rtrim">2.8.9.5 .Trim, .LTrim, and .RTrim</h3>
+<pre><code class="language-text">.Trim() -&gt; str
+.Trim(set : strslice) -&gt; str
+.Trim(set : char) -&gt; str
+.LTrim() -&gt; str
+.LTrim(set : strslice) -&gt; str
+.LTrim(set : char) -&gt; str
+.RTrim() -&gt; str
+.RTrim(set : strslice) -&gt; str
+.RTrim(set : char) -&gt; str
+</code></pre>
+<p><code>.Trim()</code> removes ASCII whitespace from both ends; <code>.LTrim()</code> removes it only
+from the left, and <code>.RTrim()</code> only from the right. Default whitespace is space,
+tab, line feed, carriage return, vertical tab, and form feed.</p>
+<p>An explicit argument is a <strong>set of bytes</strong>, not a substring pattern. Bytes in
+that set are removed repeatedly from the selected ends. Interior bytes remain.</p>
+<pre><code class="language-dq">var text : strslice = "  abc  "
+var both : str = text.Trim()       // "abc"
+var left : str = text.LTrim()      // "abc  "
+var right : str = text.RTrim()     // "  abc"
+var marked : rostr = "-=-abc-=-"
+var name : str = marked.Trim("-=") // "abc"
+var dashes : str = "---abc---"
+dashes = dashes.Trim('-')          // "abc": assign to replace the original
+</code></pre>
+<h3 id="lpad-and-rpad">2.8.9.6 .LPad and .RPad</h3>
+<pre><code class="language-text">.LPad(length : int, fill : strslice) -&gt; str
+.LPad(length : int, fill : char) -&gt; str
+.RPad(length : int, fill : strslice) -&gt; str
+.RPad(length : int, fill : char) -&gt; str
+</code></pre>
+<p><code>.LPad(length, fill)</code> and <code>.RPad(length, fill)</code> return text padded to the requested
+byte length. They repeat the fill value and truncate the last repetition as
+needed. If the requested length is no greater than the source length, the
+result has the original contents. An empty fill value raises a runtime error.
+Padding operates on bytes and can split a multibyte UTF-8 fill value.</p>
+<pre><code class="language-dq">var code : rostr = "abc"
+var left : str = code.LPad(8, "01") // "01010abc"
+var right : str = code.RPad(5, '.') // "abc.."
+var same : str = code.LPad(2, ' ')  // "abc": no truncation
+</code></pre>
+<h2 id="byte-indexing-and-slicing">2.8.10 Byte Indexing and Slicing</h2>
+<p><code>text[index]</code> reads one <code>char</code> byte from any string type. <code>str</code> and embedded
+strings also permit replacing a byte; <code>rostr</code> and <code>strslice</code> are read-only.
+Indices are zero-based. An index outside the existing bytes raises a runtime
+range error. Negative indices do not count backward from the end; use
+<code>text[$last]</code> or <code>text[$end - 1]</code> for the last byte. These operations do not
+decode or validate UTF-8.</p>
+<p><code>text[start:end]</code> borrows a half-open byte range as <code>strslice</code>, while
+<code>text[start::end]</code> includes the end byte. Slicing is supported on every string
+type: <code>str</code>, <code>rostr</code>, <code>strslice</code>, <code>embstr(N)</code>, and unsized <code>embstr</code>.
+Slice bounds are clamped to <code>[0, length]</code>; reversed normalized bounds produce
+an empty slice.</p>
+<p><code>$last</code> is the last existing byte index and <code>$end</code> is the one-past-end position
+for the string being indexed or sliced. Omitting a slice bound selects the
+beginning or end. Negative slice bounds are clamped, rather than counted from
+the end; use <code>$end - count</code> to select a suffix.</p>
+<pre><code class="language-dq">var text : str = "abcdef"
+var first : char = text[0]             // 'a'
+text[0] = 'A'                          // text is "Abcdef"
+var last : char = text[$last]          // 'f'
+var part : strslice = text[1:3]        // "bc": end byte excluded
+var inclusive : strslice = text[1::3]  // "bcd": end byte included
+var head : strslice = text[:2]         // "Ab"
+var tail : strslice = text[$end - 2:]  // "ef"
+var all : strslice = text[-5:100]      // "Abcdef": bounds clamped
+var empty : strslice = text[4:2]       // ""
+var buffer : embstr(16) = "abcdef"
+var from_buffer : strslice = buffer[1:4] // "bcd": borrows embedded storage
+</code></pre>
+<p>Slices borrow the source bytes. Keep the owner alive and its storage and
+contents stable while using them. Assign a slice to <code>str</code> to make an owned copy.</p>
+<h2 id="unicode-operations">2.8.11 Unicode Operations</h2>
+<p>The following members decode UTF-8 and report a runtime encoding error for
+malformed input. A displayed symbol can combine multiple Unicode characters,
+for example a letter and a combining accent.
+<code>.wclen</code> and <code>.wchar[...]</code> are available on every string type, including
+<code>embstr(N)</code> and unsized <code>embstr</code>.</p>
+<h3 id="unicode-character-count">2.8.11.1 Unicode Character Count</h3>
+<p><code>.wclen</code> counts decoded Unicode characters. Unlike <code>.length</code>, it requires
+UTF-8 decoding rather than reading a stored byte count.</p>
+<pre><code class="language-dq">var text : embstr(16) = "Aé€"
+var bytes : int = text.length // 6
+var characters : int = text.wclen // 3
+</code></pre>
+<h3 id="unicode-indexing-and-slicing">2.8.11.2 Unicode Indexing and Slicing</h3>
+<p><code>.wchar[index]</code> reads one Unicode character as <code>wchar</code>. <code>.wchar[start:end]</code>
+returns a decoded range as <code>[*]wchar</code>; the <code>start::end</code> form includes the final
+character. In this context, <code>$last</code> and <code>$end</code> refer to Unicode character
+positions. Slice bounds are clamped; an invalid character index raises a
+runtime range error.</p>
+<pre><code class="language-dq">var text : embstr(16) = "Aé€"
+var second : wchar = text.wchar[1]          // 'é'
+var chars : [*]wchar = text.wchar[1:$end]   // ['é', '€']
+var part : str = StrFromWchars(chars[:])   // "é€": encode the selected characters
+</code></pre>
+<h3 id="towchars">2.8.11.3 .ToWchars</h3>
+<pre><code class="language-text">.ToWchars() -&gt; [*]wchar
+</code></pre>
+<p><code>.ToWchars()</code> decodes the whole string into <code>[*]wchar</code>. It works on every
+string type, including <code>strslice</code>, <code>embstr(N)</code>, and unsized <code>embstr</code>. For repeated
+indexed Unicode processing, convert once and index the resulting array to avoid
+decoding the UTF-8 prefix for every lookup.</p>
+<pre><code class="language-dq">var text : embstr(16) = "Aé€"
+var chars : [*]wchar = text.ToWchars()
+var second : wchar = chars[1] // 'é'
+var view : strslice = text
+var from_view : [*]wchar = view.ToWchars() // ['A', 'é', '€']
+</code></pre>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+</body>
+</html>

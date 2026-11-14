@@ -1,0 +1,2147 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Documentation for the DQ programming language, libraries and tools" name="description"/>
+<link href="../077-text-formatting/" rel="prev"/>
+<link href="../090-enumerations/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>2.10. Arrays and Slices - DQ-lang Project</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../pdf/dq-lang-book.pdf" rel="alternate" title="PDF" type="application/pdf"/></head>
+<body dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#arrays-and-slices">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="DQ-lang Project" class="md-header__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            DQ-lang Project
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              2.10. Arrays and Slices
+            
+          </span>
+</div>
+</div>
+</div>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<a class="md-header-nav__button md-icon" href="../../pdf/dq-lang-book.pdf" title="PDF">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<path d="M128,0c-17.6,0-32,14.4-32,32v448c0,17.6,14.4,32,32,32h320c17.6,0,32-14.4,32-32V128L352,0H128z" fill="#E2E5E7"></path>
+<path d="m384 128h96l-128-128v96c0 17.6 14.4 32 32 32z" fill="#B0B7BD"></path>
+<polygon fill="#CAD1D8" points="480 224 384 128 480 128"></polygon>
+<path d="M416,416c0,8.8-7.2,16-16,16H48c-8.8,0-16-7.2-16-16V256c0-8.8,7.2-16,16-16h352c8.8,0,16,7.2,16,16  V416z" fill="#F15642"></path>
+<g fill="#fff">
+<path d="m101.74 303.15c0-4.224 3.328-8.832 8.688-8.832h29.552c16.64 0 31.616 11.136 31.616 32.48 0 20.224-14.976 31.488-31.616 31.488h-21.36v16.896c0 5.632-3.584 8.816-8.192 8.816-4.224 0-8.688-3.184-8.688-8.816v-72.032zm16.88 7.28v31.872h21.36c8.576 0 15.36-7.568 15.36-15.504 0-8.944-6.784-16.368-15.36-16.368h-21.36z"></path>
+<path d="m196.66 384c-4.224 0-8.832-2.304-8.832-7.92v-72.672c0-4.592 4.608-7.936 8.832-7.936h29.296c58.464 0 57.184 88.528 1.152 88.528h-30.448zm8.064-72.912v57.312h21.232c34.544 0 36.08-57.312 0-57.312h-21.232z"></path>
+<path d="m303.87 312.11v20.336h32.624c4.608 0 9.216 4.608 9.216 9.072 0 4.224-4.608 7.68-9.216 7.68h-32.624v26.864c0 4.48-3.184 7.92-7.664 7.92-5.632 0-9.072-3.44-9.072-7.92v-72.672c0-4.592 3.456-7.936 9.072-7.936h44.912c5.632 0 8.96 3.344 8.96 7.936 0 4.096-3.328 8.704-8.96 8.704h-37.248v0.016z"></path>
+</g>
+<path d="m400 432h-304v16h304c8.8 0 16-7.2 16-16v-16c0 8.8-7.2 16-16 16z" fill="#CAD1D8"></path>
+</svg>
+</a></nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="DQ-lang Project" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    DQ-lang Project
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../010-project/">
+<span class="md-ellipsis">
+    
+  
+    1. DQ-lang Project
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    1. DQ-lang Project
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    1.1. DQ-lang Project Introduction
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/020-features-and-goals/">
+<span class="md-ellipsis">
+    
+  
+    1.2. Features and Design Goals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/030-getting-started/">
+<span class="md-ellipsis">
+    
+  
+    1.3. Getting Started
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    2. DQ Programming Language
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    2. DQ Programming Language
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../010-basic-syntax/">
+<span class="md-ellipsis">
+    
+  
+    2.1. Basic Syntax
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../020-basic-types-and-conversions/">
+<span class="md-ellipsis">
+    
+  
+    2.2. Basic Types and Conversions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../030-variables-constants-references-and-scope/">
+<span class="md-ellipsis">
+    
+  
+    2.3. Variables, Constants, References, and Scope
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../040-expressions-and-operators/">
+<span class="md-ellipsis">
+    
+  
+    2.4. Expressions and Operators
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../050-statements-and-control-flow/">
+<span class="md-ellipsis">
+    
+  
+    2.5. Statements and Control Flow
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../060-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.6. Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../070-strings-and-characters/">
+<span class="md-ellipsis">
+    
+  
+    2.7. Character and String Types
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../075-string-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.8. String Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../077-text-formatting/">
+<span class="md-ellipsis">
+    
+  
+    2.9. Text Formatting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    2.10. Arrays and Slices
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    2.10. Arrays and Slices
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#array-forms">
+<span class="md-ellipsis">
+      
+        2.10.1 Array Forms
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#array-properties-and-methods">
+<span class="md-ellipsis">
+      
+        2.10.2 Array Properties and Methods
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fixed-arrays">
+<span class="md-ellipsis">
+      
+        2.10.3 Fixed Arrays
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dynamic-arrays">
+<span class="md-ellipsis">
+      
+        2.10.4 Dynamic Arrays
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#indexing">
+<span class="md-ellipsis">
+      
+        2.10.5 Indexing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#slices">
+<span class="md-ellipsis">
+      
+        2.10.6 Slices
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#function-parameters">
+<span class="md-ellipsis">
+      
+        2.10.7 Function Parameters
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#iteration">
+<span class="md-ellipsis">
+      
+        2.10.8 Iteration
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#array-properties">
+<span class="md-ellipsis">
+      
+        2.10.9 Array Properties
+      
+    </span>
+</a>
+<nav aria-label="2.10.9 Array Properties" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#length">
+<span class="md-ellipsis">
+      
+        2.10.9.1 .length
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity">
+<span class="md-ellipsis">
+      
+        2.10.9.2 .capacity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#refcount-reference-count">
+<span class="md-ellipsis">
+      
+        2.10.9.3 .refcount: Reference Count
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dynamic-array-methods">
+<span class="md-ellipsis">
+      
+        2.10.10 Dynamic Array Methods
+      
+    </span>
+</a>
+<nav aria-label="2.10.10 Dynamic Array Methods" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#append-and-prepend">
+<span class="md-ellipsis">
+      
+        2.10.10.1 .Append and .Prepend
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#insert-and-insertslice">
+<span class="md-ellipsis">
+      
+        2.10.10.2 .Insert and .InsertSlice
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#delete">
+<span class="md-ellipsis">
+      
+        2.10.10.3 .Delete
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pop-and-popfirst">
+<span class="md-ellipsis">
+      
+        2.10.10.4 .Pop and .PopFirst
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setlength">
+<span class="md-ellipsis">
+      
+        2.10.10.5 .SetLength
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reserve">
+<span class="md-ellipsis">
+      
+        2.10.10.6 .Reserve
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setcapacity-and-compact">
+<span class="md-ellipsis">
+      
+        2.10.10.7 .SetCapacity and .Compact
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#clear">
+<span class="md-ellipsis">
+      
+        2.10.10.8 .Clear
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#clone">
+<span class="md-ellipsis">
+      
+        2.10.10.9 .Clone
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#searching-and-comparison">
+<span class="md-ellipsis">
+      
+        2.10.11 Searching and Comparison
+      
+    </span>
+</a>
+<nav aria-label="2.10.11 Searching and Comparison" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#indexof">
+<span class="md-ellipsis">
+      
+        2.10.11.1 .IndexOf
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#equality">
+<span class="md-ellipsis">
+      
+        2.10.11.2 Equality
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#multidimensional-arrays">
+<span class="md-ellipsis">
+      
+        2.10.12 Multidimensional Arrays
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dynamic-array-autofree-elements">
+<span class="md-ellipsis">
+      
+        2.10.13 Dynamic Array autofree Elements
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../090-enumerations/">
+<span class="md-ellipsis">
+    
+  
+    2.11. Enumerations
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../100-structures-and-unions/">
+<span class="md-ellipsis">
+    
+  
+    2.12. Structures and Unions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../110-pointers/">
+<span class="md-ellipsis">
+    
+  
+    2.13. Pointers
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../120-objects-and-properties/">
+<span class="md-ellipsis">
+    
+  
+    2.14. Objects and Properties
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../130-memory-management-and-ownership/">
+<span class="md-ellipsis">
+    
+  
+    2.15. Memory Management and Autofree
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../140-exceptions-and-error-handling/">
+<span class="md-ellipsis">
+    
+  
+    2.16. Exceptions and Error Handling
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../150-anyvalue/">
+<span class="md-ellipsis">
+    
+  
+    2.17. anyvalue
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../170-modules-and-packages/">
+<span class="md-ellipsis">
+    
+  
+    2.18. Modules and Packages
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../180-attributes/">
+<span class="md-ellipsis">
+    
+  
+    2.19. Attributes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../190-compiler-directives/">
+<span class="md-ellipsis">
+    
+  
+    2.20. Compiler Directives
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../200-c-interoperability/">
+<span class="md-ellipsis">
+    
+  
+    2.21. C Interoperability
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../210-assembly-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.22. Assembly Functions
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../030-compiler/">
+<span class="md-ellipsis">
+    
+  
+    3. DQ Compiler and Tools
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    3. DQ Compiler and Tools
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/010-compiler-and-tool-overview/">
+<span class="md-ellipsis">
+    
+  
+    3.1. Compiler and Tool Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/015-runtime-and-program-execution/">
+<span class="md-ellipsis">
+    
+  
+    3.2. Runtime and Program Execution
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/020-linux-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.3. Linux Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/030-windows-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.4. Windows Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/040-compiler-usage-and-options/">
+<span class="md-ellipsis">
+    
+  
+    3.5. Compiler Usage and Options
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/050-project-files/">
+<span class="md-ellipsis">
+    
+  
+    3.6. Project Files
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/060-build-process-and-module-artifacts/">
+<span class="md-ellipsis">
+    
+  
+    3.7. Build Process and Module Artifacts
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/070-targets-and-cross-compilation/">
+<span class="md-ellipsis">
+    
+  
+    3.8. Targets and Cross-Compilation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/080-vscode-setup-and-debugging/">
+<span class="md-ellipsis">
+    
+  
+    3.9. VSCode Setup and Debugging
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../040-packages/">
+<span class="md-ellipsis">
+    
+  
+    4. Standard Packages
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    4. Standard Packages
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/010-library-overview-and-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.1. Library Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/015-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.2. sys
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/020-print/">
+<span class="md-ellipsis">
+    
+  
+    4.3. print
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/040-file/">
+<span class="md-ellipsis">
+    
+  
+    4.4. file
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/050-json/">
+<span class="md-ellipsis">
+    
+  
+    4.5. json
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/060-threads/">
+<span class="md-ellipsis">
+    
+  
+    4.6. threads
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/065-time/">
+<span class="md-ellipsis">
+    
+  
+    4.7. time
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/070-nanonet/">
+<span class="md-ellipsis">
+    
+  
+    4.8. nanonet
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/075-shell/">
+<span class="md-ellipsis">
+    
+  
+    4.9. shell
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/080-additional-standard-packages/">
+<span class="md-ellipsis">
+    
+  
+    4.10. Additional Standard Packages
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    5. Appendices
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    5. Appendices
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/010-example-programs/">
+<span class="md-ellipsis">
+    
+  
+    5.1. Example Programs
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/020-building-the-compiler-from-source/">
+<span class="md-ellipsis">
+    
+  
+    5.2. Building the Compiler from Source
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/030-contributor-and-implementation-notes/">
+<span class="md-ellipsis">
+    
+  
+    5.3. Contributor and Implementation Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/031-module-and-interface-internals/">
+<span class="md-ellipsis">
+    
+  
+    5.4. Module and Interface Internals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/032-exceptions-and-backtraces/">
+<span class="md-ellipsis">
+    
+  
+    5.5. Exceptions and Backtraces
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/033-release-and-cross-builds/">
+<span class="md-ellipsis">
+    
+  
+    5.6. Release and Cross-Build Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/040-glossary-and-index/">
+<span class="md-ellipsis">
+    
+  
+    5.7. Glossary and Index
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/050-documentation-coverage/">
+<span class="md-ellipsis">
+    
+  
+    5.8. Documentation Coverage
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#array-forms">
+<span class="md-ellipsis">
+      
+        2.10.1 Array Forms
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#array-properties-and-methods">
+<span class="md-ellipsis">
+      
+        2.10.2 Array Properties and Methods
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fixed-arrays">
+<span class="md-ellipsis">
+      
+        2.10.3 Fixed Arrays
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dynamic-arrays">
+<span class="md-ellipsis">
+      
+        2.10.4 Dynamic Arrays
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#indexing">
+<span class="md-ellipsis">
+      
+        2.10.5 Indexing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#slices">
+<span class="md-ellipsis">
+      
+        2.10.6 Slices
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#function-parameters">
+<span class="md-ellipsis">
+      
+        2.10.7 Function Parameters
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#iteration">
+<span class="md-ellipsis">
+      
+        2.10.8 Iteration
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#array-properties">
+<span class="md-ellipsis">
+      
+        2.10.9 Array Properties
+      
+    </span>
+</a>
+<nav aria-label="2.10.9 Array Properties" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#length">
+<span class="md-ellipsis">
+      
+        2.10.9.1 .length
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity">
+<span class="md-ellipsis">
+      
+        2.10.9.2 .capacity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#refcount-reference-count">
+<span class="md-ellipsis">
+      
+        2.10.9.3 .refcount: Reference Count
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dynamic-array-methods">
+<span class="md-ellipsis">
+      
+        2.10.10 Dynamic Array Methods
+      
+    </span>
+</a>
+<nav aria-label="2.10.10 Dynamic Array Methods" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#append-and-prepend">
+<span class="md-ellipsis">
+      
+        2.10.10.1 .Append and .Prepend
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#insert-and-insertslice">
+<span class="md-ellipsis">
+      
+        2.10.10.2 .Insert and .InsertSlice
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#delete">
+<span class="md-ellipsis">
+      
+        2.10.10.3 .Delete
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pop-and-popfirst">
+<span class="md-ellipsis">
+      
+        2.10.10.4 .Pop and .PopFirst
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setlength">
+<span class="md-ellipsis">
+      
+        2.10.10.5 .SetLength
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#reserve">
+<span class="md-ellipsis">
+      
+        2.10.10.6 .Reserve
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#setcapacity-and-compact">
+<span class="md-ellipsis">
+      
+        2.10.10.7 .SetCapacity and .Compact
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#clear">
+<span class="md-ellipsis">
+      
+        2.10.10.8 .Clear
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#clone">
+<span class="md-ellipsis">
+      
+        2.10.10.9 .Clone
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#searching-and-comparison">
+<span class="md-ellipsis">
+      
+        2.10.11 Searching and Comparison
+      
+    </span>
+</a>
+<nav aria-label="2.10.11 Searching and Comparison" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#indexof">
+<span class="md-ellipsis">
+      
+        2.10.11.1 .IndexOf
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#equality">
+<span class="md-ellipsis">
+      
+        2.10.11.2 Equality
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#multidimensional-arrays">
+<span class="md-ellipsis">
+      
+        2.10.12 Multidimensional Arrays
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dynamic-array-autofree-elements">
+<span class="md-ellipsis">
+      
+        2.10.13 Dynamic Array autofree Elements
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="arrays-and-slices">2.10. Arrays and Slices</h1>
+<p>An array keeps several values of the same type together, such as a list of
+names, a byte buffer, or a week's temperature readings. Use a <strong>fixed array</strong>
+when the number of values is known in advance, or a <strong>dynamic array</strong> when you
+need to add and remove values. A <strong>slice</strong> lets you work with part of an array
+without copying its elements.</p>
+<p>Here is a small program that builds a shopping list of strings and prints it:</p>
+<pre><code class="language-dq">use print
+
+func PrintList(list : []str):
+    for item :? in list:
+        PrintLn("{}", [item])
+    endfor
+endfunc
+
+func *Main():
+    var shopping : [*]str = ["bread", "milk"]
+    shopping.Append("apples")
+    shopping.Append(["potatoes", "tomatoes"])
+    var i : int = shopping.IndexOf("potatoes")
+    if i &gt;= 0:
+        shopping[i] = "rice"
+    endif
+    PrintList(shopping)
+endfunc
+</code></pre>
+<p>This prints:</p>
+<pre><code class="language-text">bread
+milk
+apples
+rice
+tomatoes
+</code></pre>
+<h2 id="array-forms">2.10.1 Array Forms</h2>
+<p>In the types below, <code>T</code> stands for the element type (e.g. <code>int</code>, <code>float</code>, <code>str</code> etc.),
+<code>N</code> is the number of elements in a fixed array.</p>
+<table>
+<thead>
+<tr>
+<th>Form</th>
+<th>Meaning</th>
+<th>When to use it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[N]T</code></td>
+<td>A fixed array of <code>N</code> elements</td>
+<td>The size is known in advance, such as seven daily readings.</td>
+</tr>
+<tr>
+<td><code>[?]T</code></td>
+<td>A fixed array whose size comes from its initial values</td>
+<td>You want the compiler to count the values for you.</td>
+</tr>
+<tr>
+<td><code>[]T</code></td>
+<td>A slice that borrows existing elements</td>
+<td>You want to pass an array or part of it to a function.</td>
+</tr>
+<tr>
+<td><code>[*]T</code></td>
+<td>A dynamic array that can grow or shrink</td>
+<td>You collect values as the program runs.</td>
+</tr>
+</tbody>
+</table>
+<p>Every form has a <code>.length</code> property that returns the number of the array elements.</p>
+<h2 id="array-properties-and-methods">2.10.2 Array Properties and Methods</h2>
+<p>Use this table to find an operation, then follow its link for examples.
+<strong>D</strong> means dynamic arrays, <strong>F</strong> means fixed arrays, and <strong>S</strong> means slices.
+A result of <code>—</code> means the method returns no value; <code>T</code> is the element type.</p>
+<table>
+<thead>
+<tr>
+<th>Property or method</th>
+<th>Types</th>
+<th>Result</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#append-and-prepend"><code>.Append(value)</code></a><br/><a href="#append-and-prepend"><code>.Append(values)</code></a></td>
+<td>D</td>
+<td>—</td>
+<td>Add one or more elements at the end.</td>
+</tr>
+<tr>
+<td><a href="#append-and-prepend"><code>.AppendSlice(values)</code></a></td>
+<td>D</td>
+<td>—</td>
+<td>Append the elements of another array or slice.</td>
+</tr>
+<tr>
+<td><a href="#capacity"><code>.capacity</code></a></td>
+<td>D</td>
+<td><code>int</code></td>
+<td>Space available before more storage is needed.</td>
+</tr>
+<tr>
+<td><a href="#clear"><code>.Clear(free_storage = false)</code></a></td>
+<td>D</td>
+<td>—</td>
+<td>Remove everything; optionally release storage.</td>
+</tr>
+<tr>
+<td><a href="#clone"><code>.Clone()</code></a></td>
+<td>D</td>
+<td><code>[*]T</code></td>
+<td>Make an independent copy.</td>
+</tr>
+<tr>
+<td><a href="#setcapacity-and-compact"><code>.Compact()</code></a></td>
+<td>D</td>
+<td>—</td>
+<td>Reduce capacity to match the length.</td>
+</tr>
+<tr>
+<td><a href="#delete"><code>.Delete(index, count = 1)</code></a></td>
+<td>D</td>
+<td>—</td>
+<td>Remove one or more elements.</td>
+</tr>
+<tr>
+<td><a href="#indexof"><code>.IndexOf(value)</code></a></td>
+<td>D, F, S</td>
+<td><code>int</code></td>
+<td>Find the first matching element, or return <code>-1</code>.</td>
+</tr>
+<tr>
+<td><a href="#insert-and-insertslice"><code>.Insert(index, value)</code></a><br/><a href="#insert-and-insertslice"><code>.Insert(index, values)</code></a></td>
+<td>D</td>
+<td>—</td>
+<td>Add one or more elements before a position.</td>
+</tr>
+<tr>
+<td><a href="#insert-and-insertslice"><code>.InsertSlice(index, values)</code></a></td>
+<td>D</td>
+<td>—</td>
+<td>Insert the elements of another array or slice.</td>
+</tr>
+<tr>
+<td><a href="#length"><code>.length</code></a></td>
+<td>D, F, S</td>
+<td><code>int</code></td>
+<td>Number of elements.</td>
+</tr>
+<tr>
+<td><a href="#pop-and-popfirst"><code>.Pop()</code></a></td>
+<td>D</td>
+<td><code>T</code></td>
+<td>Remove and return the last element.</td>
+</tr>
+<tr>
+<td><a href="#pop-and-popfirst"><code>.PopFirst()</code></a></td>
+<td>D</td>
+<td><code>T</code></td>
+<td>Remove and return the first element.</td>
+</tr>
+<tr>
+<td><a href="#append-and-prepend"><code>.Prepend(value)</code></a><br/><a href="#append-and-prepend"><code>.Prepend(values)</code></a></td>
+<td>D</td>
+<td>—</td>
+<td>Add one or more elements at the beginning.</td>
+</tr>
+<tr>
+<td><a href="#refcount-reference-count"><code>.refcount</code></a></td>
+<td>D</td>
+<td><code>int</code></td>
+<td>Number of references sharing the array.</td>
+</tr>
+<tr>
+<td><a href="#reserve"><code>.Reserve(capacity)</code></a></td>
+<td>D</td>
+<td>—</td>
+<td>Make room for later additions.</td>
+</tr>
+<tr>
+<td><a href="#setcapacity-and-compact"><code>.SetCapacity(capacity)</code></a></td>
+<td>D</td>
+<td>—</td>
+<td>Set storage size, removing excess elements if needed.</td>
+</tr>
+<tr>
+<td><a href="#setlength"><code>.SetLength(length)</code></a></td>
+<td>D</td>
+<td>—</td>
+<td>Change the number of elements.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="fixed-arrays">2.10.3 Fixed Arrays</h2>
+<p>Use a fixed array when the number of elements will stay the same. Write the
+size inside brackets before the element type:</p>
+<pre><code class="language-dq">var readings : [7]float = {}              // seven readings, initially all zero
+var header : [3]byte = [0x44, 0x51, 0x01] // exactly three bytes
+var colors : [?]str = ["red", "green", "blue"] // the compiler infers [3]str
+const lookup : [?]uint8 = [0x00, 0x29, 0x3B] // the compiler infers [3]uint8
+</code></pre>
+<p><code>[?]T</code> works for variables and constants and needs a nonempty array literal as
+its initializer so the compiler can count the elements. The length is part of
+a fixed array's type: <code>[3]int</code> and <code>[4]int</code> are different types. You can replace
+individual elements in array variables, but cannot add or remove any.</p>
+<p>Assigning a fixed array to another compatible fixed array copies its elements:</p>
+<pre><code class="language-dq">var original : [3]float = [18.5, 21, 19.5]
+var copy : [3]float = original
+copy[0] = 22.5 // original[0] is still 18.5
+</code></pre>
+<p>Fixed arrays store their elements directly with the variable or containing
+structure. For arrays of <code>autofree</code> elements, assignment first frees the
+destination's previous objects, then transfers each source element and sets the
+source elements to <code>nil</code>. Assigning an array to itself leaves it unchanged. See the
+<a href="../130-memory-management-and-ownership/#arrays">automatic cleanup rules</a>.</p>
+<h2 id="dynamic-arrays">2.10.4 Dynamic Arrays</h2>
+<p>Use <code>[*]T</code> when the number of elements can change. Dynamic arrays are initialized empty
+at the declaration, you can append elements using the <code>.Append()</code> method:</p>
+<pre><code class="language-dq">var names : [*]str
+names.Append("Amy")
+names.Append("Lin")
+names.Append("Sam") // names is ["Amy", "Lin", "Sam"]
+</code></pre>
+<p>Assigning a dynamic array to another variable shares the same array. Changes to
+the elements, length, or capacity are visible through both variables. Use
+<code>.Clone()</code> when you need a separate copy:</p>
+<pre><code class="language-dq">var names : [*]str = ["Amy", "Lin"]
+var shared : [*]str = names
+shared[0] = "Sam"     // names is now ["Sam", "Lin"]
+shared.Append("Jo")   // names is now ["Sam", "Lin", "Jo"]
+
+var copy : [*]str = names.Clone()
+copy[0] = "Alex"      // names[0] is still "Sam"
+</code></pre>
+<p>Assigning a different array to <code>shared</code> changes which array that variable uses;
+it does not make <code>names</code> use the new array.</p>
+<p>Dynamic arrays allocate their element storage as needed and manage its lifetime
+automatically. An empty array can exist without allocating any storage.</p>
+<p>Arrays of managed types, such as <code>str</code>, need extra runtime handling when elements
+are copied or removed. The compiler adds this handling automatically.</p>
+<h2 id="indexing">2.10.5 Indexing</h2>
+<p>Use <code>array[index]</code> to read or replace one element. Positions start at <strong>zero</strong>:
+the first element is at <code>0</code>, the second at <code>1</code>, and so on.</p>
+<pre><code class="language-dq">var names  : [*]str = ["Amy", "Lin", "Sam"]
+var first  : str = names[0]    // "Amy"
+var second : str = names[1]    // "Lin"
+names[1] = "Jo"                // names is now ["Amy", "Jo", "Sam"]
+var last : str = names[$last]  // "Sam"
+</code></pre>
+<p><code>$last</code> means <code>length - 1</code>, the position of the last element. <code>$end</code> means
+<code>length</code>, the position just after it. Use <code>$end</code> for a slice bound or to insert
+at the end; it does not select an existing element.</p>
+<p>Make sure the array is nonempty before using <code>$last</code>, and keep element indices
+between <code>0</code> and <code>length - 1</code>. Negative indices do not count backward from the
+end: use <code>array[$last]</code> or <code>array[$end - 1]</code> for the last element. Indexing does
+not adjust an invalid index to fit the available range.</p>
+<p>Dynamic arrays report a runtime range error for invalid indices. Fixed arrays
+and slices currently omit runtime bounds checks for speed. An invalid access
+can read unrelated memory, corrupt data, or crash the program.</p>
+<h2 id="slices">2.10.6 Slices</h2>
+<p>A slice is a view of existing elements. Use one to process just part of an array
+or to pass arrays of different sizes to the same function. Write <code>[]T</code> for its
+type and <code>array[start:end]</code> to select a range. Slicing works on fixed arrays,
+dynamic arrays, and existing slices, with the same range rules as strings.</p>
+<p>The start position is included and the end position is excluded. For example,
+<code>data[1:3]</code> selects elements <code>1</code> and <code>2</code>:</p>
+<pre><code class="language-dq">var data   : [*]byte = [0x10, 0x20, 0x30, 0x40]
+var middle : []byte  = data[1:3]  // [0x20, 0x30]
+middle[0] = 0xFF                  // data is now [0x10, 0xFF, 0x30, 0x40]
+</code></pre>
+<p>Changing a slice element changes the original array because no elements were
+copied. A slice has its own length, but cannot add or remove elements from its
+source array.</p>
+<p>Omit a bound to select from the beginning or through the end. Use <code>::</code> instead
+of <code>:</code> when you want to include the element at the end position:</p>
+<pre><code class="language-dq">var data : [*]byte = [0x10, 0x20, 0x30, 0x40]
+var all  : []byte = data[:]         // [0x10, 0x20, 0x30, 0x40]
+var head : []byte = data[:2]        // [0x10, 0x20]
+var tail : []byte = data[2:]        // [0x30, 0x40]
+var last_two  : []byte = data[$end - 2:] // [0x30, 0x40]
+var inclusive : []byte = data[1::3] // [0x20, 0x30, 0x40]
+</code></pre>
+<p>Slice bounds are limited to the available range: a negative bound becomes zero
+and a bound past the end becomes <code>length</code>. Negative slice bounds do not count
+backward from the end. If the resulting end is before the start, the slice is
+empty.</p>
+<pre><code class="language-dq">var data   : [4]int = [10, 20, 30, 40]
+var all    : []int  = data[-5:100] // [10, 20, 30, 40]
+var empty  : []int  = data[3:1]  // no elements
+var at_end : []int  = data[$end:] // no elements
+var negative_end : []int  = data[:-1] // no elements; -1 becomes zero
+</code></pre>
+<p>A slice borrows its source; it does not keep that source alive. Keep the original
+array alive while using the slice. Adding or removing elements, resizing, or
+releasing a dynamic array's storage can make existing slices and element
+pointers invalid. Create a new slice after such a change, even if the change
+seems to affect another part of the array. You also cannot keep a slice of a
+temporary array that disappears before the slice does.</p>
+<h2 id="function-parameters">2.10.7 Function Parameters</h2>
+<p>Use a slice parameter, <code>[]T</code>, when a function needs to read or update elements
+without resizing the array. The caller can pass a fixed array, a dynamic array,
+or a slice with a compatible element type. Passing an array automatically gives
+the function a view of all its elements:</p>
+<pre><code class="language-dq">func Sum(values : []float) -&gt; float:
+    result = 0
+    for value :? in values:
+        result += value
+    endfor
+endfunc
+
+func *Main():
+    var fixed   : [3]float = [18.5, 21, 19.5]
+    var growing : [*]float = [20.5, 22]
+    var total   : float = Sum(fixed)     // 59
+    var other   : float = Sum(growing)   // 42.5
+    var part    : float = Sum(fixed[1:]) // 40.5
+endfunc
+</code></pre>
+<p>You can also pass an array returned by a function directly to a slice parameter:</p>
+<pre><code class="language-dq">func MakeItems() -&gt; [*]str:
+    return ["a", "b"]
+endfunc
+
+func JoinItems(items : []str) -&gt; str:
+    return StrJoin(items, "|")
+endfunc
+
+// JoinItems(MakeItems()) returns "a|b".
+</code></pre>
+<p>The temporary array stays alive until the receiving call finishes, including
+when it raises an exception. A slice borrowed from that temporary must not be
+kept after the call returns. This also applies to returned fixed arrays.</p>
+<p>A slice parameter can also change the caller's elements, just like the <code>middle</code>
+slice in the previous section. For a function that adds or removes elements,
+use a dynamic array passed by reference:</p>
+<pre><code class="language-dq">func AddName(names : ref [*]str, name : str):
+    names.Append(name)
+endfunc
+
+func *Main():
+    var names : [*]str = ["Amy", "Lin"]
+    AddName(names, "Sam") // names is now ["Amy", "Lin", "Sam"]
+endfunc
+</code></pre>
+<p>Dynamic-array parameters require a reference mode; <code>names : [*]str</code> by value
+is not supported. A <code>ref</code> parameter can resize the array or replace the caller's
+array variable. Other parameter modes and their read/write restrictions are
+explained in <a href="../060-functions/#parameter-modes">Functions</a>.</p>
+<h2 id="iteration">2.10.8 Iteration</h2>
+<p>Use <code>for ... in</code> to work with each element in order. <code>:?</code> asks the compiler to
+infer the loop variable's type:</p>
+<pre><code class="language-dq">var readings : [*]float = [18.5, 21, 19.5]
+var total    : float = 0
+for reading :? in readings:
+    total += reading
+endfor
+// total is 59
+</code></pre>
+<p>The ordinary loop variable receives each element's value. Use <code>ref</code> when you
+want to change the array elements themselves:</p>
+<pre><code class="language-dq">var readings : [*]float = [18.5, 21, 19.5]
+for reading : ref in readings:
+    reading += 0.5
+endfor
+// readings is now [19, 21.5, 20]
+</code></pre>
+<p>A <code>ref</code> loop variable refers directly to the current array element and has its
+exact type. Do not add or remove elements or otherwise resize the dynamic array
+while using that reference: the element may move or disappear.</p>
+<p>When the array stores <code>autofree</code> elements, an ordinary loop variable refers to
+each object without removing it from the array or freeing it after the iteration.
+Use a <code>ref</code> loop variable to replace an element in place; this automatically
+frees the previous object. Elements can be <code>nil</code>, so check before using their
+fields or methods. See <a href="#dynamic-array-autofree-elements">Dynamic Array <code>autofree</code> Elements</a>.</p>
+<h2 id="array-properties">2.10.9 Array Properties</h2>
+<p>Properties let you inspect an array. They are read-only; use methods such as
+<code>.SetLength()</code> and <code>.Reserve()</code> to change its size or storage.</p>
+<h3 id="length">2.10.9.1 <code>.length</code></h3>
+<p><code>.length</code> counts elements, not bytes. Use it to check whether an array is empty
+or to find out how many values a slice contains. It works on every array form.</p>
+<pre><code class="language-dq">var data   : [4]int = [10, 20, 30, 40]
+var middle : []int = data[1:3]
+var total  : int = data.length   // 4
+var count  : int = middle.length // 2
+var empty  : [*]int
+var is_empty : bool = empty.length == 0 // true
+</code></pre>
+<h3 id="capacity">2.10.9.2 <code>.capacity</code></h3>
+<p><code>.capacity</code> tells you how many elements fit in a dynamic array's current storage.
+It is at least as large as <code>.length</code>. Extra capacity is spare room for future
+additions; it does not create extra elements that you can index.</p>
+<pre><code class="language-dq">var scores : [*]int = [10, 20, 30]
+scores.Reserve(100)
+var count : int = scores.length         // 3
+var has_room : bool = scores.capacity &gt;= 100 // true
+</code></pre>
+<p>When growth exceeds the capacity, the array obtains more storage automatically.
+An empty array with no allocated storage has capacity zero.</p>
+<h3 id="refcount-reference-count">2.10.9.3 <code>.refcount</code>: Reference Count</h3>
+<p><code>.refcount</code> is mainly useful for checking how many references share a dynamic
+array. Assigning it to another variable adds a reference; creating a slice does
+not. Temporary values can also add references. An array with no allocated
+storage has reference count zero.</p>
+<pre><code class="language-dq">var scores : [*]int = [10, 20, 30]
+var shared : [*]int = scores
+var references : int = scores.refcount // 2
+</code></pre>
+<h2 id="dynamic-array-methods">2.10.10 Dynamic Array Methods</h2>
+<p>See <a href="#array-properties-and-methods">Array Properties and Methods</a> for a quick overview.</p>
+<p>Call these methods on a dynamic array, such as <code>names.Append("Amy")</code>. Methods that
+change the array affect every variable sharing it. <code>.Clone()</code> returns a separate
+array, and <code>.Pop()</code> and <code>.PopFirst()</code> return the element they remove. The other
+methods return no value.</p>
+<p>The prototypes below use <code>T</code> for the array's element type: for <code>[*]str</code>, <code>T</code>
+means <code>str</code>. A <code>values : []T</code> parameter accepts a fixed array, a dynamic array,
+or a slice with a compatible element type. These prototypes describe the
+built-in methods; you do not need to declare them yourself.</p>
+<p>You can pass part of the same array as the source for an append or insert. The
+method preserves the source values even if it needs to move the array's storage:</p>
+<pre><code class="language-dq">var values : [*]int = [10, 20, 30]
+values.Append(values[:2]) // [10, 20, 30, 10, 20]
+</code></pre>
+<p>After a method changes the array's size or storage, previously created slices for
+this array might become invalid; see <a href="#slices">Slices</a>. Arrays of <code>autofree</code> elements have additional move
+and copy restrictions; see <a href="#dynamic-array-autofree-elements">Dynamic Array <code>autofree</code> Elements</a>.</p>
+<h3 id="append-and-prepend">2.10.10.1 .Append and .Prepend</h3>
+<pre><code class="language-text">.Append(value : T)
+.Append(values : []T)
+.AppendSlice(values : []T)
+.Prepend(value : T)
+.Prepend(values : []T)
+</code></pre>
+<p>Use <code>.Append()</code> to build a list one value at a time or add a whole group at once.
+Use <code>.Prepend()</code> to put values at the beginning. When adding several elements,
+both methods keep their original order.</p>
+<pre><code class="language-dq">var names : [*]str = ["Lin"]
+names.Append("Sam")            // ["Lin", "Sam"]
+names.Prepend(["Amy", "Jo"])   // ["Amy", "Jo", "Lin", "Sam"]
+names.AppendSlice(["Alex"])    // ["Amy", "Jo", "Lin", "Sam", "Alex"]
+</code></pre>
+<p><code>.AppendSlice()</code> explicitly adds the source's elements. This is useful for
+arrays whose elements are themselves arrays, where <code>.Append()</code> may instead
+add the source as one element.</p>
+<p>Prepending moves the existing elements to make room. For a large list built
+one element at a time, appending usually does less work.</p>
+<h3 id="insert-and-insertslice">2.10.10.2 .Insert and .InsertSlice</h3>
+<pre><code class="language-text">.Insert(index : int, value : T)
+.Insert(index : int, values : []T)
+.InsertSlice(index : int, values : []T)
+</code></pre>
+<p>Use <code>.Insert()</code> to put values before an existing position. Elements at that
+position and after it move to make room. <code>.InsertSlice()</code> explicitly inserts
+all the source elements, like the range form of <code>.Insert()</code>.</p>
+<pre><code class="language-dq">var stops : [*]str = ["home", "office"]
+stops.Insert(1, ["bakery", "school"]) // ["home", "bakery", "school", "office"]
+stops.Insert($end, "park")           // ["home", "bakery", "school", "office", "park"]
+</code></pre>
+<p><code>$end</code> inserts after the last element, like <code>.Append()</code>. A negative insertion
+position inserts at the beginning, and a position past the end inserts at the
+end. Inserting near the beginning of a large array moves more elements than
+inserting near its end.</p>
+<h3 id="delete">2.10.10.3 .Delete</h3>
+<pre><code class="language-text">.Delete(index : int, count : int = 1)
+</code></pre>
+<p>Use <code>.Delete(index)</code> to remove one element, or supply <code>count</code> to remove several.
+The elements after the removed range move to close the gap and keep their order.</p>
+<pre><code class="language-dq">var scores : [*]int = [10, 20, 30, 40]
+scores.Delete(1, 2) // [10, 40]: remove elements at positions 1 and 2
+scores.Delete(1)    // [10]
+scores.Delete(100)  // [10]: nothing at this position
+</code></pre>
+<p>A negative position starts deleting at the beginning. A count larger than the
+remaining length removes everything from that position onward. A non-positive
+count or a position at or past the end leaves the array unchanged.</p>
+<h3 id="pop-and-popfirst">2.10.10.4 .Pop and .PopFirst</h3>
+<pre><code class="language-text">.Pop() -&gt; T
+.PopFirst() -&gt; T
+</code></pre>
+<p>Use <code>.Pop()</code> to take the last element, for example when treating an array as a
+stack. Use <code>.PopFirst()</code> to take the first element, such as the next job in a
+small queue. Both remove the element and return its value.</p>
+<pre><code class="language-dq">var jobs : [*]str = ["download", "resize", "save"]
+var next : str = jobs.PopFirst() // "download"; jobs is ["resize", "save"]
+var last : str = jobs.Pop()      // "save"; jobs is ["resize"]
+</code></pre>
+<p>Check <code>.length</code> before popping if the array might be empty: both methods raise
+a runtime error on an empty array. <code>.PopFirst()</code> moves all remaining elements
+toward the beginning, so repeatedly using it on a large queue can be expensive.</p>
+<h3 id="setlength">2.10.10.5 .SetLength</h3>
+<pre><code class="language-text">.SetLength(length : uint)
+</code></pre>
+<p>Use <code>.SetLength()</code> when you know how many elements you need, for example before
+filling a byte buffer by index. Growing adds initialized elements: new numbers
+are zero and new strings are empty. Shrinking removes elements from the end
+but keeps the spare storage for later use.</p>
+<pre><code class="language-dq">var packet : [*]byte
+packet.SetLength(3) // [0, 0, 0]; length and capacity are 3
+packet[0] = 0x44
+packet[1] = 0x51
+packet[2] = 0x01
+packet.SetLength(2) // [0x44, 0x51]; capacity stays 3
+</code></pre>
+<p>The requested length must be non-negative. If it exceeds the current capacity,
+<code>.SetLength()</code> allocates space for exactly that many elements. Existing spare
+capacity is retained when the requested length already fits.</p>
+<p>When you append an element to an array with no spare space, the runtime doubles
+its allocated capacity, leaving room for later additions. Appending to an array
+with no allocated storage starts with room for one element.</p>
+<h3 id="reserve">2.10.10.6 .Reserve</h3>
+<pre><code class="language-text">.Reserve(capacity : uint)
+</code></pre>
+<p>Use <code>.Reserve()</code> before collecting many values when you can estimate the final
+size. It makes room for at least that many elements, which can avoid repeatedly
+moving the array into larger storage. It does not add elements, change existing
+values, or reduce capacity.</p>
+<pre><code class="language-dq">var readings : [*]float
+readings.Reserve(100) // still empty, with room for at least 100 readings
+readings.Append(18.5)
+readings.Append(21.5) // [18.5, 21.5]; the reserved space is being used
+</code></pre>
+<p>Capacity must be non-negative. You can keep appending beyond the reserved amount;
+the array will grow automatically.</p>
+<h3 id="setcapacity-and-compact">2.10.10.7 .SetCapacity and .Compact</h3>
+<pre><code class="language-text">.SetCapacity(capacity : uint)
+.Compact()
+</code></pre>
+<p>Use <code>.Compact()</code> after building an array if you want to release its unused
+space. It reduces capacity to the current length without removing elements.</p>
+<p><code>.SetCapacity()</code> gives you direct control over the storage size. If the requested
+capacity is smaller than the length, elements at the end are removed to fit.
+Increasing capacity leaves the elements and length unchanged.</p>
+<pre><code class="language-dq">var values : [*]int = [10, 20, 30]
+values.SetCapacity(2) // [10, 20]; length and capacity are 2
+values.Reserve(100)
+values.Compact()      // [10, 20]; capacity is 2 again
+</code></pre>
+<p>Capacity must be non-negative. Use <code>.Reserve()</code> when you only want to make room
+for later additions without risking removal of existing elements.</p>
+<h3 id="clear">2.10.10.8 .Clear</h3>
+<pre><code class="language-text">.Clear(free_storage : bool = false)
+</code></pre>
+<p>Use <code>.Clear()</code> to empty a list before filling it again. It keeps the storage so
+later additions can reuse it. Pass <code>true</code> when you also want to release the
+storage. Both forms leave the array empty.</p>
+<pre><code class="language-dq">var messages : [*]str = ["Connected", "Ready"]
+messages.Clear()             // length is 0; capacity is retained
+messages.Append("Restarted") // ["Restarted"]: reuse the existing storage
+messages.Clear(true)         // length and capacity are 0
+</code></pre>
+<h3 id="clone">2.10.10.9 .Clone</h3>
+<pre><code class="language-text">.Clone() -&gt; [*]T
+</code></pre>
+<p>Use <code>.Clone()</code> to keep an independent copy before changing an array. Assigning
+the result to a new variable lets you edit that copy without changing the
+original array's elements.</p>
+<pre><code class="language-dq">var names : [*]str = ["Amy", "Lin", "Sam"]
+var saved : [*]str = names.Clone()
+names[0].Append(" Lovelace") // saved[0] is still "Amy"
+</code></pre>
+<p>For <code>str</code> elements, later edits to a string in either array leave the other
+array's string unchanged, as shown above.</p>
+<p>Cloning copies the elements according to their types. Object references still
+point to the same objects, and nested dynamic arrays still share their inner
+arrays. Clone those inner arrays too if you need separate copies at every level.
+Cloning arrays of <code>autofree</code> elements is not supported; see
+<a href="#dynamic-array-autofree-elements">Dynamic Array <code>autofree</code> Elements</a>.</p>
+<h2 id="searching-and-comparison">2.10.11 Searching and Comparison</h2>
+<h3 id="indexof">2.10.11.1 .IndexOf</h3>
+<pre><code class="language-text">.IndexOf(value : T) -&gt; int
+</code></pre>
+<p>Use <code>.IndexOf()</code> to find an element in a fixed array, dynamic array, or slice.
+It returns the first matching position, starting at zero, or <code>-1</code> if the value
+is absent. Check for <code>-1</code> before using the result as an index.</p>
+<pre><code class="language-dq">var scores : [*]int = [10, 20, 30, 20]
+var position : int = scores.IndexOf(20) // 1: the first match
+if position &gt;= 0:
+    scores[position] = 25              // [10, 25, 30, 20]
+endif
+var missing : int = scores.IndexOf(99) // -1
+</code></pre>
+<p>For a slice, the result counts from the start of that slice:</p>
+<pre><code class="language-dq">var data : [4]int = [10, 20, 30, 40]
+var middle : []int = data[1:3]          // [20, 30]
+var position : int = middle.IndexOf(30) // 1, rather than 2
+</code></pre>
+<p>For <code>str</code> elements, <code>.IndexOf()</code> compares the text contents, just like <code>==</code>.
+The comparison is case-sensitive and works on fixed arrays, dynamic arrays,
+and slices of <code>str</code>. Separate strings containing the same text match:</p>
+<pre><code class="language-dq">var names : [*]str = ["Amy", "Lin", "Sam", "Lin"]
+var wanted : str = "Lin"
+var position : int = names.IndexOf(wanted) // 1: the first matching name
+var missing : int = names.IndexOf("lin")  // -1: case matters
+</code></pre>
+<p>For other element types, the search compares the bytes stored for each element.
+This works directly for values such as integers and bytes.
+Object references match only when they point to the same object; the search
+does not compare object contents. For structures, floating-point values, or
+other types that need a custom comparison, use a loop
+with the comparison you want. Structure padding and different floating-point
+bit patterns can otherwise affect the result.</p>
+<h3 id="equality">2.10.11.2 Equality</h3>
+<p>For dynamic arrays and array slices, <code>== []</code> checks whether the length is zero
+and <code>&lt;&gt; []</code> checks whether there are any elements:</p>
+<pre><code class="language-dq">var jobs : [*]str
+var empty : bool = jobs == [] // true
+jobs.Append("download")
+var has_jobs : bool = jobs &lt;&gt; [] // true
+
+var pending : []str = jobs[:]
+var has_pending : bool = pending &lt;&gt; [] // true
+var finished : []str = jobs[1:]
+var all_done : bool = finished == [] // true
+</code></pre>
+<p>To compare the contents of two arrays, compare their lengths and then their
+elements in a loop. General array equality is not provided automatically.</p>
+<h2 id="multidimensional-arrays">2.10.12 Multidimensional Arrays</h2>
+<p>An array can contain other arrays. Use this to represent a grid or table. For
+example, <code>[2][3]int</code> has two rows, each containing three integers:</p>
+<pre><code class="language-dq">var matrix : [2][3]int = [ [1, 2, 3], [4, 5, 6] ]
+var value : int = matrix[1][2] // 6: second row, third column
+matrix[0][1] = 20             // first row is now [1, 20, 3]
+</code></pre>
+<p>You can also nest dynamic arrays when rows need to grow separately. Each row
+has its own storage. Cloning the outer array copies the row references, so the
+copy still shares those rows; see <a href="#clone"><code>.Clone()</code></a>.</p>
+<h2 id="dynamic-array-autofree-elements">2.10.13 Dynamic Array <code>autofree</code> Elements</h2>
+<p>Use an element type such as <code>autofree OTask</code> when the array should automatically
+free the objects stored in it. Replacing an element frees its previous object.
+Removing elements with <code>.Delete()</code>, <code>.Clear()</code>, or a smaller length or capacity
+also frees the removed objects. Any remaining objects are freed when the last
+reference to the dynamic array is released. Assigning the array to another
+variable still shares the same array, rather than copying its objects.</p>
+<p>New <code>autofree</code> elements start as <code>nil</code>, including those added by <code>.SetLength()</code>.
+Assigning <code>nil</code> to an element frees its current object and leaves that position
+empty, without changing the array's length. A <code>nil</code> element has nothing to free.</p>
+<p>Assigning an <code>autofree</code> variable to an array element transfers the object and
+sets the source variable to <code>nil</code>. Single-element <code>.Append()</code>, <code>.Prepend()</code>, and
+<code>.Insert()</code> do the same:</p>
+<pre><code class="language-dq">object OTask:
+    name : str
+    func *Create(aname : strslice):
+        name = aname
+    endfunc
+endobject
+
+func *Main():
+    var tasks : [*]autofree OTask
+    tasks.SetLength(2) // [nil, nil]
+
+    var task = new autofree OTask('download')
+    tasks[0] = task    // task is now nil; tasks[0] refers to the object
+    tasks[0] = nil     // frees the object; tasks is [nil, nil], length still 2
+
+    tasks.Append(new OTask('list'))
+    var next : autofree OTask = tasks.Pop() // removes the object without freeing it
+endfunc // next is freed automatically
+</code></pre>
+<p><code>.Pop()</code> and <code>.PopFirst()</code> remove an element without freeing its object. They
+return an ordinary object reference: assign it to an <code>autofree</code> variable, as
+above, or explicitly delete it when finished. Popping a <code>nil</code> element returns
+<code>nil</code>; popping an empty array is still an error. Likewise, check for <code>nil</code>
+before accessing an element's fields or calling its methods.</p>
+<p>Copying a range of <code>autofree</code> elements and calling <code>.Clone()</code> are not supported,
+because two separate arrays must not automatically free the same objects. See
+the <a href="../130-memory-management-and-ownership/#arrays">automatic cleanup rules</a>
+for more details.</p>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+</body>
+</html>

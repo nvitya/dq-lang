@@ -1,0 +1,2054 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Documentation for the DQ programming language, libraries and tools" name="description"/>
+<link href="../030-variables-constants-references-and-scope/" rel="prev"/>
+<link href="../050-statements-and-control-flow/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>2.4. Expressions and Operators - DQ-lang Project</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../pdf/dq-lang-book.pdf" rel="alternate" title="PDF" type="application/pdf"/></head>
+<body dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#expressions-and-operators">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="DQ-lang Project" class="md-header__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            DQ-lang Project
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              2.4. Expressions and Operators
+            
+          </span>
+</div>
+</div>
+</div>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<a class="md-header-nav__button md-icon" href="../../pdf/dq-lang-book.pdf" title="PDF">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<path d="M128,0c-17.6,0-32,14.4-32,32v448c0,17.6,14.4,32,32,32h320c17.6,0,32-14.4,32-32V128L352,0H128z" fill="#E2E5E7"></path>
+<path d="m384 128h96l-128-128v96c0 17.6 14.4 32 32 32z" fill="#B0B7BD"></path>
+<polygon fill="#CAD1D8" points="480 224 384 128 480 128"></polygon>
+<path d="M416,416c0,8.8-7.2,16-16,16H48c-8.8,0-16-7.2-16-16V256c0-8.8,7.2-16,16-16h352c8.8,0,16,7.2,16,16  V416z" fill="#F15642"></path>
+<g fill="#fff">
+<path d="m101.74 303.15c0-4.224 3.328-8.832 8.688-8.832h29.552c16.64 0 31.616 11.136 31.616 32.48 0 20.224-14.976 31.488-31.616 31.488h-21.36v16.896c0 5.632-3.584 8.816-8.192 8.816-4.224 0-8.688-3.184-8.688-8.816v-72.032zm16.88 7.28v31.872h21.36c8.576 0 15.36-7.568 15.36-15.504 0-8.944-6.784-16.368-15.36-16.368h-21.36z"></path>
+<path d="m196.66 384c-4.224 0-8.832-2.304-8.832-7.92v-72.672c0-4.592 4.608-7.936 8.832-7.936h29.296c58.464 0 57.184 88.528 1.152 88.528h-30.448zm8.064-72.912v57.312h21.232c34.544 0 36.08-57.312 0-57.312h-21.232z"></path>
+<path d="m303.87 312.11v20.336h32.624c4.608 0 9.216 4.608 9.216 9.072 0 4.224-4.608 7.68-9.216 7.68h-32.624v26.864c0 4.48-3.184 7.92-7.664 7.92-5.632 0-9.072-3.44-9.072-7.92v-72.672c0-4.592 3.456-7.936 9.072-7.936h44.912c5.632 0 8.96 3.344 8.96 7.936 0 4.096-3.328 8.704-8.96 8.704h-37.248v0.016z"></path>
+</g>
+<path d="m400 432h-304v16h304c8.8 0 16-7.2 16-16v-16c0 8.8-7.2 16-16 16z" fill="#CAD1D8"></path>
+</svg>
+</a></nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="DQ-lang Project" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    DQ-lang Project
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../010-project/">
+<span class="md-ellipsis">
+    
+  
+    1. DQ-lang Project
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    1. DQ-lang Project
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    1.1. DQ-lang Project Introduction
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/020-features-and-goals/">
+<span class="md-ellipsis">
+    
+  
+    1.2. Features and Design Goals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/030-getting-started/">
+<span class="md-ellipsis">
+    
+  
+    1.3. Getting Started
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    2. DQ Programming Language
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    2. DQ Programming Language
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../010-basic-syntax/">
+<span class="md-ellipsis">
+    
+  
+    2.1. Basic Syntax
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../020-basic-types-and-conversions/">
+<span class="md-ellipsis">
+    
+  
+    2.2. Basic Types and Conversions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../030-variables-constants-references-and-scope/">
+<span class="md-ellipsis">
+    
+  
+    2.3. Variables, Constants, References, and Scope
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    2.4. Expressions and Operators
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    2.4. Expressions and Operators
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#assignments">
+<span class="md-ellipsis">
+      
+        2.4.1 Assignments
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#arithmetic-and-comparison">
+<span class="md-ellipsis">
+      
+        2.4.2 Arithmetic and Comparison
+      
+    </span>
+</a>
+<nav aria-label="2.4.2 Arithmetic and Comparison" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#arithmetic-operators">
+<span class="md-ellipsis">
+      
+        2.4.2.1 Arithmetic Operators
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#numeric-result-types">
+<span class="md-ellipsis">
+      
+        2.4.2.2 Numeric Result Types
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#division-remainder-and-modulo">
+<span class="md-ellipsis">
+      
+        2.4.2.3 Division, Remainder, and Modulo
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#comparison-operators">
+<span class="md-ellipsis">
+      
+        2.4.2.4 Comparison Operators
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#range-comparisons">
+<span class="md-ellipsis">
+      
+        2.4.2.5 Range Comparisons
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#integer-calculations">
+<span class="md-ellipsis">
+      
+        2.4.3 Integer Calculations
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#boolean-and-bitwise-operations">
+<span class="md-ellipsis">
+      
+        2.4.4 Boolean and Bitwise Operations
+      
+    </span>
+</a>
+<nav aria-label="2.4.4 Boolean and Bitwise Operations" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#logical-operators">
+<span class="md-ellipsis">
+      
+        2.4.4.1 Logical Operators
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bitwise-operators">
+<span class="md-ellipsis">
+      
+        2.4.4.2 Bitwise Operators
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#unary-and-storage-operations">
+<span class="md-ellipsis">
+      
+        2.4.5 Unary and Storage Operations
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#explicit-conversion-and-runtime-type-tests">
+<span class="md-ellipsis">
+      
+        2.4.6 Explicit Conversion and Runtime Type Tests
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#inline-conditional">
+<span class="md-ellipsis">
+      
+        2.4.7 Inline Conditional
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#calls-and-evaluation">
+<span class="md-ellipsis">
+      
+        2.4.8 Calls and Evaluation
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#associativity">
+<span class="md-ellipsis">
+      
+        2.4.9 Associativity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#parentheses">
+<span class="md-ellipsis">
+      
+        2.4.10 Parentheses
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#operator-precedence">
+<span class="md-ellipsis">
+      
+        2.4.11 Operator Precedence
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../050-statements-and-control-flow/">
+<span class="md-ellipsis">
+    
+  
+    2.5. Statements and Control Flow
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../060-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.6. Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../070-strings-and-characters/">
+<span class="md-ellipsis">
+    
+  
+    2.7. Character and String Types
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../075-string-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.8. String Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../077-text-formatting/">
+<span class="md-ellipsis">
+    
+  
+    2.9. Text Formatting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../080-arrays-and-slices/">
+<span class="md-ellipsis">
+    
+  
+    2.10. Arrays and Slices
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../090-enumerations/">
+<span class="md-ellipsis">
+    
+  
+    2.11. Enumerations
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../100-structures-and-unions/">
+<span class="md-ellipsis">
+    
+  
+    2.12. Structures and Unions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../110-pointers/">
+<span class="md-ellipsis">
+    
+  
+    2.13. Pointers
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../120-objects-and-properties/">
+<span class="md-ellipsis">
+    
+  
+    2.14. Objects and Properties
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../130-memory-management-and-ownership/">
+<span class="md-ellipsis">
+    
+  
+    2.15. Memory Management and Autofree
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../140-exceptions-and-error-handling/">
+<span class="md-ellipsis">
+    
+  
+    2.16. Exceptions and Error Handling
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../150-anyvalue/">
+<span class="md-ellipsis">
+    
+  
+    2.17. anyvalue
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../170-modules-and-packages/">
+<span class="md-ellipsis">
+    
+  
+    2.18. Modules and Packages
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../180-attributes/">
+<span class="md-ellipsis">
+    
+  
+    2.19. Attributes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../190-compiler-directives/">
+<span class="md-ellipsis">
+    
+  
+    2.20. Compiler Directives
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../200-c-interoperability/">
+<span class="md-ellipsis">
+    
+  
+    2.21. C Interoperability
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../210-assembly-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.22. Assembly Functions
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../030-compiler/">
+<span class="md-ellipsis">
+    
+  
+    3. DQ Compiler and Tools
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    3. DQ Compiler and Tools
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/010-compiler-and-tool-overview/">
+<span class="md-ellipsis">
+    
+  
+    3.1. Compiler and Tool Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/015-runtime-and-program-execution/">
+<span class="md-ellipsis">
+    
+  
+    3.2. Runtime and Program Execution
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/020-linux-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.3. Linux Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/030-windows-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.4. Windows Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/040-compiler-usage-and-options/">
+<span class="md-ellipsis">
+    
+  
+    3.5. Compiler Usage and Options
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/050-project-files/">
+<span class="md-ellipsis">
+    
+  
+    3.6. Project Files
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/060-build-process-and-module-artifacts/">
+<span class="md-ellipsis">
+    
+  
+    3.7. Build Process and Module Artifacts
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/070-targets-and-cross-compilation/">
+<span class="md-ellipsis">
+    
+  
+    3.8. Targets and Cross-Compilation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/080-vscode-setup-and-debugging/">
+<span class="md-ellipsis">
+    
+  
+    3.9. VSCode Setup and Debugging
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../040-packages/">
+<span class="md-ellipsis">
+    
+  
+    4. Standard Packages
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    4. Standard Packages
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/010-library-overview-and-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.1. Library Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/015-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.2. sys
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/020-print/">
+<span class="md-ellipsis">
+    
+  
+    4.3. print
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/040-file/">
+<span class="md-ellipsis">
+    
+  
+    4.4. file
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/050-json/">
+<span class="md-ellipsis">
+    
+  
+    4.5. json
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/060-threads/">
+<span class="md-ellipsis">
+    
+  
+    4.6. threads
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/065-time/">
+<span class="md-ellipsis">
+    
+  
+    4.7. time
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/070-nanonet/">
+<span class="md-ellipsis">
+    
+  
+    4.8. nanonet
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/075-shell/">
+<span class="md-ellipsis">
+    
+  
+    4.9. shell
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/080-additional-standard-packages/">
+<span class="md-ellipsis">
+    
+  
+    4.10. Additional Standard Packages
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    5. Appendices
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    5. Appendices
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/010-example-programs/">
+<span class="md-ellipsis">
+    
+  
+    5.1. Example Programs
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/020-building-the-compiler-from-source/">
+<span class="md-ellipsis">
+    
+  
+    5.2. Building the Compiler from Source
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/030-contributor-and-implementation-notes/">
+<span class="md-ellipsis">
+    
+  
+    5.3. Contributor and Implementation Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/031-module-and-interface-internals/">
+<span class="md-ellipsis">
+    
+  
+    5.4. Module and Interface Internals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/032-exceptions-and-backtraces/">
+<span class="md-ellipsis">
+    
+  
+    5.5. Exceptions and Backtraces
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/033-release-and-cross-builds/">
+<span class="md-ellipsis">
+    
+  
+    5.6. Release and Cross-Build Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/040-glossary-and-index/">
+<span class="md-ellipsis">
+    
+  
+    5.7. Glossary and Index
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/050-documentation-coverage/">
+<span class="md-ellipsis">
+    
+  
+    5.8. Documentation Coverage
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#assignments">
+<span class="md-ellipsis">
+      
+        2.4.1 Assignments
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#arithmetic-and-comparison">
+<span class="md-ellipsis">
+      
+        2.4.2 Arithmetic and Comparison
+      
+    </span>
+</a>
+<nav aria-label="2.4.2 Arithmetic and Comparison" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#arithmetic-operators">
+<span class="md-ellipsis">
+      
+        2.4.2.1 Arithmetic Operators
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#numeric-result-types">
+<span class="md-ellipsis">
+      
+        2.4.2.2 Numeric Result Types
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#division-remainder-and-modulo">
+<span class="md-ellipsis">
+      
+        2.4.2.3 Division, Remainder, and Modulo
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#comparison-operators">
+<span class="md-ellipsis">
+      
+        2.4.2.4 Comparison Operators
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#range-comparisons">
+<span class="md-ellipsis">
+      
+        2.4.2.5 Range Comparisons
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#integer-calculations">
+<span class="md-ellipsis">
+      
+        2.4.3 Integer Calculations
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#boolean-and-bitwise-operations">
+<span class="md-ellipsis">
+      
+        2.4.4 Boolean and Bitwise Operations
+      
+    </span>
+</a>
+<nav aria-label="2.4.4 Boolean and Bitwise Operations" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#logical-operators">
+<span class="md-ellipsis">
+      
+        2.4.4.1 Logical Operators
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bitwise-operators">
+<span class="md-ellipsis">
+      
+        2.4.4.2 Bitwise Operators
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#unary-and-storage-operations">
+<span class="md-ellipsis">
+      
+        2.4.5 Unary and Storage Operations
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#explicit-conversion-and-runtime-type-tests">
+<span class="md-ellipsis">
+      
+        2.4.6 Explicit Conversion and Runtime Type Tests
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#inline-conditional">
+<span class="md-ellipsis">
+      
+        2.4.7 Inline Conditional
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#calls-and-evaluation">
+<span class="md-ellipsis">
+      
+        2.4.8 Calls and Evaluation
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#associativity">
+<span class="md-ellipsis">
+      
+        2.4.9 Associativity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#parentheses">
+<span class="md-ellipsis">
+      
+        2.4.10 Parentheses
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#operator-precedence">
+<span class="md-ellipsis">
+      
+        2.4.11 Operator Precedence
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="expressions-and-operators">2.4. Expressions and Operators</h1>
+<p>An expression computes a typed value, such as <code>count + 1</code>, <code>ready and valid</code>,
+or a function call. Some expressions also identify storage that can be assigned.</p>
+<pre><code class="language-dq">use print
+
+func *Main():
+    var ratio : float = 3 / 2
+    var quotient : int = 7 div 3
+    var remainder : int = -7 rem 3
+    var modulo : int = -7 mod 3
+    PrintLn("{}, {}, {}, {}", [ratio, quotient, remainder, modulo])
+endfunc
+</code></pre>
+<p>This prints <code>1.5, 2, -1, 2</code>.</p>
+<h2 id="assignments">2.4.1 Assignments</h2>
+<p><code>=</code> stores a value in an assignable destination. The destination must be
+writable, and the value must be compatible with its type. Use <code>==</code> to compare
+values for equality.</p>
+<pre><code class="language-dq">var count : int = 3
+count = 10
+count += 2       // count is now 12
+count =div= 3    // count is now 4
+</code></pre>
+<p>Modify-assignment reads the destination's current value, performs an operation,
+and stores the result back. The destination must therefore already be
+initialized and both readable and writable.</p>
+<p>Modify-assignment statements are <code>+=</code>, <code>-=</code>, <code>*=</code>, <code>/=</code>, <code>&lt;&lt;=</code>, <code>&gt;&gt;=</code>, <code>&amp;=</code>,
+<code>|=</code>, <code>=xor=</code>, <code>=div=</code>, <code>=rem=</code>, and <code>=mod=</code>. A word operator uses the leading
+<code>=</code> spelling shown here.</p>
+<p>Assignment is a statement and does not produce a value. It cannot be used as a
+Boolean condition or nested to create chained assignments such as <code>a = b = 1</code>.
+Assignment and modify-assignment are outside the operator precedence table.</p>
+<h2 id="arithmetic-and-comparison">2.4.2 Arithmetic and Comparison</h2>
+<p>The tables below use <em>integer</em> for any signed or unsigned integer type, and
+<em>number</em> for an integer or floating-point value. <code>bool</code>, characters, enums, and
+pointers are separate categories; they are not implicitly treated as numbers.</p>
+<h3 id="arithmetic-operators">2.4.2.1 Arithmetic Operators</h3>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Operands</th>
+<th>Result</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>+</code></td>
+<td>Two numbers</td>
+<td>Common numeric type</td>
+<td>Addition.</td>
+</tr>
+<tr>
+<td><code>-</code></td>
+<td>Two numbers</td>
+<td>Common numeric type; integer subtraction is signed</td>
+<td>Subtraction.</td>
+</tr>
+<tr>
+<td><code>*</code></td>
+<td>Two numbers</td>
+<td>Common numeric type</td>
+<td>Multiplication.</td>
+</tr>
+<tr>
+<td><code>/</code></td>
+<td>Two numbers</td>
+<td>Floating point</td>
+<td>Floating-point division, including for two integers.</td>
+</tr>
+<tr>
+<td><code>div</code></td>
+<td>Two integers</td>
+<td>Common integer type</td>
+<td>Integer division, truncating toward zero.</td>
+</tr>
+<tr>
+<td><code>rem</code></td>
+<td>Two integers</td>
+<td>Common integer type</td>
+<td>Division remainder; a nonzero result has the dividend's sign.</td>
+</tr>
+<tr>
+<td><code>mod</code></td>
+<td>Two integers</td>
+<td>Common integer type</td>
+<td>Nonnegative modulo, including with a negative divisor.</td>
+</tr>
+</tbody>
+</table>
+<p><code>+</code> also concatenates compatible text into a <code>str</code>; see
+<a href="../075-string-functions/#text-operators">String Functions</a>.
+Typed pointers support separate address arithmetic described in
+<a href="../110-pointers/#pointer-arithmetic-and-indexing">Pointers</a>.</p>
+<h3 id="numeric-result-types">2.4.2.2 Numeric Result Types</h3>
+<p>For ordinary numeric operations, DQ first converts operands to a common type:</p>
+<table>
+<thead>
+<tr>
+<th>Operand types</th>
+<th>Common type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Two signed integers</td>
+<td>Signed integer at the wider operand width.</td>
+</tr>
+<tr>
+<td>Two unsigned integers</td>
+<td>Unsigned integer at the wider operand width.</td>
+</tr>
+<tr>
+<td>One signed and one unsigned integer</td>
+<td>Signed integer at the wider operand width, regardless of operand order.</td>
+</tr>
+<tr>
+<td>One integer and one floating-point value</td>
+<td>The floating-point operand's type.</td>
+</tr>
+<tr>
+<td>Two floating-point values</td>
+<td>The wider floating-point type.</td>
+</tr>
+</tbody>
+</table>
+<p>There are two arithmetic exceptions: integer subtraction always uses a signed
+result at the wider width, and <code>/</code> always returns floating point. Dividing two
+integers produces the target's default <code>float</code> type. Shifts have their own rule:
+the result keeps the left operand's integer type.</p>
+<pre><code class="language-dq">var small : uint8 = 10
+var signed_value : int16 = -3
+var sum : int16 = small + signed_value  // 7; reversing the operands keeps int16
+var difference : int8 = small - uint8(12) // -2, although both operands are unsigned
+var ratio : float = 3 / 2               // 1.5
+</code></pre>
+<p>A common signed type is not necessarily large enough to represent every value
+of an unsigned operand of the same width. Conversion retains its bits; it does
+not add a spare sign bit. Choose a wider type explicitly when the full unsigned
+range must participate in a signed calculation. Calculation widths and overflow
+are explained in <a href="#integer-calculations">Integer Calculations</a>.</p>
+<h3 id="division-remainder-and-modulo">2.4.2.3 Division, Remainder, and Modulo</h3>
+<p><code>/</code> performs floating-point division. <code>div</code> instead discards the fractional
+part toward zero, so <code>7 div 3</code> is <code>2</code> and <code>-7 div 3</code> is <code>-2</code>.</p>
+<p><code>rem</code> is the remainder associated with that truncating division. For valid
+integer division, it satisfies <code>a rem b == a - ((a div b) * b)</code>.
+<code>mod</code> starts with that remainder and, when it is negative, adds the magnitude
+of the divisor to make it nonnegative:</p>
+<table>
+<thead>
+<tr>
+<th><code>a</code></th>
+<th><code>b</code></th>
+<th><code>a div b</code></th>
+<th><code>a rem b</code></th>
+<th><code>a mod b</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>7</code></td>
+<td><code>3</code></td>
+<td><code>2</code></td>
+<td><code>1</code></td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>-7</code></td>
+<td><code>3</code></td>
+<td><code>-2</code></td>
+<td><code>-1</code></td>
+<td><code>2</code></td>
+</tr>
+<tr>
+<td><code>7</code></td>
+<td><code>-3</code></td>
+<td><code>-2</code></td>
+<td><code>1</code></td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>-7</code></td>
+<td><code>-3</code></td>
+<td><code>2</code></td>
+<td><code>-1</code></td>
+<td><code>2</code></td>
+</tr>
+</tbody>
+</table>
+<p>For a nonzero divisor, the modulo result is between zero, inclusive, and the
+divisor's magnitude, exclusive. This is useful for wrapping a possibly negative
+position into a positive range:</p>
+<pre><code class="language-dq">var position : int = -1
+var slot : int = position mod 8  // 7
+</code></pre>
+<p>DQ uses <code>rem</code>, not <code>%</code>, for integer remainder. <code>%</code> obtains an address.
+<code>div</code>, <code>rem</code>, and <code>mod</code> reject floating-point operands; use an explicit rounding
+operation when an integer calculation is intended. Integer division by zero and
+signed minimum divided by <code>-1</code> have no defined result; guard these cases.</p>
+<h3 id="comparison-operators">2.4.2.4 Comparison Operators</h3>
+<p>Every comparison returns <code>bool</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Operands</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>==</code></td>
+<td>Compatible values</td>
+<td>Equality.</td>
+</tr>
+<tr>
+<td><code>&lt;&gt;</code></td>
+<td>Compatible values</td>
+<td>Inequality.</td>
+</tr>
+<tr>
+<td><code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code></td>
+<td>Numbers, matching character types, values of the same enum type, or compatible text values</td>
+<td>Less than, less than or equal, greater than, greater than or equal.</td>
+</tr>
+</tbody>
+</table>
+<p>Numeric comparisons use the common numeric type rules above. Two integers
+compare as signed if either is signed, and as unsigned if both are unsigned.
+If either operand is floating point, comparison is floating point.</p>
+<p>Boolean equality requires two Boolean values. Numbers are not converted to
+Boolean values for comparison: <code>true == 1</code> is invalid. <code>!=</code> is not accepted.
+Enums compare only with the same enum type; ordering follows their ordinal
+values. Character comparison follows character codes, without case folding.</p>
+<pre><code class="language-dq">var count : int = 3
+var limit : float = 3.5
+var below_limit : bool = count &lt; limit  // true: numeric conversion is allowed
+var ready : bool = true
+var unchanged : bool = ready == true   // true
+</code></pre>
+<p>Compatible pointers and object references support identity comparisons with
+<code>==</code> and <code>&lt;&gt;</code>, including comparison with <code>nil</code>; this does not compare pointed-to
+contents. Compatible text values support equality and ordering by unsigned byte
+value, with a shorter prefix coming first. Different string types can be
+compared; see <a href="../075-string-functions/#string-comparison">String Comparison</a>.
+General array sequence equality is not implicit. Dynamic arrays and slices can
+be compared with <code>[]</code> to test emptiness.</p>
+<h3 id="range-comparisons">2.4.2.5 Range Comparisons</h3>
+<p>DQ supports a chain of two ordering comparisons with three operands. Both
+comparisons must point in the same direction:</p>
+<table>
+<thead>
+<tr>
+<th>Direction</th>
+<th>Supported forms</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ascending</td>
+<td><code>x &lt; y &lt; z</code>, <code>x &lt;= y &lt; z</code>, <code>x &lt; y &lt;= z</code>, <code>x &lt;= y &lt;= z</code></td>
+</tr>
+<tr>
+<td>Descending</td>
+<td><code>x &gt; y &gt; z</code>, <code>x &gt;= y &gt; z</code>, <code>x &gt; y &gt;= z</code>, <code>x &gt;= y &gt;= z</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-dq">var temperature : int = 20
+var comfortable : bool = 18 &lt;= temperature &lt; 25  // true
+var within_limits : bool = 25 &gt; temperature &gt;= 18 // true
+</code></pre>
+<p><code>lower &lt;= value &lt; upper</code> tests the same bounds as
+<code>(lower &lt;= value) and (value &lt; upper)</code>, but evaluates the middle expression only
+once. The final endpoint is evaluated only if the first comparison succeeds:</p>
+<pre><code class="language-dq">use print
+
+var calls : int = 0
+
+func MiddleValue() -&gt; int:
+    ++calls
+    return 2
+endfunc
+
+func *Main():
+    var inside : bool = 1 &lt; MiddleValue() &lt; 3 // calls becomes 1
+    var skipped : bool = 3 &lt; 2 &lt; MiddleValue() // the function is not called
+    PrintLn("{} {} {}", [inside, skipped, calls]) // true false 1
+endfunc
+</code></pre>
+<p>Longer chains such as <code>w &lt; x &lt; y &lt; z</code>, direction changes such as <code>x &lt; y &gt; z</code>,
+and equality chains such as <code>a == b == c</code> are invalid. Write separate
+comparisons joined with <code>and</code> when the condition needs those forms.</p>
+<h2 id="integer-calculations">2.4.3 Integer Calculations</h2>
+<p>DQ integer arithmetic uses fixed widths and has no overflow checks. The widest
+operand determines the calculation width. A whole-number literal has the normal
+<code>int</code> calculation type and can widen a mixed calculation:</p>
+<pre><code class="language-dq">var left : uint8 = 250
+var right : uint8 = 10
+var narrow_sum : int = left + right // 4: the calculation uses eight bits
+var wide_sum : int = left + 10     // 260: the literal makes this an int calculation
+left = left + 10                   // 4: storing into uint8 keeps the low bits
+</code></pre>
+<p>The destination does not widen a calculation retroactively. Signed narrowing
+interprets the retained bits as a two's-complement value. The same rules apply
+to compile-time and runtime expressions.</p>
+<p>Subtraction always produces a signed result at the widest operand width, even
+when both operands are unsigned. Thus <code>uint(3) - uint(5)</code> is signed <code>-2</code> at the
+native width. An assignment to unsigned storage reinterprets the retained bits.</p>
+<h2 id="boolean-and-bitwise-operations">2.4.4 Boolean and Bitwise Operations</h2>
+<h3 id="logical-operators">2.4.4.1 Logical Operators</h3>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Operands</th>
+<th>Result</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>not value</code></td>
+<td>One <code>bool</code></td>
+<td><code>bool</code></td>
+<td>Reverse the Boolean value.</td>
+</tr>
+<tr>
+<td><code>left and right</code></td>
+<td>Two <code>bool</code> values</td>
+<td><code>bool</code></td>
+<td>True when both operands are true.</td>
+</tr>
+<tr>
+<td><code>left or right</code></td>
+<td>Two <code>bool</code> values</td>
+<td><code>bool</code></td>
+<td>True when at least one operand is true.</td>
+</tr>
+</tbody>
+</table>
+<p><code>and</code> and <code>or</code> short-circuit. <code>and</code> evaluates its right operand only if the left
+is true; <code>or</code> evaluates its right operand only if the left is false. This allows
+a condition to guard a later operation:</p>
+<pre><code class="language-dq">func IsPositive(address : ^int) -&gt; bool:
+    return address &lt;&gt; nil and address^ &gt; 0
+endfunc
+</code></pre>
+<p>For <code>IsPositive(nil)</code>, the result is <code>false</code> and <code>address^</code> is not evaluated.
+An <code>or</code> condition can supply the opposite guard:</p>
+<pre><code class="language-dq">var address : ^int = nil
+var missing_or_zero : bool = address == nil or address^ == 0 // true
+</code></pre>
+<p>There is no numeric truthiness: <code>not 0</code> and <code>1 and 2</code> are invalid. Use a
+comparison such as <code>count &lt;&gt; 0</code> to produce a Boolean value.</p>
+<h3 id="bitwise-operators">2.4.4.2 Bitwise Operators</h3>
+<p>Bitwise operators work on integer bits, not Boolean truth values. They require
+integer operands and do not implicitly round floating-point values.</p>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Operands</th>
+<th>Result</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>~value</code></td>
+<td>One integer</td>
+<td>Operand's integer type</td>
+<td>Complement every bit.</td>
+</tr>
+<tr>
+<td><code>left &amp; right</code></td>
+<td>Two integers</td>
+<td>Common integer type</td>
+<td>Set bits present in both operands.</td>
+</tr>
+<tr>
+<td><code>left \| right</code></td>
+<td>Two integers</td>
+<td>Common integer type</td>
+<td>Set bits present in either operand.</td>
+</tr>
+<tr>
+<td><code>left xor right</code></td>
+<td>Two integers</td>
+<td>Common integer type</td>
+<td>Set bits present in exactly one operand.</td>
+</tr>
+<tr>
+<td><code>value &lt;&lt; count</code></td>
+<td>Two integers</td>
+<td>Left operand's type</td>
+<td>Shift left, filling low bits with zeroes.</td>
+</tr>
+<tr>
+<td><code>value &gt;&gt; count</code></td>
+<td>Two integers</td>
+<td>Left operand's type</td>
+<td>Shift right; signed values extend the sign bit, unsigned values fill with zeroes.</td>
+</tr>
+</tbody>
+</table>
+<p>For <code>&amp;</code>, <code>|</code>, and <code>xor</code>, signedness and width follow the common integer rules.
+For shifts, the count does not change the left operand's type or signedness.
+The count must be nonnegative and smaller than that type's bit width. Bits
+shifted out are discarded; shifts do not report overflow.</p>
+<pre><code class="language-dq">var a : uint8 = 0x0C       // 00001100
+var b : uint8 = 0x0A       // 00001010
+var both : uint8 = a &amp; b   // 00001000 = 8
+var either : uint8 = a | b // 00001110 = 14
+var different : uint8 = a xor b // 00000110 = 6
+var inverted : uint8 = ~a  // 11110011 = 243
+var shifted : uint8 = a &lt;&lt; 1 // 00011000 = 24; result still has type uint8
+</code></pre>
+<p>To test whether any flag bits are set, compare the masked integer with zero:</p>
+<pre><code class="language-dq">var flags : uint = 0x12
+var mask : uint = 0x02
+var enabled : bool = flags &amp; mask &lt;&gt; 0 // true
+</code></pre>
+<p>Bitwise operations bind more tightly than arithmetic and comparison.
+<code>flags &amp; mask &lt;&gt; 0</code> therefore means <code>(flags &amp; mask) &lt;&gt; 0</code>. Logical <code>and</code> and
+<code>or</code> bind more loosely than comparisons. Neither <code>&amp;</code> nor <code>|</code> short-circuits.</p>
+<h2 id="unary-and-storage-operations">2.4.5 Unary and Storage Operations</h2>
+<p>A unary operator acts on one operand. Most are written before it; pointer
+dereference is written after it:</p>
+<table>
+<thead>
+<tr>
+<th>Form</th>
+<th>Operand</th>
+<th>Result</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-value</code></td>
+<td>A number</td>
+<td>Same floating-point type, or signed integer of the operand's width</td>
+<td>Numerical negation.</td>
+</tr>
+<tr>
+<td><code>not value</code></td>
+<td><code>bool</code></td>
+<td><code>bool</code></td>
+<td>Logical negation.</td>
+</tr>
+<tr>
+<td><code>~value</code></td>
+<td>An integer</td>
+<td>Same integer type</td>
+<td>Bitwise complement.</td>
+</tr>
+<tr>
+<td><code>%value</code></td>
+<td>Addressable storage of type <code>T</code></td>
+<td><code>^T</code></td>
+<td>Obtain its address.</td>
+</tr>
+<tr>
+<td><code>address^</code></td>
+<td>A typed pointer <code>^T</code></td>
+<td>The referenced <code>T</code></td>
+<td>Access the value at that address.</td>
+</tr>
+</tbody>
+</table>
+<p>Negating an unsigned integer produces a signed result at the same width. Like
+other fixed-width integer calculations, this can overflow when the mathematical
+result does not fit. Widen the operand before negation when necessary:</p>
+<pre><code class="language-dq">var magnitude : uint8 = 7
+var negative : int8 = -magnitude // -7
+var value : int = 10
+var address : ^int = %value
+address^ = 42                   // value becomes 42
+</code></pre>
+<p>The prefix <code>^</code> in <code>^int</code> is a <strong>type designator</strong>, not an expression operator.
+<code>^int</code> means pointer to <code>int</code>, and <code>^^int</code> means pointer to pointer to <code>int</code>.
+The postfix <code>^</code> in <code>address^</code> instead dereferences a pointer value. <code>%</code> requires
+an addressable operand; it cannot obtain the address of a literal or a property.</p>
+<p>Prefix <code>++value</code> and <code>--value</code> update an assignable number or typed pointer as
+statements. They produce no value and do not introduce C-style postfix
+increment expressions.</p>
+<p>Member access and indexing extend an expression:</p>
+<table>
+<thead>
+<tr>
+<th>Form</th>
+<th>Operand</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>value.member</code></td>
+<td>A structure, object, or supported pointer</td>
+<td>The named field, method, or property.</td>
+</tr>
+<tr>
+<td><code>array[index]</code></td>
+<td>An array and integer index</td>
+<td>The selected element.</td>
+</tr>
+<tr>
+<td><code>pointer[index]</code></td>
+<td>A typed pointer <code>^T</code> and integer offset</td>
+<td>Another <code>^T</code>, offset by that many elements.</td>
+</tr>
+</tbody>
+</table>
+<p>Pointer indexing does not dereference. Write <code>pointer[index]^</code> to access the
+pointed-to element:</p>
+<pre><code class="language-dq">var values : [3]int = [10, 20, 30]
+var first : ^int = %values[0]
+var second : ^int = first[1] // points to values[1]
+var value : int = second^   // 20
+</code></pre>
+<p>See <a href="../110-pointers/">Pointers</a> for address arithmetic and lifetime rules, and
+<a href="../080-arrays-and-slices/">Arrays and Slices</a> for element access and slicing.</p>
+<h2 id="explicit-conversion-and-runtime-type-tests">2.4.6 Explicit Conversion and Runtime Type Tests</h2>
+<p><code>Type(expression)</code> and <code>expression as Type</code> request the same defined conversion.
+<code>as</code> binds at comparison precedence and cannot be chained with another
+comparison-level operator. Parenthesize its result before further operations.</p>
+<p><code>value is OType</code> tests an object's runtime type and returns <code>false</code> for <code>nil</code>.
+<code>TryCast(TargetType, value)</code> performs a checked object cast; see
+<a href="../120-objects-and-properties/#runtime-type-tests-and-casts">Objects and Properties</a>.
+A cast does not validate an arbitrary pointer, encoding, or enum ordinal.</p>
+<h2 id="inline-conditional">2.4.7 Inline Conditional</h2>
+<p><code>iif(condition, when_true, when_false)</code> selects a value within an expression.
+It evaluates <code>condition</code> first, then evaluates and returns <code>when_true</code> if the
+condition is <code>true</code>, or <code>when_false</code> otherwise. The condition must have type
+<code>bool</code>.</p>
+<pre><code class="language-dq">var count : int = 0
+var label : rostr = iif(count == 0, "empty", "nonempty")
+</code></pre>
+<p>Here <code>label</code> receives <code>"empty"</code>. The alternatives can also be numeric or other
+compatible value types. For example, an integer and a floating-point alternative
+resolve to a floating-point result:</p>
+<pre><code class="language-dq">var use_default : bool = false
+var scale : float = iif(use_default, 1, 2.5) // 2.5; true would select 1
+</code></pre>
+<p>The alternatives must resolve to a common result type under DQ's conversion
+rules. Numeric alternatives use the numeric type rules, and a compatible typed
+pointer can be paired with <code>nil</code>. The result must also be assignable to its
+destination: a floating-point result does not
+implicitly become an integer merely because the destination is <code>int</code>.</p>
+<p>Only the selected alternative runs. This makes it possible to guard an operation
+that would be invalid for the other case:</p>
+<pre><code class="language-dq">func ValueOrZero(address : ^int) -&gt; int:
+    return iif(address &lt;&gt; nil, address^, 0)
+endfunc
+</code></pre>
+<p><code>ValueOrZero(nil)</code> returns <code>0</code> without dereferencing <code>nil</code>. Calls and other side
+effects in the unselected alternative do not occur. An error in the selected
+alternative still occurs normally; <code>iif</code> does not catch exceptions.</p>
+<p>Both alternatives are parsed and type-checked, even when the condition is a
+constant. An unselected alternative cannot contain an unknown name or an
+incompatible type. The following uses are compile errors:</p>
+<table>
+<thead>
+<tr>
+<th>Invalid expression</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>iif(1, 2, 3)</code></td>
+<td>The condition is an integer, not <code>bool</code>.</td>
+</tr>
+<tr>
+<td><code>iif(true, 1, "text")</code></td>
+<td>The alternatives have no compatible common type.</td>
+</tr>
+<tr>
+<td><code>iif(true, 1)</code></td>
+<td>The false alternative is missing.</td>
+</tr>
+<tr>
+<td><code>iif(true, 1, 2, 3)</code></td>
+<td>Exactly three arguments are required.</td>
+</tr>
+</tbody>
+</table>
+<p>Each alternative must produce a value; a call to a function with no result
+cannot serve as an alternative. Use an <code>if</code> statement when choosing between
+actions that do not produce values.</p>
+<h2 id="calls-and-evaluation">2.4.8 Calls and Evaluation</h2>
+<p>Calls use parentheses and pass arguments positionally, in declaration order.
+Arguments may themselves be expressions or calls. Trailing arguments can be
+omitted when the function declares defaults:</p>
+<pre><code class="language-dq">use print
+
+func Subtract(left : int, right : int = 1) -&gt; int:
+    return left - right
+endfunc
+
+func *Main():
+    var difference : int = Subtract(5 + 5, 3)           // 7
+    var previous : int = Subtract(10)                 // 9: right defaults to 1
+    var nested : int = Subtract(Subtract(10, 3), 2)    // 5
+    PrintLn("{} {} {}", [difference, previous, nested])
+endfunc
+</code></pre>
+<p>The first argument supplies <code>left</code>, and the second supplies <code>right</code>. Named
+arguments such as <code>Subtract(right = 3, left = 10)</code> are not supported. In the
+nested example, the inner call returns <code>7</code> before the outer call subtracts <code>2</code>.</p>
+<p>Arguments are evaluated before the called function is entered.
+Avoid relying on a relative evaluation order between independent expressions
+with side effects unless a construct explicitly specifies that order. When
+order matters, use separate statements. With <code>Subtract</code> defined above:</p>
+<pre><code class="language-dq">func Next(counter : ref int) -&gt; int:
+    ++counter
+    return counter
+endfunc
+
+func OrderedDifference() -&gt; int:
+    var counter : int = 0
+    var first : int = Next(counter)   // counter becomes 1
+    var second : int = Next(counter)  // counter becomes 2
+    return Subtract(first, second)    // -1
+endfunc
+</code></pre>
+<p>This explicitly orders the two updates instead of depending on the argument
+evaluation order in <code>Subtract(Next(counter), Next(counter))</code>. Reference
+parameters such as <code>ref int</code> are described in
+<a href="../060-functions/#parameter-modes">Functions</a>.</p>
+<p>Built-ins such as <code>Len</code>, <code>SizeOf</code>, <code>OffsetOf</code>, <code>Ord</code>, <code>Round</code>, <code>Defined</code>, and
+<code>FirstInt</code> use call-like syntax but follow their own type and constant-expression
+rules:</p>
+<pre><code class="language-dq">var values : [3]int = [10, 20, 30]
+var count : int = Len(values)       // 3 elements
+var bytes : uint = SizeOf(int32)    // 4 bytes
+var rounded : int = Round(3 / 2)    // 2
+</code></pre>
+<p><code>SizeOf</code> accepts a type name as shown here, while an ordinary value parameter
+expects a value expression. <a href="../190-compiler-directives/">Compiler Directives</a>
+explains compile-time existence tests and optional constants.</p>
+<h2 id="associativity">2.4.9 Associativity</h2>
+<p>Associativity determines grouping when operators have the same precedence.
+Arithmetic and bitwise binary operators group from left to right:</p>
+<pre><code class="language-dq">var left_grouped : int = 10 - 3 - 2   // (10 - 3) - 2 = 5
+var right_grouped : int = 10 - (3 - 2) // 10 - 1 = 9
+var quotient : int = 20 div 3 div 2    // (20 div 3) div 2 = 3
+</code></pre>
+<p>Comparisons do not form ordinary left-associative chains. The three-operand
+range comparison is the specific exception described in
+<a href="#range-comparisons">Range Comparisons</a>. <code>is</code> and <code>as</code> likewise do not form
+comparison chains; parenthesize a conversion before applying another operator
+at that precedence level.</p>
+<p>Grouping does not establish a general evaluation order for independent calls
+with side effects. Use separate statements when their order matters, as shown
+in <a href="#calls-and-evaluation">Calls and Evaluation</a>.</p>
+<h2 id="parentheses">2.4.10 Parentheses</h2>
+<p><code>(expression)</code> groups an expression as one operand and overrides the usual
+precedence. Parentheses can be nested. They do not by themselves convert its
+type or turn a value into addressable storage.</p>
+<pre><code class="language-dq">var ordinary : int = 2 + 3 * 4    // 14
+var grouped : int = (2 + 3) * 4   // 20
+var divided : int = 8 * 3 div 2   // 8 * (3 div 2) = 8
+var multiplied : int = (8 * 3) div 2 // 12
+</code></pre>
+<p>The last two lines illustrate DQ's division precedence: <code>div</code> binds more tightly
+than <code>*</code>. Bitwise operators also bind more tightly than arithmetic:</p>
+<pre><code class="language-dq">var shifted_first : int = 1 &lt;&lt; 2 + 1 // (1 &lt;&lt; 2) + 1 = 5
+var added_first : int = 1 &lt;&lt; (2 + 1) // 1 &lt;&lt; 3 = 8
+</code></pre>
+<p>Use parentheses to make the intended grouping clear when an expression mixes
+operator groups. This is especially helpful when translating code from a
+language with different precedence rules.</p>
+<h2 id="operator-precedence">2.4.11 Operator Precedence</h2>
+<p>From tightest to loosest binding:</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Operators and forms</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Literals, names, parenthesized expressions, casts, array literals, <code>new</code>, built-ins.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Calls, <code>.member</code>, indexing, slicing, postfix <code>^</code>.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Address-of <code>%</code>, unary <code>-</code>, bitwise <code>~</code>.</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>&lt;&lt;</code>, <code>&gt;&gt;</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>&amp;</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>\|</code>, <code>xor</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>/</code>, <code>div</code>, <code>rem</code>, <code>mod</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>*</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>+</code>, <code>-</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>==</code>, <code>&lt;&gt;</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>is</code>, <code>as</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>not</code></td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>and</code></td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>or</code></td>
+</tr>
+</tbody>
+</table>
+<p>Division binds more tightly than multiplication. Bitwise operations also bind
+more tightly than arithmetic. Use parentheses whenever mixed operators obscure
+the intended grouping rather than assuming another language's precedence.</p>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+</body>
+</html>

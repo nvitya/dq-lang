@@ -1,0 +1,2203 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Documentation for the DQ programming language, libraries and tools" name="description"/>
+<link href="../100-structures-and-unions/" rel="prev"/>
+<link href="../120-objects-and-properties/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>2.13. Pointers - DQ-lang Project</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../pdf/dq-lang-book.pdf" rel="alternate" title="PDF" type="application/pdf"/></head>
+<body dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#pointers">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="DQ-lang Project" class="md-header__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            DQ-lang Project
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              2.13. Pointers
+            
+          </span>
+</div>
+</div>
+</div>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<a class="md-header-nav__button md-icon" href="../../pdf/dq-lang-book.pdf" title="PDF">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<path d="M128,0c-17.6,0-32,14.4-32,32v448c0,17.6,14.4,32,32,32h320c17.6,0,32-14.4,32-32V128L352,0H128z" fill="#E2E5E7"></path>
+<path d="m384 128h96l-128-128v96c0 17.6 14.4 32 32 32z" fill="#B0B7BD"></path>
+<polygon fill="#CAD1D8" points="480 224 384 128 480 128"></polygon>
+<path d="M416,416c0,8.8-7.2,16-16,16H48c-8.8,0-16-7.2-16-16V256c0-8.8,7.2-16,16-16h352c8.8,0,16,7.2,16,16  V416z" fill="#F15642"></path>
+<g fill="#fff">
+<path d="m101.74 303.15c0-4.224 3.328-8.832 8.688-8.832h29.552c16.64 0 31.616 11.136 31.616 32.48 0 20.224-14.976 31.488-31.616 31.488h-21.36v16.896c0 5.632-3.584 8.816-8.192 8.816-4.224 0-8.688-3.184-8.688-8.816v-72.032zm16.88 7.28v31.872h21.36c8.576 0 15.36-7.568 15.36-15.504 0-8.944-6.784-16.368-15.36-16.368h-21.36z"></path>
+<path d="m196.66 384c-4.224 0-8.832-2.304-8.832-7.92v-72.672c0-4.592 4.608-7.936 8.832-7.936h29.296c58.464 0 57.184 88.528 1.152 88.528h-30.448zm8.064-72.912v57.312h21.232c34.544 0 36.08-57.312 0-57.312h-21.232z"></path>
+<path d="m303.87 312.11v20.336h32.624c4.608 0 9.216 4.608 9.216 9.072 0 4.224-4.608 7.68-9.216 7.68h-32.624v26.864c0 4.48-3.184 7.92-7.664 7.92-5.632 0-9.072-3.44-9.072-7.92v-72.672c0-4.592 3.456-7.936 9.072-7.936h44.912c5.632 0 8.96 3.344 8.96 7.936 0 4.096-3.328 8.704-8.96 8.704h-37.248v0.016z"></path>
+</g>
+<path d="m400 432h-304v16h304c8.8 0 16-7.2 16-16v-16c0 8.8-7.2 16-16 16z" fill="#CAD1D8"></path>
+</svg>
+</a></nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="DQ-lang Project" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    DQ-lang Project
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../010-project/">
+<span class="md-ellipsis">
+    
+  
+    1. DQ-lang Project
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    1. DQ-lang Project
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    1.1. DQ-lang Project Introduction
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/020-features-and-goals/">
+<span class="md-ellipsis">
+    
+  
+    1.2. Features and Design Goals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/030-getting-started/">
+<span class="md-ellipsis">
+    
+  
+    1.3. Getting Started
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    2. DQ Programming Language
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    2. DQ Programming Language
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../010-basic-syntax/">
+<span class="md-ellipsis">
+    
+  
+    2.1. Basic Syntax
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../020-basic-types-and-conversions/">
+<span class="md-ellipsis">
+    
+  
+    2.2. Basic Types and Conversions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../030-variables-constants-references-and-scope/">
+<span class="md-ellipsis">
+    
+  
+    2.3. Variables, Constants, References, and Scope
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../040-expressions-and-operators/">
+<span class="md-ellipsis">
+    
+  
+    2.4. Expressions and Operators
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../050-statements-and-control-flow/">
+<span class="md-ellipsis">
+    
+  
+    2.5. Statements and Control Flow
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../060-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.6. Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../070-strings-and-characters/">
+<span class="md-ellipsis">
+    
+  
+    2.7. Character and String Types
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../075-string-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.8. String Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../077-text-formatting/">
+<span class="md-ellipsis">
+    
+  
+    2.9. Text Formatting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../080-arrays-and-slices/">
+<span class="md-ellipsis">
+    
+  
+    2.10. Arrays and Slices
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../090-enumerations/">
+<span class="md-ellipsis">
+    
+  
+    2.11. Enumerations
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../100-structures-and-unions/">
+<span class="md-ellipsis">
+    
+  
+    2.12. Structures and Unions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    2.13. Pointers
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    2.13. Pointers
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointer-basics">
+<span class="md-ellipsis">
+      
+        2.13.1 Pointer Basics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointer-variables">
+<span class="md-ellipsis">
+      
+        2.13.2 Pointer Variables
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#typed-pointers-and-casting">
+<span class="md-ellipsis">
+      
+        2.13.3 Typed Pointers and Casting
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#the-nil-value">
+<span class="md-ellipsis">
+      
+        2.13.4 The nil Value
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointers-as-function-parameters">
+<span class="md-ellipsis">
+      
+        2.13.5 Pointers as Function Parameters
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#structure-pointers">
+<span class="md-ellipsis">
+      
+        2.13.6 Structure Pointers
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#generic-pointers">
+<span class="md-ellipsis">
+      
+        2.13.7 Generic Pointers
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointer-size-and-memory-addresses">
+<span class="md-ellipsis">
+      
+        2.13.8 Pointer Size and Memory Addresses
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointer-arithmetic-and-indexing">
+<span class="md-ellipsis">
+      
+        2.13.9 Pointer Arithmetic and Indexing
+      
+    </span>
+</a>
+<nav aria-label="2.13.9 Pointer Arithmetic and Indexing" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#stepping-through-the-same-buffer">
+<span class="md-ellipsis">
+      
+        2.13.9.1 Stepping Through the Same Buffer
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#allocation-and-lifetime">
+<span class="md-ellipsis">
+      
+        2.13.10 Allocation and Lifetime
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dangling-pointers">
+<span class="md-ellipsis">
+      
+        2.13.11 Dangling Pointers
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointer-examples">
+<span class="md-ellipsis">
+      
+        2.13.12 Pointer Examples
+      
+    </span>
+</a>
+<nav aria-label="2.13.12 Pointer Examples" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#a-linked-list-with-first-and-last-pointers">
+<span class="md-ellipsis">
+      
+        2.13.12.1 A Linked List with First and Last Pointers
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#processing-a-sensor-packet">
+<span class="md-ellipsis">
+      
+        2.13.12.2 Processing a Sensor Packet
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#double-pointers-and-an-argv-style-dynamic-list">
+<span class="md-ellipsis">
+      
+        2.13.12.3 Double Pointers and an argv-Style Dynamic List
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#using-double-pointers-for-return-values">
+<span class="md-ellipsis">
+      
+        2.13.12.4 Using Double Pointers for Return Values
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../120-objects-and-properties/">
+<span class="md-ellipsis">
+    
+  
+    2.14. Objects and Properties
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../130-memory-management-and-ownership/">
+<span class="md-ellipsis">
+    
+  
+    2.15. Memory Management and Autofree
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../140-exceptions-and-error-handling/">
+<span class="md-ellipsis">
+    
+  
+    2.16. Exceptions and Error Handling
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../150-anyvalue/">
+<span class="md-ellipsis">
+    
+  
+    2.17. anyvalue
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../170-modules-and-packages/">
+<span class="md-ellipsis">
+    
+  
+    2.18. Modules and Packages
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../180-attributes/">
+<span class="md-ellipsis">
+    
+  
+    2.19. Attributes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../190-compiler-directives/">
+<span class="md-ellipsis">
+    
+  
+    2.20. Compiler Directives
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../200-c-interoperability/">
+<span class="md-ellipsis">
+    
+  
+    2.21. C Interoperability
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../210-assembly-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.22. Assembly Functions
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../030-compiler/">
+<span class="md-ellipsis">
+    
+  
+    3. DQ Compiler and Tools
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    3. DQ Compiler and Tools
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/010-compiler-and-tool-overview/">
+<span class="md-ellipsis">
+    
+  
+    3.1. Compiler and Tool Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/015-runtime-and-program-execution/">
+<span class="md-ellipsis">
+    
+  
+    3.2. Runtime and Program Execution
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/020-linux-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.3. Linux Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/030-windows-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.4. Windows Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/040-compiler-usage-and-options/">
+<span class="md-ellipsis">
+    
+  
+    3.5. Compiler Usage and Options
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/050-project-files/">
+<span class="md-ellipsis">
+    
+  
+    3.6. Project Files
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/060-build-process-and-module-artifacts/">
+<span class="md-ellipsis">
+    
+  
+    3.7. Build Process and Module Artifacts
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/070-targets-and-cross-compilation/">
+<span class="md-ellipsis">
+    
+  
+    3.8. Targets and Cross-Compilation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/080-vscode-setup-and-debugging/">
+<span class="md-ellipsis">
+    
+  
+    3.9. VSCode Setup and Debugging
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../040-packages/">
+<span class="md-ellipsis">
+    
+  
+    4. Standard Packages
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    4. Standard Packages
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/010-library-overview-and-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.1. Library Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/015-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.2. sys
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/020-print/">
+<span class="md-ellipsis">
+    
+  
+    4.3. print
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/040-file/">
+<span class="md-ellipsis">
+    
+  
+    4.4. file
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/050-json/">
+<span class="md-ellipsis">
+    
+  
+    4.5. json
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/060-threads/">
+<span class="md-ellipsis">
+    
+  
+    4.6. threads
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/065-time/">
+<span class="md-ellipsis">
+    
+  
+    4.7. time
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/070-nanonet/">
+<span class="md-ellipsis">
+    
+  
+    4.8. nanonet
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/075-shell/">
+<span class="md-ellipsis">
+    
+  
+    4.9. shell
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/080-additional-standard-packages/">
+<span class="md-ellipsis">
+    
+  
+    4.10. Additional Standard Packages
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    5. Appendices
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    5. Appendices
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/010-example-programs/">
+<span class="md-ellipsis">
+    
+  
+    5.1. Example Programs
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/020-building-the-compiler-from-source/">
+<span class="md-ellipsis">
+    
+  
+    5.2. Building the Compiler from Source
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/030-contributor-and-implementation-notes/">
+<span class="md-ellipsis">
+    
+  
+    5.3. Contributor and Implementation Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/031-module-and-interface-internals/">
+<span class="md-ellipsis">
+    
+  
+    5.4. Module and Interface Internals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/032-exceptions-and-backtraces/">
+<span class="md-ellipsis">
+    
+  
+    5.5. Exceptions and Backtraces
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/033-release-and-cross-builds/">
+<span class="md-ellipsis">
+    
+  
+    5.6. Release and Cross-Build Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/040-glossary-and-index/">
+<span class="md-ellipsis">
+    
+  
+    5.7. Glossary and Index
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/050-documentation-coverage/">
+<span class="md-ellipsis">
+    
+  
+    5.8. Documentation Coverage
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointer-basics">
+<span class="md-ellipsis">
+      
+        2.13.1 Pointer Basics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointer-variables">
+<span class="md-ellipsis">
+      
+        2.13.2 Pointer Variables
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#typed-pointers-and-casting">
+<span class="md-ellipsis">
+      
+        2.13.3 Typed Pointers and Casting
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#the-nil-value">
+<span class="md-ellipsis">
+      
+        2.13.4 The nil Value
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointers-as-function-parameters">
+<span class="md-ellipsis">
+      
+        2.13.5 Pointers as Function Parameters
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#structure-pointers">
+<span class="md-ellipsis">
+      
+        2.13.6 Structure Pointers
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#generic-pointers">
+<span class="md-ellipsis">
+      
+        2.13.7 Generic Pointers
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointer-size-and-memory-addresses">
+<span class="md-ellipsis">
+      
+        2.13.8 Pointer Size and Memory Addresses
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointer-arithmetic-and-indexing">
+<span class="md-ellipsis">
+      
+        2.13.9 Pointer Arithmetic and Indexing
+      
+    </span>
+</a>
+<nav aria-label="2.13.9 Pointer Arithmetic and Indexing" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#stepping-through-the-same-buffer">
+<span class="md-ellipsis">
+      
+        2.13.9.1 Stepping Through the Same Buffer
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#allocation-and-lifetime">
+<span class="md-ellipsis">
+      
+        2.13.10 Allocation and Lifetime
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dangling-pointers">
+<span class="md-ellipsis">
+      
+        2.13.11 Dangling Pointers
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pointer-examples">
+<span class="md-ellipsis">
+      
+        2.13.12 Pointer Examples
+      
+    </span>
+</a>
+<nav aria-label="2.13.12 Pointer Examples" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#a-linked-list-with-first-and-last-pointers">
+<span class="md-ellipsis">
+      
+        2.13.12.1 A Linked List with First and Last Pointers
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#processing-a-sensor-packet">
+<span class="md-ellipsis">
+      
+        2.13.12.2 Processing a Sensor Packet
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#double-pointers-and-an-argv-style-dynamic-list">
+<span class="md-ellipsis">
+      
+        2.13.12.3 Double Pointers and an argv-Style Dynamic List
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#using-double-pointers-for-return-values">
+<span class="md-ellipsis">
+      
+        2.13.12.4 Using Double Pointers for Return Values
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="pointers">2.13. Pointers</h1>
+<p>A <strong>pointer</strong> stores a memory address, which identifies a location in memory.</p>
+<h2 id="pointer-basics">2.13.1 Pointer Basics</h2>
+<p>For a data type <code>T</code>, write <code>^T</code> to create the corresponding pointer type,
+such as <code>^int</code> or <code>^float</code>.</p>
+<p>When working with pointers, it is important to distinguish between <strong>address operations</strong>
+and <strong>pointed-data operations</strong>.</p>
+<p><strong>Address operations</strong> work on the memory address stored in the pointer. DQ works on the address
+when <strong>neither <code>^</code> nor <code>.</code></strong> is written <strong>after the name</strong> of the pointer variable or constant:
+<br/>  <code>ptr = address</code></p>
+<p><strong>Pointed-data operations</strong> work on the data at the address stored in the pointer. DQ works on that
+data when <strong><code>^</code> or <code>.</code></strong> is written <strong>after the name</strong> of the pointer variable or constant.
+This is also called <strong>dereferencing</strong>:
+<br/>  <code>ptr^ = value</code></p>
+<p>A simple example using the <code>%</code> to get the address of a variable:</p>
+<pre><code class="language-dq">var u32value : uint32       // an ordinary variable whose storage is managed by the compiler
+u32value = 0x04030201       // assigns a value to the variable
+
+var byteptr : ^byte         // declares a pointer variable of type `^byte`
+byteptr = ^byte(%u32value)  // points to the memory location where `u32value` is stored
+byteptr^ = 0x55             // updates the first byte at that address
+
+PrintLn('u32value = 0x{:08X}', [u32value])  // = "u32value = 0x04030255"
+</code></pre>
+<p>On a little-endian system, the first byte is the least significant byte of
+<code>u32value</code>, so the example prints the result shown above.</p>
+<p>Pointers are widely used and can <strong>improve performance</strong> significantly.</p>
+<p>Using pointers also <strong>can be dangerous</strong>. There are many ways to end up with an invalid
+pointer (one that points to an invalid memory location). Accessing data
+through an invalid pointer can return invalid data or cause the application to crash.</p>
+<p>Pointers are useful when working with C libraries, raw buffers, or hardware.
+For an ordinary function that updates a
+caller's variable, a <code>ref</code> parameter is usually simpler.</p>
+<p>For a more practical example for using pointers see the
+<a href="#processing-a-sensor-packet">Example: Processing a Sensor Packet</a>.</p>
+<h2 id="pointer-variables">2.13.2 Pointer Variables</h2>
+<p>Assigning a pointer variable sets its pointing address. A pointer variable
+can be re-assigned to point a different address:</p>
+<pre><code class="language-dq">var first  : int = 10
+var second : int = 20
+var curptr : ^int
+
+curptr = %first    // setting the address of the pointer
+curptr^ = 15       // first is now 15; current^ also reads 15
+curptr = %second   // redirects curptr to second
+curptr^ = 25       // second is now 25; first remains 15
+
+var otherptr : ^int = current // assignment between two pointer variables
+</code></pre>
+<h2 id="typed-pointers-and-casting">2.13.3 Typed Pointers and Casting</h2>
+<p>A pointer's type tells the compiler how to access the data at its address:
+how many bytes to read or write, which structure fields are available, and
+how far to move during pointer arithmetic.</p>
+<p>The type after <code>^</code> describes the pointed-to value. For example, <code>^byte</code> accesses
+a single byte, <code>^int32</code> accesses a 4-byte signed integer, and <code>^float</code> accesses a
+floating-point number occupying 4 or 8 bytes, depending on the target. (The size
+of the pointer itself is the same for all three types, either 4 or 8 bytes depending
+on the target CPU architecture.)</p>
+<p>The pointed-to type also determines the step size of
+<a href="#pointer-arithmetic-and-indexing">pointer arithmetic and indexing</a>: adding
+1 to a <code>^byte</code> moves by 1 byte, while adding 1 to a <code>^uint32</code> moves by 4 bytes.</p>
+<p><strong>Casting</strong> converts a value from one type to another, or tells the compiler
+to treat a value as a different type.</p>
+<p>For pointers, casting usually changes the <strong>pointer type</strong> without changing
+the address stored in the pointer. The same memory address is then interpreted
+as pointing to a different data type.</p>
+<p>The cast tells the compiler how to interpret the address; it does not check the
+actual value stored there.</p>
+<p>Sometimes an address comes from an API without type information, or the same
+memory needs to be accessed through a different pointer type. An explicit cast
+supplies the required type.</p>
+<p>Write <code>^T(address)</code> to cast an address to a pointer to <code>T</code>. A pointer cast does
+not read, copy, or convert the data stored there.</p>
+<p>For example, <code>^byte</code>, <code>^int32</code>, <code>^float</code>, and <code>^uint64</code> pointers can all point to
+the beginning of the same eight-byte buffer. Use <code>%</code> to take its address and
+a trailing <code>^</code> to read or write through each pointer:</p>
+<pre><code class="language-dq">use print
+
+var buffer : [8]byte [[align(8)]]
+
+func ShowBuffer(acaption : strslice):
+    Print("{:&lt;28} at {:p}:", [acaption, %buffer[0]])
+    for i : int = 0 count buffer.length:
+        Print(" {:02X}", [buffer[i]])
+    endfor
+    PrintLn()
+endfunc
+
+func *Main():
+    var byteptr  : ^byte   = %buffer[0]
+    var intptr   : ^int32  = ^int32(%buffer[0])
+    var floatptr : ^float  = ^float(%buffer[0])
+    var u64ptr   : ^uint64 = ^uint64(%buffer[0])
+
+    ShowBuffer("Initial")
+
+    for i : int = 0 count buffer.length:
+        byteptr[i]^ = 0xD0 + i
+    endfor
+    ShowBuffer("Set Pattern")
+
+    byteptr^ = 42    // writes 1 byte
+    ShowBuffer("byteptr^ = 42")
+
+    intptr^ = -1000  // writes 4 bytes
+    ShowBuffer("intptr^ = -1000")
+
+    floatptr^ = 1.5  // writes SizeOf(float) bytes
+    ShowBuffer("floatptr^ = 1.5")
+
+    u64ptr^ = 0x0102030405060708 // writes 8 bytes
+    ShowBuffer("u64ptr^ = 0x0102030405060708")
+endfunc
+</code></pre>
+<p><strong>Example output on Linux x64</strong> (the address varies between runs):</p>
+<pre><code class="language-text">Initial                      at ^555512345678: 00 00 00 00 00 00 00 00
+Set Pattern                  at ^555512345678: D0 D1 D2 D3 D4 D5 D6 D7
+byteptr^ = 42                at ^555512345678: 2A D1 D2 D3 D4 D5 D6 D7
+intptr^ = -1000              at ^555512345678: 18 FC FF FF D4 D5 D6 D7
+floatptr^ = 1.5              at ^555512345678: 00 00 00 00 00 00 F8 3F
+u64ptr^ = 0x0102030405060708 at ^555512345678: 08 07 06 05 04 03 02 01
+</code></pre>
+<p><code>ShowBuffer</code> prints the starting address followed by all eight bytes in memory
+order. The global buffer starts with zeroes.</p>
+<p>The "Set Pattern" loop writes the pattern using pointer indexing through <code>byteptr[i]^</code>,
+without changing <code>byteptr</code>.</p>
+<p>The following <code>byteptr^ = 42</code> changes only the first byte of that pattern.
+The <code>int32</code> write changes the first 4 bytes to the two's-complement representation
+of <code>-1000</code>, leaving <code>D4 D5 D6 D7</code> unchanged. Almost all current CPU architectures
+use little-endian byte order, with the least significant byte first. The
+floating-point write uses 8 bytes and shows the <code>float64</code> representation of
+<code>1.5</code>. On targets with a 4-byte <code>float</code>, that write changes only the first
+4 bytes. The final <code>0x0102030405060708</code> <code>uint64</code> write always uses
+8 bytes: <code>08 07 06 05 04 03 02 01</code> in little-endian byte order.</p>
+<p>The global buffer has eight-byte alignment, requested by <code>[[align(8)]]</code>, so it
+can hold any of these values at its starting address, as some CPU architectures
+cannot read/write multi-byte data types from unaligned addresses.</p>
+<p><code>%buffer[0]</code> takes the
+address of its first byte. The casts <code>^int32(%buffer[0])</code>, <code>^float(%buffer[0])</code>,
+and <code>^uint64(%buffer[0])</code> take the same address and give it different pointer types.</p>
+<p>As all four pointers access the same storage, each write overwrites the bytes
+used by that type, and each read interprets those bytes according to the
+pointer's type. Reading through <code>intptr^</code> after the floating-point write would
+interpret the low 4 bytes of the floating-point representation as an integer (=0); it would not
+convert <code>1.5</code> to an integer.</p>
+<h2 id="the-nil-value">2.13.4 The <code>nil</code> Value</h2>
+<p><code>nil</code> is the special pointer value meaning <strong>no target</strong>. It is also called a
+<strong>null-pointer</strong> and represents address zero. Both typed pointers, such as
+<code>^int</code>, and generic <code>pointer</code> variables can be assigned <code>nil</code>.</p>
+<p>A <code>nil</code> pointer is <strong>always invalid for accessing data</strong>. Dereferencing it to
+read or write data, either with <code>ptr^</code> or through a structure field such as
+<code>ptr.field</code>, usually causes the program to crash with a <strong>Segmentation Fault</strong>.
+The exact failure depends on the target system; never dereference <code>nil</code>.</p>
+<p>Assigning, copying, and comparing <code>nil</code> are safe address operations. Use <code>==</code>
+or <code>&lt;&gt;</code> to check whether a pointer has a target before accessing its data:</p>
+<pre><code class="language-dq">var value : int = 10
+var ptr   : ^int = nil // no target yet
+
+if ptr == nil:
+    ptr = %value      // give the pointer a valid target
+endif
+
+if ptr &lt;&gt; nil:
+    ptr^ += 1         // value is now 11
+endif
+
+ptr = nil             // clear the pointer; value remains 11
+</code></pre>
+<p>Setting a pointer to <code>nil</code> clears its stored address; it does not change or
+free the pointed-to data, unless it is an <code>autofree</code> pointer.</p>
+<h2 id="pointers-as-function-parameters">2.13.5 Pointers as Function Parameters</h2>
+<p>Typed pointers can also be function parameters. A pointer may be <code>nil</code>, meaning
+it has no target, so a function that accepts an optional target must check
+before dereferencing it:</p>
+<pre><code class="language-dq">func Increment(target : ^int):
+    if target &lt;&gt; nil:
+        target^ += 1
+    endif
+endfunc
+
+func *Main():
+    var count : int = 10
+    Increment(%count) // count is now 11
+    Increment(nil)    // no target, so nothing is changed
+endfunc
+</code></pre>
+<p>A non-<code>nil</code> pointer must still refer to a live value of the correct type.
+Copying a pointer does not copy its target or keep that target alive. DQ does
+not generally check raw addresses for you.</p>
+<h2 id="structure-pointers">2.13.6 Structure Pointers</h2>
+<p>Pointers tor structures are very useful to manipulate memory structures at arbitrary
+positions in the memory. Fields of the pointed structure can be accessed either
+with <code>^.</code> or <code>.</code> only.</p>
+<pre><code class="language-dq">struct SPoint:
+    x : int
+    y : int
+endstruct
+
+var point   : SPoint = {x: 10, y: 20}
+var address : ^SPoint = %point
+address^.x = 30 // changes point.x
+address.x  = 30 // changes point.x, `.` dereferences automatically
+</code></pre>
+<h2 id="generic-pointers">2.13.7 Generic Pointers</h2>
+<p>A generic <code>pointer</code> carries no information about the data it points to.
+Generic pointers do not support typed element arithmetic until
+converted to a suitable typed pointer.</p>
+<p>Cast it to a typed pointer before accessing that data:</p>
+<pre><code class="language-dq">var value  : uint32 = 0x01020304
+var rawptr : pointer = %value
+
+^byte(rawpr)^ = 0x55 // value is now 0x01020355
+</code></pre>
+<p>Here, <code>^byte(rawptr)</code> produces a pointer of type <code>^byte</code>, so the <code>^byte(rawpr)^</code>
+expression manipulates the lowest byte of the 4-byte <code>value</code>.</p>
+<h2 id="pointer-size-and-memory-addresses">2.13.8 Pointer Size and Memory Addresses</h2>
+<p>A pointer variable is either <strong>32 bits (4 bytes)</strong> or <strong>64 bits (8 bytes)</strong> wide,
+depending on the target CPU architecture. This is the size of the stored address;
+the data it points to can have a different size. For example, <code>^byte</code> and <code>^uint64</code>
+have the same size on a given target.</p>
+<p>In DQ, <code>int</code> and <code>uint</code> always have the same size as a pointer:
+<code>SizeOf(pointer)</code>, <code>SizeOf(int)</code>, and <code>SizeOf(uint)</code> are equal.</p>
+<table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Pointer size</th>
+<th><code>int</code></th>
+<th><code>uint</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARM_M (Arm Cortex-M)</td>
+<td>32 bits (4 bytes)</td>
+<td><code>int32</code></td>
+<td><code>uint32</code></td>
+</tr>
+<tr>
+<td>Linux x64 (<code>x86_64-linux</code>)</td>
+<td>64 bits (8 bytes)</td>
+<td><code>int64</code></td>
+<td><code>uint64</code></td>
+</tr>
+</tbody>
+</table>
+<p>Memory addresses are usually written in <strong>hexadecimal</strong>, where each digit
+represents 4 bits. A full-width 32-bit address has 8 hexadecimal digits, while
+a full-width 64-bit address has 16. Leading zeroes are often omitted.</p>
+<p>For example, addresses might look like this:</p>
+<table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Example address</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARM_M</td>
+<td><code>0x20001234</code></td>
+<td>A location in the SRAM region</td>
+</tr>
+<tr>
+<td>ARM_M</td>
+<td><code>0x40001000</code></td>
+<td>A location in the peripheral region</td>
+</tr>
+<tr>
+<td>Linux x64</td>
+<td><code>0x0000555512345678</code></td>
+<td>A location in a process's virtual address space</td>
+</tr>
+<tr>
+<td>Linux x64</td>
+<td><code>0x00007FFC1234ABCD</code></td>
+<td>Another possible user-space virtual address</td>
+</tr>
+</tbody>
+</table>
+<p>On ARM_M, addresses refer directly to memory or hardware registers. The
+<a href="https://support.arm.com/documentation/100230/0100/Programmers-Model/Memory-model">Cortex-M memory map</a>
+defines regions such as SRAM and peripherals; the exact locations available
+depend on the microcontroller.</p>
+<p>On Linux x64, an ordinary program uses <strong>virtual addresses</strong>, which the operating
+system maps to physical memory. Addresses can vary between runs. A pointer still
+occupies 8 bytes even when its address uses fewer than 16 hexadecimal digits;
+the CPU and operating system do not make every possible 64-bit address usable.
+You can see the <a href="https://docs.kernel.org/arch/x86/x86_64/mm.html">Linux x64 memory map</a>
+for more details.</p>
+<p>DQ's <code>PrintLn</code> displays pointer addresses in hexadecimal with a leading <code>^</code>
+instead of <code>0x</code>:</p>
+<pre><code class="language-dq">var value   : int = 42
+var address : ^int = %value
+PrintLn("{:p}", [address])
+</code></pre>
+<p>Example output could be <code>^20001234</code> on ARM_M or <code>^7FFC1234ABCD</code> on Linux x64.
+These are illustrative addresses; the actual address depends on where <code>value</code>
+is stored.</p>
+<h2 id="pointer-arithmetic-and-indexing">2.13.9 Pointer Arithmetic and Indexing</h2>
+<p>Pointer arithmetic counts <strong>elements of the pointed-to type</strong>. For a pointer
+<code>ptr : ^T</code>, adding <code>n</code> moves the address by <code>n * SizeOf(T)</code> bytes.</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Meaning</th>
+<th>Changes <code>ptr</code>?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ptr + n</code></td>
+<td>Address <code>n</code> elements forward</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>ptr - n</code></td>
+<td>Address <code>n</code> elements backward</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>++ptr</code> / <code>--ptr</code></td>
+<td>Move forward / backward by one element</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>ptr += n</code> / <code>ptr -= n</code></td>
+<td>Move forward / backward by <code>n</code> elements</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>ptr[n]</code></td>
+<td>Same address as <code>ptr + n</code></td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Pointer indexing returns a <strong>pointer</strong>, so <code>ptr[n]^</code> reads or writes the
+selected value. For a structure pointer, use <code>ptr[n]^.x</code> to access a field
+of the selected structure.</p>
+<h3 id="stepping-through-the-same-buffer">2.13.9.1 Stepping Through the Same Buffer</h3>
+<p>This example uses a fixed <code>[16]byte</code> buffer. It first advances a byte pointer,
+then casts its current address to <code>^uint32</code> and continues in 4-byte steps.
+The structure writes start at byte offset 8. Here, <code>SPoint</code> uses <code>int16</code>
+coordinates so that each point occupies 4 bytes on both 32-bit and 64-bit targets.</p>
+<table>
+<thead>
+<tr>
+<th>Pointer type</th>
+<th>Element size</th>
+<th>Bytes moved by one <code>++</code></th>
+<th>Byte offset selected by <code>[1]</code> from the start</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>^byte</code></td>
+<td>1 byte</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td><code>^uint32</code></td>
+<td>4 bytes</td>
+<td>4</td>
+<td>4</td>
+</tr>
+<tr>
+<td><code>^SPoint</code></td>
+<td>4 bytes</td>
+<td>4</td>
+<td>4</td>
+</tr>
+</tbody>
+</table>
+<p>The same 16 bytes can therefore hold 16 bytes, four <code>uint32</code> values, or four
+<code>SPoint</code> values. These are different views of the same storage; writes through
+any of the pointers change <code>buffer</code>.</p>
+<p>The <code>uint32</code> writes below use unaligned addresses, so run this example on a
+target that supports them, such as Linux x64.</p>
+<pre><code class="language-dq">use print
+
+struct SPoint:
+    x : int16
+    y : int16
+endstruct
+
+var buffer : [16]byte [[align(8)]]
+
+func ShowBuffer(caption : strslice):
+    Print("{:&lt;18}:", [caption])
+    for i : int = 0 count buffer.length:
+        Print(" {:02X}", [buffer[i]])
+    endfor
+    PrintLn()
+endfunc
+
+func *Main():
+    var byteptr  : ^byte   = %buffer[0]
+    for i : int = 0 count buffer.length:
+        byteptr[i]^ = i // indexing leaves byteptr at the start
+    endfor
+    ShowBuffer("Initial")
+
+    byteptr^ = 0xAA // writes 1 byte at offset 0
+    ++byteptr       // moves 1 byte: now at buffer[1]
+    byteptr^ = 0xBB // writes 1 byte at offset 1
+    ++byteptr       // moves 1 byte: now at buffer[2]
+    ShowBuffer("After ++byteptr")
+
+    var u32ptr : ^uint32 = ^uint32(byteptr) // keeps byte offset 2
+    u32ptr^ = 0xD1D2D3D4 // writes 4 bytes at offsets 2..5
+    ++u32ptr             // moves 4 bytes: now at buffer[6]
+    u32ptr^ = 0xE1E2E3E4 // writes 4 bytes at offsets 6..9
+    ++u32ptr             // moves 4 bytes: now at buffer[10]
+    ShowBuffer("After ++u32ptr")
+
+    // Start at offset 8 so that two 4-byte points fit in the buffer.
+    var pointptr :? = ^SPoint(%buffer[8])
+    pointptr.x = 11 // writes 2 bytes at offsets 8..9
+    pointptr.y = 21 // writes 2 bytes at offsets 10..11
+    ++pointptr      // moves 4 bytes: now at buffer[12]
+    pointptr.x = 12 // writes 2 bytes at offsets 12..13
+    pointptr.y = 22 // writes 2 bytes at offsets 14..15
+    ShowBuffer("After ++pointptr")
+
+    // Reset all three pointers to the beginning before comparing indexing.
+    byteptr  = %buffer[0]
+    u32ptr   = ^uint32(%buffer[0])
+    pointptr = ^SPoint(%buffer[0])
+
+    byteptr[2]^ = 0xCC       // byte offset 2
+    u32ptr[1]^ = 0xA1A2A3A4  // byte offset 4: the second uint32
+    pointptr[2]^.x = 0x5353  // writes 2 bytes at offsets 4..5: the second point's x
+    pointptr[2]^.y = 0x5252  // writes 2 bytes at offsets 6..7: the second point's y
+    ShowBuffer("Indexed writes")
+
+    PrintLn("Second point: ({}, {})", [pointptr[1]^.x, pointptr[1]^.y])
+
+    var fourth : ^SPoint = pointptr + 3 // byte offset 12: the fourth point
+    PrintLn("Distance: {} points, {} bytes",
+        [fourth - pointptr, ^byte(fourth) - ^byte(pointptr)])
+endfunc
+</code></pre>
+<p>Example output on Linux x64 (little-endian):</p>
+<pre><code class="language-text">Initial           : 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+After ++byteptr   : AA BB 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+After ++u32ptr    : AA BB D4 D3 D2 D1 E4 E3 E2 E1 0A 0B 0C 0D 0E 0F
+After ++pointptr  : AA BB D4 D3 D2 D1 E4 E3 0B 00 15 00 0C 00 16 00
+Indexed writes    : AA BB CC D3 A4 A3 A2 A1 53 53 52 52 0C 00 16 00
+Second point: (41892, 41378)
+Distance: 3 points, 12 bytes
+</code></pre>
+<p>Each <code>++</code> changes only the pointer's address; the assignments through the
+pointers change the buffer. Casting <code>byteptr</code> to <code>^uint32</code> keeps its current
+byte offset, 2; the subsequent <code>++u32ptr</code> operations step to offsets 6 and 10.
+The structure writes at offsets 8..15 overwrite the last two bytes of the
+previous <code>uint32</code> write as well as the remaining initial bytes.</p>
+<p>After the reset, the <code>[]</code> expressions leave all three pointers at the beginning.
+For example, <code>u32ptr[1]^</code> writes the same four bytes as <code>(u32ptr + 1)^</code>.
+<code>pointptr[1]^.x</code> selects the second point, dereferences it, and accesses its <code>x</code> field.
+The indexed <code>SPoint</code> writes replace the same four bytes at offsets 4..7 that
+were just written through <code>u32ptr[1]^</code>.</p>
+<p>Subtracting two pointers of the same type gives their distance in <strong>elements</strong>.
+The two point addresses above are three <code>SPoint</code> elements apart. Casting both
+to <code>^byte</code> before subtracting gives the distance in bytes: 12.</p>
+<p>The buffer starts at an address aligned with <code>[[align(8)]]</code>, but offsets 2 and 6
+are still unaligned for <code>uint32</code>. On targets that require aligned accesses,
+start those writes at offsets divisible by 4. A cast alone does not provide
+alignment or make more storage available. Unlike array indexing, pointer indexing carries
+no length information and does not check bounds. Keep each entire value you
+read or write within the buffer. You may form a pointer just past the last
+element, but must not dereference it; subtract pointers only within the same
+allocation or its one-past-end position.</p>
+<h2 id="allocation-and-lifetime">2.13.10 Allocation and Lifetime</h2>
+<p>Use <code>new</code> when the pointed-to value needs separately allocated storage, and
+initialize it before reading it. Use <code>delete</code> when finished:</p>
+<pre><code class="language-dq">struct SPoint:
+    x : int
+    y : int
+endstruct
+
+var point : ^SPoint = new SPoint
+point^ = {x: 10, y: 20}
+delete point = nil // release the allocation and clear this variable
+</code></pre>
+<p>Other pointers to the same allocation become invalid after <code>delete</code>; they are
+not cleared automatically. To release an allocation automatically when leaving
+a scope, use <code>autofree ^T</code>. See
+<a href="../130-memory-management-and-ownership/">Memory Management and Autofree</a>.</p>
+<p>Pointers into local variables or fixed arrays are valid only while that storage
+exists. Resizing a dynamic array or growing or changing a string's storage can
+also invalidate pointers into it. Obtain a fresh pointer after such a change.
+Never return a pointer to a function's local variable.</p>
+<h2 id="dangling-pointers">2.13.11 Dangling Pointers</h2>
+<p>A non-<code>nil</code> address does not always guarantee
+that a pointer is valid: it might refer to memory that has already been freed
+or to a variable that has gone out of scope, like a local variable.
+Such pointers are called <strong>dangling pointers</strong>.</p>
+<p>Using <code>SPoint</code> from the allocation example above:</p>
+<pre><code class="language-dq">var point : ^SPoint = new SPoint
+point^ = {x: 10, y: 20}
+var borrowed : ^SPoint = point // both pointers refer to the same allocation
+
+delete point = nil          // free the allocation and clear point
+// borrowed is still non-nil, but is now dangling:
+// borrowed.x = 30          // invalid: the target has already been freed
+borrowed = nil              // clear the dangling pointer
+</code></pre>
+<p><strong>Never dereference <code>nil</code> or dangling pointers.</strong></p>
+<h2 id="pointer-examples">2.13.12 Pointer Examples</h2>
+<h3 id="a-linked-list-with-first-and-last-pointers">2.13.12.1 A Linked List with First and Last Pointers</h3>
+<p>A <strong>linked list</strong> stores each value in a node with a pointer to the next node.
+The nodes can be allocated separately. Unlike an array, the list is traversed
+by following <code>next</code>, rather than by incrementing a pointer.</p>
+<p><code>SList</code> keeps two addresses: <code>first</code> selects the first node and <code>last</code> selects
+the final node. Both are <code>nil</code> for an empty list. Keeping <code>last</code> lets <code>Append</code>
+add a node without walking through all the existing nodes. The last node's
+<code>next</code> is always <code>nil</code>.</p>
+<pre><code class="language-dq">use print
+
+struct SNode:
+    value : int
+    next  : ^SNode
+endstruct
+
+struct SList:
+    first : ^SNode
+    last  : ^SNode
+
+    func Append(value : int):
+        var node : ^SNode = new SNode
+        node.value = value
+        node.next = nil
+
+        if last == nil:
+            first = node // adding the first node to an empty list
+        else:
+            last.next = node
+        endif
+        last = node
+    endfunc
+
+    func PopFirst(value : ref int) -&gt; bool:
+        if first == nil:
+            return false
+        endif
+
+        var node : ^SNode = first
+        value = node.value
+        first = node.next // save the next address before releasing the node
+        if first == nil:
+            last = nil // removing the only remaining node empties both ends
+        endif
+        delete node
+        return true
+    endfunc
+
+    func Clear():
+        var value : int = 0
+        while PopFirst(value):
+        endwhile
+    endfunc
+endstruct
+
+func *Main():
+    var list : SList = {} // both first and last start as nil
+    list.Append(10)
+    list.Append(20)
+    list.Append(30)
+    PrintLn("First: {}, last: {}", [list.first.value, list.last.value])
+
+    Print("Values:")
+    var current : ^SNode = list.first
+    while current &lt;&gt; nil:
+        Print(" {}", [current.value])
+        current = current.next // follow the link; nodes need not be adjacent
+    endwhile
+    PrintLn()
+
+    var value : int = 0
+    while list.PopFirst(value):
+        PrintLn("Removed: {}", [value])
+    endwhile
+    PrintLn("Empty: {}", [list.first == nil and list.last == nil])
+
+    list.Append(40) // the emptied list can be used again
+    PrintLn("Reused: first={}, last={}", [list.first.value, list.last.value])
+    list.Clear() // release every node still owned by the list
+    PrintLn("Cleared: {}", [list.first == nil and list.last == nil])
+endfunc
+</code></pre>
+<p>Example output:</p>
+<pre><code class="language-text">First: 10, last: 30
+Values: 10 20 30
+Removed: 10
+Removed: 20
+Removed: 30
+Empty: true
+Reused: first=40, last=40
+Cleared: true
+</code></pre>
+<p>When appending to an empty list, the new node becomes both <code>first</code> and <code>last</code>.
+Otherwise, <code>last.next</code> links the old tail to the new node, and <code>last</code> moves to
+that node. Appending changes links, without moving any existing nodes.</p>
+<p><code>PopFirst</code> returns <code>false</code> for an empty list. Otherwise, it copies the first
+node's value into the caller's variable, advances <code>first</code> to <code>node.next</code>, and
+then deletes the removed node. It clears <code>last</code> when the last remaining node
+is removed, so a later <code>Append</code> correctly starts a new list. Both appending
+and removing the first node take a constant number of pointer operations.</p>
+<p>The list owns its allocated nodes. <code>Clear</code> reuses <code>PopFirst</code> to release all of
+them; deleting one node does not automatically follow and delete its <code>next</code>.
+Call <code>Clear</code> before the list leaves scope if it still contains nodes. Copying
+an <code>SList</code> structure copies only its two addresses, so it does not create an
+independent list and must not create a second owner of the same nodes. Any
+borrowed pointer to a removed node becomes invalid when that node is deleted.</p>
+<h3 id="processing-a-sensor-packet">2.13.12.2 Processing a Sensor Packet</h3>
+<p>This is a longer, somewhat practical example demonstrating using pointers.</p>
+<p>Suppose a sensor station sends a binary packet containing a header followed by
+measurement records. The header tells us the format version, measurement time,
+location, and number of records. Each record identifies a measurement type and
+channel, and stores a measured value. In this example, measurement type <code>1</code> means temperature
+in degrees Celsius and type <code>2</code> means relative humidity in percent.</p>
+<p>A file or network API may supply this packet as a buffer address and a byte
+count. Pointers let us read the header and records directly in that buffer,
+without copying each record into a separate variable.</p>
+<p>For safer data handling structures are used in practice. Here two structures
+are used to group the data fields: <code>SDataHeader</code> and <code>SDataRec</code>.
+The <code>SDataHeader</code> describe the 32-byte header and the <code>SDataRec</code> the 8-byte data records.</p>
+<pre><code class="language-text">Byte offset:  0                  32             40              48
+              | SDataHeader      | SDataRec      | SDataRec      |
+              | version, count,  | type, channel,| type, channel,|
+              | time, location,  | pad, value    | pad, value    |
+              | reserved space   |               |               |
+</code></pre>
+<p>The sender must use the same field layout, byte order as the receiver.</p>
+<p>The <code>_pad</code> fields in this example align the data fields manually and/or reserve
+space for future expansions. The <code>_pad</code> fields initialized with zeroes.</p>
+<p>Here, <code>Main</code> builds a packet in
+memory with that layout so the program can run without a file or network
+connection. <code>SExamplePacket</code> only supplies the sample storage; <code>PrintData</code> uses
+the address and byte count and can handle any number of records that fits.</p>
+<pre><code class="language-dq">use print
+use time
+
+struct SDataHeader:
+    version  : uint32     // format identifier
+    reccount : uint32     // data record count
+    mtime    : float64    // measurement time: @time.Time()
+    location : uint32     // measurement location
+    _pad     : [3]uint32  // reserved bytes for future expansion
+endstruct
+
+struct SDataRec:
+    mtype      : byte  // measurement type: 1 = temperature, 2 = humidity
+    channel    : byte  // one station can have multiple sensors
+    _pad       : [2]byte
+    value      : float32  // measurement value
+endstruct
+
+func PrintData(data : pointer, size : int):
+    if data == nil or size &lt; SizeOf(SDataHeader):
+        PrintLn("Incomplete header")
+        return
+    endif
+
+    var header :? = ^SDataHeader(data)
+    if header.version &lt;&gt; 1:
+        PrintLn("Unsupported data version")
+        return
+    endif
+
+    var capacity : int = (size - SizeOf(SDataHeader)) div SizeOf(SDataRec)
+    if header.reccount &gt; capacity:
+        PrintLn("Incomplete records")
+        return
+    endif
+
+    PrintLn("Location {}, time {}, record count: {}",
+        [header.location, FormatTime1('yyyy-mm-dd hh:nn:ss', header.mtime), header.reccount])
+
+    // header[1] points just past the header, where the records begin.
+    var record :? = ^SDataRec(header[1])
+    for i : uint32 = 0 count header.reccount:
+        PrintLn("  mtype={}, channel={}, value={:.1f}",
+            [record.mtype, record.channel, record.value])
+        ++record
+    endfor
+endfunc
+
+// Supplies an aligned buffer containing a header and two records.
+struct SExamplePacket:
+    header  : SDataHeader
+    records : [2]SDataRec
+endstruct
+
+func *Main():
+    var packet : SExamplePacket = {
+        header: {version: 1, reccount: 2, location: 7, ?},
+        records: [
+            {mtype: 1, channel: 0, value: 21.5, ?},
+            {mtype: 2, channel: 0, value: 45, ?}
+        ]
+    }
+    // The structure literal can contain constants only. This is not a constant:
+    packet.header.mtime = Time()
+
+    PrintData(%packet, SizeOf(packet))
+endfunc
+</code></pre>
+<p>Example output (the time varies because <code>Time()</code> supplies the current time):</p>
+<pre><code class="language-text">Location 7, time 2026-10-31 19:30:00, record count: 2
+  mtype=1, channel=0, value=21.5
+  mtype=2, channel=0, value=45.0
+</code></pre>
+<p>In <code>var header :? = ^SDataHeader(data)</code>, the cast converts the generic buffer
+address to <code>^SDataHeader</code>, and <code>:?</code> tells the compiler to infer <code>header</code>'s type
+from that expression. This allows <code>header.version</code> and <code>header.reccount</code> to
+access the header's fields. The cast does not read or copy the whole header.</p>
+<p>To find the records, <code>header[1]</code> selects the address one <strong>header</strong> past
+<code>header</code>, equivalent to <code>header + 1</code>. Because <code>header</code> has type <code>^SDataHeader</code>,
+this moves by <code>SizeOf(SDataHeader)</code>, or 32 bytes. Pointer indexing returns a
+pointer, so <code>header[1]</code> does not read a second header; it only computes the
+address where the records begin.</p>
+<p>Similarly, <code>var record :? = ^SDataRec(header[1])</code> converts that address to
+<code>^SDataRec</code> and infers that pointer type for <code>record</code>, letting us read a record's
+fields. Then <code>++record</code> advances by one <strong>record</strong>, or 8 bytes. Both operations use the
+pointed-to type's size: <code>header[1]</code> skips a header, while <code>record[1]</code> would
+point to the next record.</p>
+<p>Before accessing records, the function divides the remaining byte count by
+<code>SizeOf(SDataRec)</code> to find how many complete records fit. It checks the announced
+count against that capacity. Dividing the available space avoids multiplying
+an unchecked record count, which could overflow. Try passing
+<code>SizeOf(packet) - 1</code> to <code>PrintData</code>: it prints <code>Incomplete records</code> without
+reading either record.</p>
+<p>The caller must still supply a valid buffer of at least <code>size</code> bytes; the
+function cannot verify that an arbitrary address refers to that much memory.
+The pointers borrow <code>packet</code>'s storage and are used only during the call, while
+<code>packet</code> is alive. No allocation or <code>delete</code> is needed. A binary format with a
+different byte order or floating-point representation needs explicit decoding
+rather than these direct pointer casts.</p>
+<h3 id="double-pointers-and-an-argv-style-dynamic-list">2.13.12.3 Double Pointers and an argv-Style Dynamic List</h3>
+<p>A <strong>double pointer</strong>, such as <code>^^char</code>, points to a variable or array element
+that itself holds a <code>^char</code>. This is useful for a list of pointers, such as a
+C-style argument table (<code>argv</code>): each entry points to a zero-terminated string.
+The strings can have different lengths and do not need to be adjacent in memory.</p>
+<p>This example builds the strings in a dynamic array, then builds a separate
+dynamic array of pointers to their text. It passes the address of the first
+pointer slot as <code>^^char</code>, together with an argument count (<code>argc</code>). A final
+<code>nil</code> entry also allows traversal without using the count.</p>
+<pre><code class="language-dq">use print
+
+func PrintArgs(argc : int, argv : ^^char):
+    for i : int = 0 count argc:
+        var text : rostr = argv[i]^ // read a ^char from the pointer table
+        PrintLn("argv[{}] = {}", [i, text])
+    endfor
+
+    var cursor : ^^char = argv
+    Print("First characters:")
+    while cursor^ &lt;&gt; nil:
+        var textptr : ^char = cursor^
+        Print(" {}", [textptr^])
+        ++cursor // advance to the next ^char slot, not the next character
+    endwhile
+    PrintLn()
+endfunc
+
+func *Main():
+    var arguments : [*]str = ["demo", "--color"]
+    arguments.Append("blue")
+
+    var pointers : [*]^char
+    for i : int = 0 count arguments.length:
+        pointers.Append(arguments[i].pchar)
+    endfor
+    pointers.Append(nil) // the final slot marks the end of the list
+
+    var argv : ^^char = %pointers[0]
+    PrintArgs(arguments.length, argv)
+
+    var replacement : str = "green"
+    argv[2]^ = replacement.pchar // replace a pointer in the table
+    var selected : rostr = pointers[2]
+    PrintLn("After replacement: {}", [selected])
+    PrintLn("Original string: {}", [arguments[2]])
+endfunc
+</code></pre>
+<p>Example output:</p>
+<pre><code class="language-text">argv[0] = demo
+argv[1] = --color
+argv[2] = blue
+First characters: d - b
+After replacement: green
+Original string: blue
+</code></pre>
+<p>There are two levels of storage between <code>argv</code> and a character:</p>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>argv</code></td>
+<td><code>^^char</code></td>
+<td>Address of the first pointer slot</td>
+</tr>
+<tr>
+<td><code>argv[i]</code></td>
+<td><code>^^char</code></td>
+<td>Address of pointer slot <code>i</code></td>
+</tr>
+<tr>
+<td><code>argv[i]^</code></td>
+<td><code>^char</code></td>
+<td>String address stored in slot <code>i</code></td>
+</tr>
+<tr>
+<td><code>textptr^</code></td>
+<td><code>char</code></td>
+<td>One character at the selected string address</td>
+</tr>
+</tbody>
+</table>
+<p><code>++cursor</code> moves by <code>SizeOf(^char)</code>: one pointer slot, or 4 or 8 bytes depending
+on the target. It does not move through the string's characters. To do that,
+increment the inner <code>^char</code> pointer instead.</p>
+<p>Assigning <code>argv[2]^</code> replaces the pointer stored in <code>pointers[2]</code>. It does not
+copy text, modify the string <code>"blue"</code>, or replace <code>arguments[2]</code>. The <code>rostr</code>
+variables borrow the selected zero-terminated text so <code>PrintLn</code> can print it
+as a string rather than as an address.</p>
+<p>The dynamic arrays manage their own storage. The pointer table borrows the
+strings; it does not own them. Keep <code>arguments</code> and <code>replacement</code> alive while
+their text pointers are used, and obtain fresh <code>.pchar</code> values after changing
+the source strings. Finish building <code>pointers</code> before taking <code>%pointers[0]</code>:
+resizing it can invalidate <code>argv</code> and <code>cursor</code>. The function expects <code>argc</code>
+valid string pointers followed by a <code>nil</code> slot; a raw double pointer does not
+carry the table's length.</p>
+<h3 id="using-double-pointers-for-return-values">2.13.12.4 Using Double Pointers for Return Values</h3>
+<p>A function can return a value normally and supply another result through a
+pointer parameter. To return a <code>^SList</code> this way, the parameter must be
+<code>^^SList</code>: the address of the caller's pointer variable.</p>
+<p>For example, <code>CollectHighReadings</code> builds a list of temperature readings at or
+above a threshold. It returns the number of matching readings and writes the
+new list's address through its last parameter, <code>outlist</code>.</p>
+<p>Reuse <code>SNode</code> and <code>SList</code> from
+<a href="#a-linked-list-with-first-and-last-pointers">A Linked List with First and Last Pointers</a>,
+and replace that example's <code>Main</code> with the following code:</p>
+<pre><code class="language-dq">func CollectHighReadings(readings : []int, threshold : int, outlist : ^^SList) -&gt; int:
+    if outlist == nil or outlist^ &lt;&gt; nil:
+        return -1 // require an output pointer whose current value is nil
+    endif
+
+    var list : ^SList = new SList
+    list^ = {} // initialize first and last to nil
+    var count : int = 0
+    for reading : int in readings:
+        if reading &gt;= threshold:
+            list.Append(reading)
+            ++count
+        endif
+    endfor
+
+    outlist^ = list // update the caller's pointer variable
+    return count
+endfunc
+
+func *Main():
+    var readings : [?]int = [22, 31, 24, 35]
+    var alerts : ^SList = nil
+    var count : int = CollectHighReadings(readings, 30, %alerts)
+    if count &lt; 0:
+        PrintLn("Invalid output pointer")
+        return
+    endif
+
+    PrintLn("High readings: {}", [count])
+    var current : ^SNode = alerts.first
+    while current &lt;&gt; nil:
+        PrintLn("Reading: {}", [current.value])
+        current = current.next
+    endwhile
+
+    alerts.Clear()      // release the list's nodes
+    delete alerts = nil // release the SList itself and clear the pointer
+endfunc
+</code></pre>
+<p>Example output:</p>
+<pre><code class="language-text">High readings: 2
+Reading: 31
+Reading: 35
+</code></pre>
+<p><code>alerts</code> has type <code>^SList</code>, so <code>%alerts</code> has type <code>^^SList</code>. Inside the function,
+<code>outlist^</code> accesses the caller's <code>alerts</code> variable. Assigning <code>outlist^ = list</code>
+therefore changes <code>alerts</code> itself. A parameter of type <code>^SList</code> would only
+receive a copy of its address; reassigning that parameter would not update
+the caller's pointer.</p>
+<p>The caller must initialize <code>alerts</code> to <code>nil</code>. The function returns <code>-1</code> without
+changing it if the output parameter is <code>nil</code> or the pointer slot is already
+occupied, avoiding overwriting an existing list. On success, the caller owns
+the new list and its nodes, even when no readings match and the list is empty.
+Call <code>Clear</code> before deleting the list, because deleting an <code>SList</code> alone does
+not free its nodes.</p>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+</body>
+</html>

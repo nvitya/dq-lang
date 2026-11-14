@@ -1,0 +1,1610 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Documentation for the DQ programming language, libraries and tools" name="description"/>
+<link href="../060-functions/" rel="prev"/>
+<link href="../075-string-functions/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.6" name="generator"/>
+<title>2.7. Character and String Types - DQ-lang Project</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<link href="../../pdf/dq-lang-book.pdf" rel="alternate" title="PDF" type="application/pdf"/></head>
+<body dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#character-and-string-types">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="DQ-lang Project" class="md-header__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            DQ-lang Project
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              2.7. Character and String Types
+            
+          </span>
+</div>
+</div>
+</div>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<a class="md-header-nav__button md-icon" href="../../pdf/dq-lang-book.pdf" title="PDF">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<path d="M128,0c-17.6,0-32,14.4-32,32v448c0,17.6,14.4,32,32,32h320c17.6,0,32-14.4,32-32V128L352,0H128z" fill="#E2E5E7"></path>
+<path d="m384 128h96l-128-128v96c0 17.6 14.4 32 32 32z" fill="#B0B7BD"></path>
+<polygon fill="#CAD1D8" points="480 224 384 128 480 128"></polygon>
+<path d="M416,416c0,8.8-7.2,16-16,16H48c-8.8,0-16-7.2-16-16V256c0-8.8,7.2-16,16-16h352c8.8,0,16,7.2,16,16  V416z" fill="#F15642"></path>
+<g fill="#fff">
+<path d="m101.74 303.15c0-4.224 3.328-8.832 8.688-8.832h29.552c16.64 0 31.616 11.136 31.616 32.48 0 20.224-14.976 31.488-31.616 31.488h-21.36v16.896c0 5.632-3.584 8.816-8.192 8.816-4.224 0-8.688-3.184-8.688-8.816v-72.032zm16.88 7.28v31.872h21.36c8.576 0 15.36-7.568 15.36-15.504 0-8.944-6.784-16.368-15.36-16.368h-21.36z"></path>
+<path d="m196.66 384c-4.224 0-8.832-2.304-8.832-7.92v-72.672c0-4.592 4.608-7.936 8.832-7.936h29.296c58.464 0 57.184 88.528 1.152 88.528h-30.448zm8.064-72.912v57.312h21.232c34.544 0 36.08-57.312 0-57.312h-21.232z"></path>
+<path d="m303.87 312.11v20.336h32.624c4.608 0 9.216 4.608 9.216 9.072 0 4.224-4.608 7.68-9.216 7.68h-32.624v26.864c0 4.48-3.184 7.92-7.664 7.92-5.632 0-9.072-3.44-9.072-7.92v-72.672c0-4.592 3.456-7.936 9.072-7.936h44.912c5.632 0 8.96 3.344 8.96 7.936 0 4.096-3.328 8.704-8.96 8.704h-37.248v0.016z"></path>
+</g>
+<path d="m400 432h-304v16h304c8.8 0 16-7.2 16-16v-16c0 8.8-7.2 16-16 16z" fill="#CAD1D8"></path>
+</svg>
+</a></nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="DQ-lang Project" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="DQ-lang Project">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    DQ-lang Project
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/nvitya/dq-lang" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+</div>
+<div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_1" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../010-project/">
+<span class="md-ellipsis">
+    
+  
+    1. DQ-lang Project
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_1_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_1">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    1. DQ-lang Project
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    1.1. DQ-lang Project Introduction
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/020-features-and-goals/">
+<span class="md-ellipsis">
+    
+  
+    1.2. Features and Design Goals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../010-project/030-getting-started/">
+<span class="md-ellipsis">
+    
+  
+    1.3. Getting Started
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    2. DQ Programming Language
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    2. DQ Programming Language
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../010-basic-syntax/">
+<span class="md-ellipsis">
+    
+  
+    2.1. Basic Syntax
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../020-basic-types-and-conversions/">
+<span class="md-ellipsis">
+    
+  
+    2.2. Basic Types and Conversions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../030-variables-constants-references-and-scope/">
+<span class="md-ellipsis">
+    
+  
+    2.3. Variables, Constants, References, and Scope
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../040-expressions-and-operators/">
+<span class="md-ellipsis">
+    
+  
+    2.4. Expressions and Operators
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../050-statements-and-control-flow/">
+<span class="md-ellipsis">
+    
+  
+    2.5. Statements and Control Flow
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../060-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.6. Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    2.7. Character and String Types
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    2.7. Character and String Types
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#character-types">
+<span class="md-ellipsis">
+      
+        2.7.1 Character Types
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#text-types">
+<span class="md-ellipsis">
+      
+        2.7.2 Text Types
+      
+    </span>
+</a>
+<nav aria-label="2.7.2 Text Types" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#the-length-calculation-problem">
+<span class="md-ellipsis">
+      
+        2.7.2.1 The Length Calculation Problem
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#str-dynamic-strings">
+<span class="md-ellipsis">
+      
+        2.7.2.2 str: Dynamic Strings
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#embstrn-and-embstr-embedded-strings">
+<span class="md-ellipsis">
+      
+        2.7.2.3 embstr(N) and embstr: Embedded Strings
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#rostr-read-only-zero-terminated-strings">
+<span class="md-ellipsis">
+      
+        2.7.2.4 rostr: Read-Only Zero-Terminated Strings
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strslice-string-slices">
+<span class="md-ellipsis">
+      
+        2.7.2.5 strslice: String Slices
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#char-raw-c-string-pointers">
+<span class="md-ellipsis">
+      
+        2.7.2.6 ^char: Raw C String Pointers
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#text-descriptors">
+<span class="md-ellipsis">
+      
+        2.7.2.7 Text Descriptors
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#conversions-and-borrowed-lifetimes">
+<span class="md-ellipsis">
+      
+        2.7.2.8 Conversions and Borrowed Lifetimes
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#literals">
+<span class="md-ellipsis">
+      
+        2.7.3 Literals
+      
+    </span>
+</a>
+<nav aria-label="2.7.3 Literals" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#multiline-text">
+<span class="md-ellipsis">
+      
+        2.7.3.1 Multiline Text
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../075-string-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.8. String Functions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../077-text-formatting/">
+<span class="md-ellipsis">
+    
+  
+    2.9. Text Formatting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../080-arrays-and-slices/">
+<span class="md-ellipsis">
+    
+  
+    2.10. Arrays and Slices
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../090-enumerations/">
+<span class="md-ellipsis">
+    
+  
+    2.11. Enumerations
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../100-structures-and-unions/">
+<span class="md-ellipsis">
+    
+  
+    2.12. Structures and Unions
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../110-pointers/">
+<span class="md-ellipsis">
+    
+  
+    2.13. Pointers
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../120-objects-and-properties/">
+<span class="md-ellipsis">
+    
+  
+    2.14. Objects and Properties
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../130-memory-management-and-ownership/">
+<span class="md-ellipsis">
+    
+  
+    2.15. Memory Management and Autofree
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../140-exceptions-and-error-handling/">
+<span class="md-ellipsis">
+    
+  
+    2.16. Exceptions and Error Handling
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../150-anyvalue/">
+<span class="md-ellipsis">
+    
+  
+    2.17. anyvalue
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../170-modules-and-packages/">
+<span class="md-ellipsis">
+    
+  
+    2.18. Modules and Packages
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../180-attributes/">
+<span class="md-ellipsis">
+    
+  
+    2.19. Attributes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../190-compiler-directives/">
+<span class="md-ellipsis">
+    
+  
+    2.20. Compiler Directives
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../200-c-interoperability/">
+<span class="md-ellipsis">
+    
+  
+    2.21. C Interoperability
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../210-assembly-functions/">
+<span class="md-ellipsis">
+    
+  
+    2.22. Assembly Functions
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../030-compiler/">
+<span class="md-ellipsis">
+    
+  
+    3. DQ Compiler and Tools
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    3. DQ Compiler and Tools
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/010-compiler-and-tool-overview/">
+<span class="md-ellipsis">
+    
+  
+    3.1. Compiler and Tool Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/015-runtime-and-program-execution/">
+<span class="md-ellipsis">
+    
+  
+    3.2. Runtime and Program Execution
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/020-linux-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.3. Linux Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/030-windows-development-environment/">
+<span class="md-ellipsis">
+    
+  
+    3.4. Windows Development Environment
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/040-compiler-usage-and-options/">
+<span class="md-ellipsis">
+    
+  
+    3.5. Compiler Usage and Options
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/050-project-files/">
+<span class="md-ellipsis">
+    
+  
+    3.6. Project Files
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/060-build-process-and-module-artifacts/">
+<span class="md-ellipsis">
+    
+  
+    3.7. Build Process and Module Artifacts
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/070-targets-and-cross-compilation/">
+<span class="md-ellipsis">
+    
+  
+    3.8. Targets and Cross-Compilation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../030-compiler/080-vscode-setup-and-debugging/">
+<span class="md-ellipsis">
+    
+  
+    3.9. VSCode Setup and Debugging
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../040-packages/">
+<span class="md-ellipsis">
+    
+  
+    4. Standard Packages
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    4. Standard Packages
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/010-library-overview-and-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.1. Library Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/015-sys/">
+<span class="md-ellipsis">
+    
+  
+    4.2. sys
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/020-print/">
+<span class="md-ellipsis">
+    
+  
+    4.3. print
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/040-file/">
+<span class="md-ellipsis">
+    
+  
+    4.4. file
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/050-json/">
+<span class="md-ellipsis">
+    
+  
+    4.5. json
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/060-threads/">
+<span class="md-ellipsis">
+    
+  
+    4.6. threads
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/065-time/">
+<span class="md-ellipsis">
+    
+  
+    4.7. time
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/070-nanonet/">
+<span class="md-ellipsis">
+    
+  
+    4.8. nanonet
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/075-shell/">
+<span class="md-ellipsis">
+    
+  
+    4.9. shell
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../040-packages/080-additional-standard-packages/">
+<span class="md-ellipsis">
+    
+  
+    4.10. Additional Standard Packages
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--section md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    5. Appendices
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    5. Appendices
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/010-example-programs/">
+<span class="md-ellipsis">
+    
+  
+    5.1. Example Programs
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/020-building-the-compiler-from-source/">
+<span class="md-ellipsis">
+    
+  
+    5.2. Building the Compiler from Source
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/030-contributor-and-implementation-notes/">
+<span class="md-ellipsis">
+    
+  
+    5.3. Contributor and Implementation Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/031-module-and-interface-internals/">
+<span class="md-ellipsis">
+    
+  
+    5.4. Module and Interface Internals
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/032-exceptions-and-backtraces/">
+<span class="md-ellipsis">
+    
+  
+    5.5. Exceptions and Backtraces
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/033-release-and-cross-builds/">
+<span class="md-ellipsis">
+    
+  
+    5.6. Release and Cross-Build Notes
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/040-glossary-and-index/">
+<span class="md-ellipsis">
+    
+  
+    5.7. Glossary and Index
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../090-appendices/050-documentation-coverage/">
+<span class="md-ellipsis">
+    
+  
+    5.8. Documentation Coverage
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#character-types">
+<span class="md-ellipsis">
+      
+        2.7.1 Character Types
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#text-types">
+<span class="md-ellipsis">
+      
+        2.7.2 Text Types
+      
+    </span>
+</a>
+<nav aria-label="2.7.2 Text Types" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#the-length-calculation-problem">
+<span class="md-ellipsis">
+      
+        2.7.2.1 The Length Calculation Problem
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#str-dynamic-strings">
+<span class="md-ellipsis">
+      
+        2.7.2.2 str: Dynamic Strings
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#embstrn-and-embstr-embedded-strings">
+<span class="md-ellipsis">
+      
+        2.7.2.3 embstr(N) and embstr: Embedded Strings
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#rostr-read-only-zero-terminated-strings">
+<span class="md-ellipsis">
+      
+        2.7.2.4 rostr: Read-Only Zero-Terminated Strings
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#strslice-string-slices">
+<span class="md-ellipsis">
+      
+        2.7.2.5 strslice: String Slices
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#char-raw-c-string-pointers">
+<span class="md-ellipsis">
+      
+        2.7.2.6 ^char: Raw C String Pointers
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#text-descriptors">
+<span class="md-ellipsis">
+      
+        2.7.2.7 Text Descriptors
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#conversions-and-borrowed-lifetimes">
+<span class="md-ellipsis">
+      
+        2.7.2.8 Conversions and Borrowed Lifetimes
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#literals">
+<span class="md-ellipsis">
+      
+        2.7.3 Literals
+      
+    </span>
+</a>
+<nav aria-label="2.7.3 Literals" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#multiline-text">
+<span class="md-ellipsis">
+      
+        2.7.3.1 Multiline Text
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="character-and-string-types">2.7. Character and String Types</h1>
+<p>A string stores text as a sequence of bytes. A character represents one byte,
+one UTF-16 code unit, or one Unicode character, depending on its type. DQ provides
+owned strings, borrowed views, and fixed-capacity buffers so code can choose
+how storage is allocated and who keeps it alive. For methods, standalone helpers,
+and text operations, see <a href="../075-string-functions/">String Functions</a>.</p>
+<p>Example code using strings:</p>
+<pre><code class="language-dq">use print
+
+func AppendField(buffer : embstr, key : rostr, value : strslice):
+    buffer.AddFmt('"{}":"{}"', [key, value])
+endfunc
+
+func *Main():
+    var name : rostr = "Ada Lovelace"
+    var first_name : strslice = name[0:3]
+    var field : embstr(32)
+    AppendField(field, "name", first_name)
+    field.AddFmt(', "year":{}', [1979])
+
+    var json : str = ""
+    json.Reserve(field.length + 2)
+    json.Add('{')
+    json.Add(field)
+    var closing : ^char = "}"
+    json.Add(closing)
+    PrintLn(json)
+endfunc
+</code></pre>
+<p>The output is <code>{"name":"Ada", "year":1979}</code>. <code>name</code> borrows zero-terminated text as <code>rostr</code>,
+and <code>first_name</code> borrows a byte range as <code>strslice</code>. <code>field</code> owns a fixed buffer
+as <code>embstr(32)</code>; the unsized <code>embstr</code> parameter lets <code>AppendField</code> write into
+that buffer with a single <code>AddFmt()</code> call. The <code>Add()</code> accepts all string types, including <code>^char</code>.</p>
+<p><code>Reserve()</code> is optional: a dynamic string grows automatically as text is added.
+Here it reserves enough capacity for the field and both braces before assembly,
+improving performance by avoiding heap reallocations and copying as the string
+grows. It does not change the string's length or contents.</p>
+<h2 id="character-types">2.7.1 Character Types</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>char</code></td>
+<td>unsigned 8-bit byte: one ASCII character, one character from a single-byte code page, or one UTF-8 code unit (one Unicode character uses 1...4 UTF-8 code units)</td>
+</tr>
+<tr>
+<td><code>char16</code></td>
+<td>unsigned 16-bit UTF-16 code unit (one Unicode character uses 1...2 UTF-16 code units)<br/>Recommended to use only for Windows API compatibility</td>
+</tr>
+<tr>
+<td><code>wchar</code></td>
+<td>unsigned 32-bit Unicode character value, excluding UTF-16 surrogate values</td>
+</tr>
+</tbody>
+</table>
+<p>UTF-16 uses pairs of surrogate values to encode some characters. A single
+surrogate value does not represent a complete character on its own.</p>
+<p><code>char</code>, <code>char16</code>, and <code>wchar</code> are distinct types, not integer aliases. The
+read-only <code>.ord</code> property returns a character's integer code as <code>int</code>. Prefer
+<code>c.ord</code>; <code>Ord(c)</code> returns the same value. Explicit or checked conversion creates
+a character from an integer.</p>
+<p>A <strong>code unit</strong> is one storage element of a text encoding. For example, the <code>😀</code> symbol
+uses four <code>char</code> bytes in UTF-8 or two <code>char16</code> values in UTF-16, but its
+character value fits in one <code>wchar</code>.</p>
+<p>A character literal can initialize any character type whose range includes its
+value. Character variables do not implicitly convert to integers or to other
+character types. To convert between character types, pass through the integer
+code exposed by <code>.ord</code>:</p>
+<pre><code class="language-dq">var c8  : char   = 'A'
+var c16 : char16 = '€'
+var c32 : wchar  = '😀'
+
+var code : int = c8.ord                 // 65
+var same_code : int = Ord(c8)           // 65: equivalent function form
+var emoji_code : int = c32.ord          // 128512
+var same : char = char(code)           // 'A'
+var wide : wchar = wchar(c16.ord)       // '€'
+var next : char = char(c8.ord + 1)      // 'B'
+
+var checked  : char  = IntToChar(code)     // 'A'; checks the range at runtime
+var fallback : wchar = IntToWchar(0xD800, '?') // '?' for an invalid character value
+</code></pre>
+<p>These conversions preserve the numeric code; they do not encode or decode UTF-8
+or UTF-16. Explicit casts reject invalid constant values at compile time, but
+runtime casts can truncate to the destination width and do not validate Unicode
+character values. Use <code>IntToChar()</code> or <code>IntToWchar()</code> when runtime validation is
+needed. Without a fallback argument, an invalid value raises a runtime error.</p>
+<p>The following examples intentionally produce compiler errors:</p>
+<pre><code class="language-dq">var c8     : char = 'A'
+var c32    : wchar = 'A'
+var code   : int = 65
+
+c8 = code           // error: no implicit integer-to-character conversion
+code = c8           // error: use c8.ord
+code = int(c8)      // error: an integer cast cannot replace .ord
+c32  = c8           // error: no implicit conversion between character types
+c8 = char(c32)      // error: use char(c32.ord) or IntToChar(c32.ord)
+c8 = c8 + 1         // error: use char(c8.ord + 1)
+c8.ord = 66         // error: .ord is read-only
+
+var too_large : char = '€'             // error: the literal does not fit in one byte
+var overflow  : char = char(256)       // error: constant is outside 0 .. 255
+var non_bmp   : char16 = '😀'          // error: the literal does not fit in one code unit
+var surrogate : wchar = wchar(0xD800)  // error: wchar excludes UTF-16 surrogate values
+</code></pre>
+<h2 id="text-types">2.7.2 Text Types</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Ownership and representation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#str-dynamic-strings"><code>str</code></a></td>
+<td>Dynamic, heap-allocated, reference-counted copy-on-write byte string.<br/>May contain internal zero bytes and is not necessarily valid UTF-8.<br/>A managed type that cannot be a <code>struct</code> field.<br/>The current length is always stored.</td>
+</tr>
+<tr>
+<td><a href="#embstrn-and-embstr-embedded-strings"><code>embstr(N)</code></a></td>
+<td>Embedded string: fixed-capacity, mutable, zero-terminated byte storage.<br/>A zero-byte scan may be required to calculate the length.</td>
+</tr>
+<tr>
+<td><a href="#embstrn-and-embstr-embedded-strings"><code>embstr</code></a></td>
+<td>Writable, appendable borrowed reference to a shared embedded string descriptor, which carries the storage capacity. Typically used for function parameters.<br/>A zero-byte scan may be required to calculate the length.</td>
+</tr>
+<tr>
+<td><a href="#rostr-read-only-zero-terminated-strings"><code>rostr</code></a></td>
+<td>Read-only borrowed, zero-terminated byte string.<br/>A zero-byte scan may be required to calculate the length.</td>
+</tr>
+<tr>
+<td><a href="#strslice-string-slices"><code>strslice</code></a></td>
+<td>Read-only borrowed view of text bytes. Zero-termination is not guaranteed.<br/>Length is always known; conversion from raw or embedded storage calculates it before creating the view.</td>
+</tr>
+<tr>
+<td><a href="#char-raw-c-string-pointers"><code>^char</code></a></td>
+<td>Raw pointer to text bytes; C string operations expect a terminating zero byte.</td>
+</tr>
+</tbody>
+</table>
+<p>On targets built with dynamic strings disabled, <code>str</code> and operations that
+produce it are unavailable. Text literals, <code>rostr</code>, <code>strslice</code>, and <code>embstr(N)</code> remain
+available for text processing with borrowed or fixed storage.</p>
+<h3 id="the-length-calculation-problem">2.7.2.1 The Length Calculation Problem</h3>
+<p>DQ maintains strong compatibility with C APIs, so its zero-terminated string
+buffers can be passed directly to C functions. C APIs that work with text usually
+accept a pointer to the start of a text buffer, written as <code>^char</code> in DQ. This
+pointer carries no information about the text's length.</p>
+<p>Zero-terminated strings mark the end of their text with a byte whose value is
+zero. This is different from the printable character <code>'0'</code>. The terminating byte
+is not counted in the text length: <code>"hello"</code> needs five text bytes plus one zero
+byte.</p>
+<p>To calculate the length from that pointer, the program must read from the start
+until it finds the zero byte. Longer text takes more work, and repeated length
+calculations can scan the same bytes again.</p>
+<p>Storing the byte count avoids this work. DQ's string types handle this in
+different ways, using stored or cached lengths where possible, as described below.</p>
+<h3 id="str-dynamic-strings">2.7.2.2 <code>str</code>: Dynamic Strings</h3>
+<p><code>str</code> allocates heap memory for its contents. As the contents grow, the backing
+memory block may be reallocated. The current length is always known. A trailing
+zero byte maintains C string compatibility. The contents can also hold arbitrary
+binary data, including internal zero bytes. It is a <strong>managed type</strong>: the runtime
+tracks references and frees the memory when the string data is no longer used.
+A <code>str</code> cannot be a <code>struct</code> field. Its maximum text length is <code>2147483647</code> bytes.
+Its <code>.length</code> reads the stored byte count without scanning the text.</p>
+<p>An empty <code>str</code> may require no heap allocation. Internally, it can be represented
+by a <code>nil</code> pointer, indicating that no dynamic string handler object has been
+allocated for it yet.</p>
+<p>Assigning a <code>str</code> shares storage. Mutation detaches when necessary so other
+string values retain their contents.</p>
+<pre><code class="language-dq">var a : str = "abc"
+var b : str = a
+b[0] = 'X'       // a remains "abc"
+
+var c : str = a.Clone() // independent storage immediately
+c[0] = 'Y'             // a remains "abc"; b remains "Xbc"
+
+c.Reserve(32)          // space for at least 32 text bytes; c is still "Ybc"
+c.Add("def")          // reuses the reserved storage; c is now "Ybcdef"
+</code></pre>
+<h3 id="embstrn-and-embstr-embedded-strings">2.7.2.3 <code>embstr(N)</code> and <code>embstr</code>: Embedded Strings</h3>
+<p><code>embstr(N)</code> provides fixed storage of <code>N</code> bytes. It holds up to <code>N - 1</code> text
+bytes plus a terminating zero byte, making it compatible with C strings. The
+position of the terminating zero determines the text length, so calculating
+the length may require a scan at runtime. DQ can cache the length to avoid
+repeated scans. Embedded strings can be stored in the program's data segment,
+on the stack, or inside structures and objects. Their maximum text length is
+<code>16777215</code> bytes.</p>
+<p>A declaration without an initializer creates an empty string. <code>.Add()</code> and
+<code>.AddFmt()</code> can be called immediately after the declaration:</p>
+<pre><code class="language-dq">var s : embstr(16)
+s.Add("value=")           // = "value=": contents of s
+s.AddFmt("{}", [42])      // = "value=42": contents of s
+</code></pre>
+<p>For a declaration without an initializer, only the leading zero terminator is
+guaranteed; bytes beyond it are unspecified.</p>
+<p>For <code>embstr(N)</code>, <code>.storage_size</code> is <code>N</code> and <code>.maxlength</code> is <code>N - 1</code>.
+Assignment and append operations truncate to fit the fixed capacity:</p>
+<pre><code class="language-dq">var fixbuf : embstr(8) = "abc"
+fixbuf.Append("defghi") // stores "abcdefg"
+</code></pre>
+<p>Use an unsized <code>embstr</code> parameter to modify an existing fixed buffer through its
+shared <a href="#text-descriptors">descriptor</a>. It remains writable and appendable: character writes,
+assignment, <code>Add()</code>, and <code>AddFmt()</code> modify the original buffer within its fixed
+capacity.</p>
+<h3 id="rostr-read-only-zero-terminated-strings">2.7.2.4 <code>rostr</code>: Read-Only Zero-Terminated Strings</h3>
+<p>Use <code>rostr</code> for read-only string parameters when zero-termination is required.
+It borrows text literals, <code>str</code>, <code>embstr(N)</code>, unsized <code>embstr</code>, or <code>^char</code> without
+copying the text bytes or retaining their storage. Its <a href="#text-descriptors">descriptor</a> can be
+reassigned, but character writes and writable character references through it
+are rejected.</p>
+<p>A <code>rostr</code> carries a pointer and either a known length or an indication that the
+length is unknown. Borrowing a literal or a <code>str</code> preserves its known length.
+Borrowing a raw <code>^char</code> does not scan immediately; the first operation needing
+the length, such as <code>.length</code>, scans and caches it in that <code>rostr</code> descriptor.</p>
+<h3 id="strslice-string-slices">2.7.2.5 <code>strslice</code>: String Slices</h3>
+<p>Use <code>strslice</code> for read-only byte ranges with explicit bounds. It borrows text
+without copying its bytes or retaining its storage. A slice can describe an
+unterminated range or a range containing zero bytes.</p>
+<p>Its length is always known, so <code>.length</code> reads the stored byte count directly.
+Conversion from raw or embedded storage resolves an unknown length before
+creating the slice; embedded-string scans stop at the buffer's capacity.
+Converting a <code>rostr</code> with an unknown length also resolves that length first.</p>
+<p>Use <code>StrSlice(data, length)</code> to supply the length explicitly and avoid scanning:</p>
+<pre><code class="language-dq">var data : [3]char = ['A', char(0), 'B']
+var view : strslice = StrSlice(%data[0], data.length)
+</code></pre>
+<h3 id="char-raw-c-string-pointers">2.7.2.6 <code>^char</code>: Raw C String Pointers</h3>
+<p>Use <code>^char</code> for raw C interfaces. It carries only a pointer, with no length or
+ownership information. Converting it to a borrowed string cannot recover a
+known length from the pointer alone. If the length is already known, use
+<code>StrSlice(data, length)</code> to pass it explicitly.</p>
+<p><code>.pchar</code> exposes a borrowed <code>^char</code> for compatible zero-terminated text storage.</p>
+<pre><code class="language-dq">func puts(text : ^char) -&gt; int32 [[external]] ..
+
+func *Main():
+    var owned : str = "dynamic text"
+    var readonly : rostr = "read-only text"
+    var buffer : embstr(16) = "fixed text"
+
+    var owned_ptr : ^char = owned.pchar
+    var readonly_ptr : ^char = readonly.pchar
+    var buffer_ptr : ^char = buffer.pchar
+    puts(owned_ptr)
+    puts(readonly_ptr)
+    puts(buffer_ptr)
+endfunc
+</code></pre>
+<p>This prints <code>dynamic text</code>, <code>read-only text</code>, and <code>fixed text</code> on separate lines.
+Each pointer refers to the source's existing text bytes; no text is copied.
+The <code>.pchar</code> property is also available on unsized <code>embstr</code> references.</p>
+<p>If the string's text moves to a different memory location, for example when a
+dynamic string grows, the old pointer must no longer be used. Get a new pointer
+with <code>.pchar</code> after making the change.
+A nil <code>^char</code> is not valid where a C string is required unless the called API
+explicitly defines nil handling. See
+<a href="../200-c-interoperability/#strings-buffers-and-borrowing">C Interoperability</a>
+for passing text to C functions.</p>
+<h3 id="text-descriptors">2.7.2.7 Text Descriptors</h3>
+<p>The compiler carries text pointers together with metadata in small structures
+called <strong>descriptors</strong>. For calls with <code>embstr</code>, <code>rostr</code>, or <code>strslice</code> arguments,
+it creates temporary descriptors as needed during argument conversion.
+The compiler may pass either a pointer to the descriptor or its members directly as function arguments.</p>
+<p>These descriptors are invisible to the user, the compiler creates,
+updates, and passes them automatically.</p>
+<p>For <code>embstr</code>, the runtime uses the following descriptor structure:</p>
+<pre><code class="language-dq">struct SDqTextInfo:
+    dataptr : ^char   // points to the first text byte
+    charlen : int32   // known byte length, or a negative value when unknown
+    info    : uint32  // bits 0..23: maximum length; bits 24..31: flags
+endstruct
+</code></pre>
+<p>For <code>rostr</code> and <code>strslice</code>, the runtime uses a more compact descriptor:</p>
+<pre><code class="language-dq">struct SDqRoStrInfo:
+    dataptr : ^char
+    charlen : int32   // rostr: negative means unknown; strslice: always non-negative
+endstruct
+</code></pre>
+<p><code>charlen</code> counts text bytes, excluding any terminating zero byte. A non-negative
+value indicates a known length; <code>0</code> represents a known empty string. For <code>embstr</code>
+and <code>rostr</code>, a negative value means that the length must be calculated when
+needed. For <code>strslice</code>, the length is always known and non-negative.</p>
+<h3 id="conversions-and-borrowed-lifetimes">2.7.2.8 Conversions and Borrowed Lifetimes</h3>
+<table>
+<thead>
+<tr>
+<th>Destination</th>
+<th>Relevant rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>str</code></td>
+<td>Owns/retains its text value; accepts compatible text views.</td>
+</tr>
+<tr>
+<td><code>rostr</code></td>
+<td>Requires existing terminated storage (like a string literal), borrows it.</td>
+</tr>
+<tr>
+<td><code>strslice</code></td>
+<td>Requires existing storage, borrows a byte range with an always-known length; conversion resolves an unknown source length first. No terminator is promised.</td>
+</tr>
+<tr>
+<td><code>embstr(N)</code></td>
+<td>Creates an embedded fixed-storage of N bytes. Written texts are truncated to fit.</td>
+</tr>
+<tr>
+<td>Unsized <code>embstr</code></td>
+<td>Shares a fixed-storage, writeable embedded string.</td>
+</tr>
+<tr>
+<td><code>^char</code></td>
+<td>A raw C pointer to an existing storage with no automatic lifetime extension.</td>
+</tr>
+</tbody>
+</table>
+<p>Slicing a <code>rostr</code> by byte offsets returns <code>strslice</code>, including full-range and
+suffix slices. A <code>rostr</code> converts to <code>strslice</code>, resolving any unknown length
+first. There is no direct conversion from <code>strslice</code> to <code>rostr</code>, even by a cast.
+When terminated storage is needed for a slice, first copy it into an owning
+<code>str</code> or a fixed-capacity <code>embstr(N)</code>.</p>
+<p>Both <code>rostr</code> and <code>strslice</code> convert to owned <code>str</code> or fixed-capacity <code>embstr(N)</code>.
+These conversions copy the byte range, truncating only when the fixed buffer
+reached its capacity.</p>
+<pre><code class="language-dq">var owned    : str = "hello"
+var borrowed : rostr = owned
+var part     : strslice = borrowed[1:4]  // borrows "ell"
+var copied   : str = part             // owns a copy of "ell"
+</code></pre>
+<p>Borrowed text must not outlive its source. The owner must stay alive, and its
+storage and contents must remain stable while a read-only view is used. An
+unsized <code>embstr</code> requires live, writable source storage. Neither a cast nor
+storing a view in <code>anyvalue</code> extends the owner's lifetime. Returning a view into
+a local buffer is invalid.</p>
+<p>See <a href="../130-memory-management-and-ownership/">Memory Management and Autofree</a>
+for managed values and borrowed lifetimes.</p>
+<h2 id="literals">2.7.3 Literals</h2>
+<p>Double quotes always represent text. A single-quoted literal containing exactly
+one Unicode character is <code>wchar</code>; empty or longer single-quoted literals are text.</p>
+<pre><code class="language-dq">var path       : str = "/"
+var slash      : wchar = '/'
+var byte_slash : char = '/'
+var greeting   : rostr = "Hello, world!"
+var field      : rostr = '"name":"Amy"'
+</code></pre>
+<p>The <code>byte_slash</code> initialization is accepted because the literal's character code
+is known at compile time and is below 256. In general, conversion from <code>wchar</code> to
+<code>char</code> is explicit.
+Single quotes around longer text let it contain double quotes without escaping
+them, as in <code>field</code>.</p>
+<h3 id="multiline-text">2.7.3.1 Multiline Text</h3>
+<p>For text that spans several lines, put three double quotes (<code>"""</code>) or three
+single quotes (<code>'''</code>) around it:</p>
+<pre><code class="language-dq">var message : rostr = """
+    First line.
+    Second line.
+    """
+PrintLn(message)
+</code></pre>
+<p>This prints:</p>
+<pre><code class="language-text">First line.
+Second line.
+</code></pre>
+<p>The text starts with "F" and ends with the final ".". Putting the quotes on
+separate lines does not add an empty line before or after the text. The line
+break between <code>First line.</code> and <code>Second line.</code> is part of the string, just as
+if you had written <code>"First line.\nSecond line."</code>.</p>
+<p>You can indent the text to keep the source code readable. DQ uses the spaces
+before the closing quotes to decide how much indentation to remove. Extra
+spaces are kept:</p>
+<pre><code class="language-dq">var indented : rostr = '''
+    First line.
+      Indented second line.
+    '''
+PrintLn(indented)
+</code></pre>
+<p>There are four spaces before the closing quotes, so DQ removes four spaces
+from the start of each text line. The second line has six spaces, so two remain:</p>
+<pre><code class="language-text">First line.
+  Indented second line.
+</code></pre>
+<p>This also makes longer text, such as JSON, easier to write. Ordinary double
+quotes inside triple double quotes do not need a backslash:</p>
+<pre><code class="language-dq">var document : rostr = """
+    {
+      "name": "Amy",
+      "year": 1999
+    }
+    """
+PrintLn(document)
+</code></pre>
+<p>This prints:</p>
+<pre><code class="language-json">{
+  "name": "Amy",
+  "year": 1999
+}
+</code></pre>
+<p>Escape sequences still work inside multiline text: <code>\n</code> adds a line break,
+<code>\t</code> adds a tab, and <code>\\</code> adds one backslash. Three matching quotes end the text;
+the indentation and line-break rules are the same for both quote styles.</p>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.copy", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+</body>
+</html>

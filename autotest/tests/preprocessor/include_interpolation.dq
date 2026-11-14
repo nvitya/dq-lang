@@ -1,0 +1,17 @@
+//?compargs('--build-suffix', 'include-interpolation', '--no-dynstrings')
+use libc/stdio
+
+const PLATFORM_INC : rostr = './include_interpolation/config07.dqi'
+#include "\{PLATFORM_INC}"
+
+#if false
+    #include "\{UNKNOWN_INCLUDE}"
+    #{include "\{UNKNOWN_INCLUDE}"}
+#endif
+
+func *Main():
+    const LOCAL_INC : rostr = './include_interpolation/value.dqi'
+    #include '\{LOCAL_INC}'
+    printf("included = %d\n", INCLUDED_VALUE) //?check('included', 42)
+    printf("local = %d\n", LOCAL_VALUE) //?check('local', 17)
+endfunc

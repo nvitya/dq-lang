@@ -605,7 +605,7 @@ void OScFeederDq::ParseDirective()
   else if (inactive_code)
   {
     // ignore the directives in the inactive code
-    if ("error" == sid || "warning" == sid)
+    if ("error" == sid || "warning" == sid || "include" == sid)
     {
       // Consume the literal without evaluating interpolations, including in #{...}.
       SetDirectiveExprMode(true);
@@ -762,9 +762,9 @@ void OScFeederDq::ParseDirectiveInclude()
     ReadIdentifier(include_kind);
     include_header = true;
   }
-  else if (not ReadQuotedString(sfname))
+  else if (!g_compiler->ParseDirectiveString(scpos_start_directive, sfname, DQERR_CDIR_INC_FN_MISSING))
   {
-    PreprocError2(DQERR_CDIR_INC_FN_MISSING);
+    FindDirectiveEnd();
     return;
   }
 
@@ -786,12 +786,12 @@ void OScFeederDq::ParseDirectiveInclude()
   }
   else if (sfname.find('/') == string::npos)
   {
-    PreprocError2(DQERR_CDIR_INC_LOCAL_PREFIX);
+    PreprocError2(DQERR_CDIR_INC_LOCAL_PREFIX, nullptr, false);
     return;
   }
   else if (!ResolveSourcePath(sfname, include_path))
   {
-    PreprocError2(DQERR_CDIR_INC_LOADING, sfname);
+    PreprocError2(DQERR_CDIR_INC_LOADING, sfname, nullptr, false);
     return;
   }
 
@@ -804,12 +804,12 @@ void OScFeederDq::ParseDirectiveInclude()
   OScFile * incfile = LoadFile(include_path);
   if (!incfile)
   {
-    PreprocError2(DQERR_CDIR_INC_LOADING, sfname);
+    PreprocError2(DQERR_CDIR_INC_LOADING, sfname, nullptr, false);
     return;
   }
   if (!implementation_section && !AddSourceDependency(incfile))
   {
-    PreprocError2(DQERR_CDIR_INC_LOADING, sfname);
+    PreprocError2(DQERR_CDIR_INC_LOADING, sfname, nullptr, false);
     return;
   }
 

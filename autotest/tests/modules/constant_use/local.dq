@@ -1,6 +1,6 @@
 use libc/stdio
 use ./config/paths as cfg --
-use ${@cfg.MODULE} as selected only(VALUE)
+use {@cfg.MODULE} as selected only(VALUE)
 func *Main():
     printf("local = %d\n", @selected.VALUE) //?check('local', 31)
 endfunc

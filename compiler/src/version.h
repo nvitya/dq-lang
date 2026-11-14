@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.12"
+#define DQ_COMPILER_VERSION  "0.96.13"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.13:
+  - `#include` paths support compile-time string interpolation
+  - Constant module imports use `{expression}` instead of `${expression}`
 v0.96.12:
   - Nested include dependencies are handled for module recompilation
 v0.96.11:

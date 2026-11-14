@@ -540,7 +540,7 @@ bool ODqCompParser::ParseUseModulePath(OModulePath & rpath)
   string sid;
 
   scf->SkipWhite();
-  if (scf->CheckSymbol("${"))
+  if (scf->CheckSymbol("{"))
   {
     OExpr * expr = ParseExpression();
     if (!expr)
@@ -2839,7 +2839,8 @@ void ODqCompParser::ParseFunction()
 // Table-driven binary operator parser: shared logic for all precedence levels
 
 
-void ODqCompParser::ParseDirectiveMessage(const OScPosition & scpos, const string & directive)
+bool ODqCompParser::ParseDirectiveString(const OScPosition & scpos, string & result,
+                                       const TDiagDefErr & missing_diag, const string & context)
 {
   OScPosition * saved_errorpos = errorpos;
   OStmtBlock * saved_block = curblock;
@@ -2851,25 +2852,21 @@ void ODqCompParser::ParseDirectiveMessage(const OScPosition & scpos, const strin
   scf->SetDirectiveExprMode(true);
 
   scf->SkipWhite();
-  string message;
+  bool valid = false;
   if (scf->curp >= scf->bufend || (*scf->curp != '"' && *scf->curp != '\''))
   {
-    Error(DQERR_CDIR_MESSAGE, directive);
+    Error(missing_diag, context);
   }
   else
   {
     OScPosition literalpos;
     scf->SaveCurPos(literalpos);
-    if (ParseStringLiteral(message))
-    {
-      if (directive == "warning") WarningTxt(DQWARN_CDIR_WARNING, message, &position);
-      else ErrorTxt(DQERR_CDIR_ERROR, message, &position);
-    }
-    else
+    valid = ParseStringLiteral(result);
+    if (!valid)
     {
       // Recover past the literal so its interpolation braces cannot close #{...}.
       scf->SetCurPos(literalpos);
-      scf->ReadQuotedString(message);
+      scf->ReadQuotedString(result);
     }
   }
   scf->SkipWhite();
@@ -2877,6 +2874,16 @@ void ODqCompParser::ParseDirectiveMessage(const OScPosition & scpos, const strin
   errorpos = saved_errorpos;
   curblock = saved_block;
   scf->SetDirectiveExprMode(false);
+  return valid;
+}
+
+void ODqCompParser::ParseDirectiveMessage(const OScPosition & scpos, const string & directive)
+{
+  string message;
+  if (!ParseDirectiveString(scpos, message, DQERR_CDIR_MESSAGE, directive)) return;
+  OScPosition position = scpos;
+  if (directive == "warning") WarningTxt(DQWARN_CDIR_WARNING, message, &position);
+  else ErrorTxt(DQERR_CDIR_ERROR, message, &position);
 }
 
 OValSymConst * ODqCompParser::ParseDefineConst(const OScPosition & scpos, const string & sid)

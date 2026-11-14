@@ -1,0 +1,13 @@
+var RUNTIME_INC : rostr = './nested_inner.dqi'
+#include "\{RUNTIME_INC}" //?error(InterpolationConstant)
+#include "\{UNKNOWN_INCLUDE}" //?error(VsUnknown)
+#include "./value\{7:Q}.dqi" //?error(InterpolationFormat)
+#include "\{7" //?error(InterpolationClose)
+#{include "\{7:Q}"} //?error(InterpolationFormat)
+#include "\{'nested_inner.dqi'}" //?error(CDirIncLocalPrefix)
+#include "\{'missing_include/config.dqi'}" //?error(CDirIncFileLoad)
+#include //?error(CDirIncFileNameMissing)
+#include "unterminated //?error(StrLiteral)
+
+func *Main():
+endfunc

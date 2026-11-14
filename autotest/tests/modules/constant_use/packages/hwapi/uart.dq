@@ -1,6 +1,6 @@
 //?notest
 use hwconfig
-use ${UART_MODULE} reexport
+use {UART_MODULE} reexport
 object OHwUart(OHwUart_impl):
     func *Create():
     endfunc

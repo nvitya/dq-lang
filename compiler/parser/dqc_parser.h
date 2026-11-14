@@ -63,6 +63,8 @@ public: // utility
   filesystem::path CurrentSourcePath() const;
   OValSymConst * ParseDefineConst(const OScPosition & scpos, const string & sid);
   bool ParseDefineCondition(const OScPosition & scpos, bool * rok = nullptr);
+  bool ParseDirectiveString(const OScPosition & scpos, string & result,
+                            const TDiagDefErr & missing_diag, const string & context = "");
   void ParseDirectiveMessage(const OScPosition & scpos, const string & directive);
 
 protected:

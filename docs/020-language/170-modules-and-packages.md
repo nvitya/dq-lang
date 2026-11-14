@@ -39,11 +39,12 @@ uses to reach the other module, not a rename of its source file.
 
 ## Module Paths from Constants
 
-A `use` path can come from a compile-time string constant visible at that point:
+A `use` path can come from a compile-time string expression enclosed in braces.
+Any constants in the expression must be visible at that point:
 
 ```dq
 use hwconfig
-use ${UART_MODULE} reexport
+use {UART_MODULE} reexport
 ```
 
 For example, the project-selected `hwconfig` package can declare:
@@ -66,7 +67,8 @@ Use it to construct a path that retains its meaning when consumed by another
 package:
 
 ```dq
-const HWUART_IMPL : rostr = DQ.PKGNAME + "/arma/rk/impl/hwuart_rk"
+const HWUART_IMPL : rostr = "\{DQ.PKGNAME}/arma/rk/impl/hwuart_rk"
+use {HWUART_IMPL}
 ```
 
 String concatenation with constant operands (including `"a" + "b"` and named

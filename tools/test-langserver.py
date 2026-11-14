@@ -131,7 +131,9 @@ def run_cache(compiler):
         include = library / 'value.dqi'
         original = 'const VALUE : int = 7\n'
         include.write_text(original)
-        (library / 'lib.dq').write_text('#include "./value.dqi"\n')
+        module = library / 'lib.dq'
+        module_text = '#include "./value.dqi"\n'
+        module.write_text(module_text)
         main = root / 'main.dq'
         main_text = 'use lib\nvar result : int = VALUE\n'
         main.write_text(main_text)
@@ -238,6 +240,31 @@ def run_cache(compiler):
                 change_document(main, main_text + '\n\n', 3)
                 assert analyze(), 'A disk edit reused stale declarations'
                 assert not output.parent.exists(), 'Analysis created the project output lock directory'
+
+                # Incomplete include paths are normal while typing. The same server
+                # must report each error and recover after the buffer is repaired.
+                include.write_text(original)
+                open_document(module, module_text)
+                assert not analyze(), diagnostics
+                for version, (text, code) in enumerate([
+                    ('#include', 'CDirIncFileNameMissing'),
+                    ('#include "', 'StrLiteral'),
+                    ('#include "./', 'StrLiteral'),
+                    ('#include ""', 'CDirIncLocalPrefix'),
+                    ('#include "./"', 'CDirIncFileLoad'),
+                    ('#include "./missing.dqi"', 'CDirIncFileLoad'),
+                    ('#include "\\{UNKNOWN}"', 'VsUnknown'),
+                    ('#include "\\{7"', 'InterpolationClose'),
+                    ('#{include "', 'StrLiteral'),
+                ], 1):
+                    change_document(module, text + '\n', 2 * version)
+                    analyze()
+                    errors = diagnostics[module.as_uri()]
+                    assert any(error['code'] == code for error in errors), (text, errors)
+                    change_document(module, module_text, 2 * version + 1)
+                    assert not analyze() and not diagnostics[module.as_uri()], diagnostics
+                send('textDocument/didClose', {'textDocument': {'uri': module.as_uri()}})
+                assert not analyze(), diagnostics
                 request('shutdown', None)
                 send('exit')
                 process.wait(timeout=10)
@@ -247,7 +274,7 @@ def run_cache(compiler):
                     process.kill()
                     process.wait()
         assert not list(temporary.iterdir()), 'Server did not clean up its private cache'
-        print('PASS: persistent interfaces, stable overlays, include invalidation, close, disk edits, and no output locks')
+        print('PASS: persistent interfaces, stable overlays, include invalidation, incomplete include edits, recovery, and no output locks')
 
 
 if __name__ == '__main__':

@@ -181,6 +181,17 @@ Single quotes are also accepted. Use an include for a source fragment; use
 [`use`](170-modules-and-packages.md) when you want a module with its own public
 interface and namespace.
 
+Include paths support the same compile-time string interpolation as ordinary
+string literals. Expressions can use constants already visible at the directive:
+
+```dq
+const PLATFORM_INC : rostr = "./platform/config.dqi"
+#include "\{PLATFORM_INC}"
+```
+
+Interpolation is evaluated before resolving the path. Runtime values cannot select
+an include, and includes in inactive conditional branches are not evaluated.
+
 Local include paths must start with `./` or `../`; bare filenames are rejected.
 A path such as `platform/config.dqi` selects the highest-priority `platform`
 package directory first, then looks for `config.dqi` inside it. A missing file

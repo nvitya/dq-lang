@@ -48,9 +48,10 @@ def run(compiler):
             assert stamps, 'No package artifacts were generated'
             return stamps
 
-        for include in ('"platform/config.dqi"', 'header'):
+        for include in ('"platform/config.dqi"', r'"\{PLATFORM_INC}"', 'header'):
             # Repeated includes also exercise include_once and dependency deduplication.
-            board.write_text(f'#include {include}\n#include {include}\n')
+            board.write_text('const PLATFORM_INC : rostr = "platform/config.dqi"\n'
+                             f'#include {include}\n#include {include}\n')
             inner.write_text('const VALUE : int = 17\n')
             first = build(17)
             assert build(17) == first, 'Unchanged package artifacts were rebuilt'
@@ -63,7 +64,7 @@ def run(compiler):
             assert changed != first, 'Nested include edit did not rebuild the package'
             assert build(29) == changed, 'Edited package did not settle into cache'
 
-    print('PASS: nested include freshness, cache reuse, headers and include_once')
+    print('PASS: nested include freshness, cache reuse, interpolation, headers and include_once')
 
 
 if __name__ == '__main__':

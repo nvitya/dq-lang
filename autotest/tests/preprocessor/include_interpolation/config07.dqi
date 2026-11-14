@@ -1,0 +1,2 @@
+// Resolve this path from the included fragment, not the main file.
+#{include './value\{7:02}.dqi'}

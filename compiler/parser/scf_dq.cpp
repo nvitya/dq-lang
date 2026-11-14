@@ -239,13 +239,6 @@ bool OScFeederDq::AddSourceDependency(const OScFile * file)
   return true;
 }
 
-bool OScFeederDq::IsDirectIncludeSource() const
-{
-  if (!curfile) return false;
-  filesystem::path current_path(curfile->fullpath);
-  return (current_path == main_source_path) || (current_path == header_source_path);
-}
-
 void OScFeederDq::SkipWhite(bool alookahead)
 {
   // jumps to the next normal token while:
@@ -808,14 +801,13 @@ void OScFeederDq::ParseDirectiveInclude()
     print("Including ({})\n", include_path.string());
   }
 
-  bool track_dependency = !implementation_section && (include_header || IsDirectIncludeSource());
   OScFile * incfile = LoadFile(include_path);
   if (!incfile)
   {
     PreprocError2(DQERR_CDIR_INC_LOADING, sfname);
     return;
   }
-  if (track_dependency && !AddSourceDependency(incfile))
+  if (!implementation_section && !AddSourceDependency(incfile))
   {
     PreprocError2(DQERR_CDIR_INC_LOADING, sfname);
     return;

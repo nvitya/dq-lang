@@ -332,10 +332,12 @@ It records the dependency without inserting its contents there. It
 uses the same path lookup as `#include` and records only the named file; it does
 not parse that file or discover its dependencies.
 
-Automatic include tracking covers directives directly in the main `.dq` file
-or its same-basename `.dqh`. Nested includes in `.dqi` files are still parsed,
-but their dependencies are not tracked automatically. Add explicit dependencies
-when needed for reliable rebuilding.
+Automatic include tracking covers all files included before `implementation`,
+including nested includes from `.dqi` fragments and the same-basename `.dqh`.
+Changing any of these files invalidates the module's cached artifacts. Includes
+in inactive conditional branches are not processed or recorded. For files
+included after `implementation`, declare each dependency with `#srcdep` before
+`implementation`.
 
 For build-option precedence and library search paths, see
 [Compiler Usage and Options](../030-compiler/040-compiler-usage-and-options.md)

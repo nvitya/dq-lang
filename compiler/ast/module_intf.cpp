@@ -487,7 +487,7 @@ string OModuleIntf::DqmIfTargetRtl() const
 
 string OModuleIntf::DqmIfBuildOptions(const vector<SSourceDependency> & sources) const
 {
-  string result = "O" + string(g_opt.OptimizationLevelName()) + ";linkmangle=3;module=" + name;
+  string result = "O" + string(g_opt.OptimizationLevelName()) + ";linkmangle=3;includes=recursive;module=" + name;
   if (OPTLEVEL_O1 == g_opt.optlevel) result += ";inline=explicit";
   result += ";float=" + to_string(g_opt.target.default_float_bits);
   if (g_opt.dbg_info)      result += ";g;dbgsrcpath=1";

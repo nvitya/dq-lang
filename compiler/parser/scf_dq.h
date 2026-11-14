@@ -117,5 +117,4 @@ protected:
   bool ResolveSourcePath(const string & source_text, filesystem::path & rpath) const;
   bool AddSourceDependency(const filesystem::path & path);
   bool AddSourceDependency(const OScFile * file);
-  bool IsDirectIncludeSource() const;
 };

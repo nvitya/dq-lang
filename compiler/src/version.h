@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.11"
+#define DQ_COMPILER_VERSION  "0.96.12"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.12:
+  - Nested include dependencies are handled for module recompilation
 v0.96.11:
   - #error and #warning directives
 v0.96.10:

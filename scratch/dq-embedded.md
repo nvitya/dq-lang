@@ -103,13 +103,13 @@ one repeatable `--linker-arg=<arg>` value.
 
 Reusable SDKs should not require absolute paths to be repeated throughout a
 project file. A project variable is declared with the DQ `var` syntax, and may
-be substituted into subsequent quoted string values with `${NAME}`:
+be substituted into subsequent quoted string values with `\{NAME}`:
 
 ```
 var VIHAL = PackagePath('vihal')
 
-linkerpath = '${VIHAL}/ld'
-linkscript = '${VIHAL}/ld/STM32F746xG.ld'
+linkerpath = '\{VIHAL}/ld'
+linkscript = '\{VIHAL}/ld/STM32F746xG.ld'
 ```
 
 `linkerpath` is repeatable and adds a directory to the linker's search path. It
@@ -155,7 +155,7 @@ know its internal linker-script layout:
 
 ```
 var VIHAL = PackagePath('vihal')
-include '${VIHAL}/project/stm32f746xg.dqproj'
+include '\{VIHAL}/project/stm32f746xg.dqproj'
 ```
 
 When a variable is used in a path-valued statement, a relative value is
@@ -163,12 +163,12 @@ resolved relative to the file containing the variable declaration and
 normalized. Consequently it keeps the same meaning when referenced from an
 included project fragment. Two built-in path variables are also available:
 
-* `${PROJECT_DIR}` is the directory of the top-level `.dqproj` file.
-* `${THIS_DIR}` is the directory of the file containing the current statement.
+* `\{PROJECT_DIR}` is the directory of the top-level `.dqproj` file.
+* `\{THIS_DIR}` is the directory of the file containing the current statement.
 
 Variable names are case-sensitive and must be declared before use. An unknown
 variable or a duplicate declaration is an error. The initial implementation
-should expand only the explicit `${NAME}` form; it should not implicitly expand
+should expand only the explicit `\{NAME}` form; it should not implicitly expand
 environment variables, `~`, `$NAME`, or `%NAME%`. This keeps projects
 deterministic and gives the syntax the same meaning on every host platform.
 
@@ -177,7 +177,7 @@ Common configuration can be inserted with an `include` statement:
 ```
 // blinkled_nucleo_f746.dqproj
 var VIHAL = PackagePath('vihal')
-include '${VIHAL}/project/stm32f746xg.dqproj'
+include '\{VIHAL}/project/stm32f746xg.dqproj'
 
 main       = 'blinkled.dq'
 output     = 'build/blinkled_nucleo_f746.elf'
@@ -190,8 +190,8 @@ The included fragment can contain ordinary project statements:
 // vihal/project/stm32f746xg.dqproj
 target     = 'arm_m7f-bare'
 link       = true
-linkerpath = '${THIS_DIR}/../ld'
-linkscript = '${THIS_DIR}/../ld/STM32F746xG.ld'
+linkerpath = '\{THIS_DIR}/../ld'
+linkscript = '\{THIS_DIR}/../ld/STM32F746xG.ld'
 linkoption = '--gc-sections'
 ```
 

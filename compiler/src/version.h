@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.15"
+#define DQ_COMPILER_VERSION  "0.96.16"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.16:
+  - Project file strings use `\{NAME}` for variable interpolation instead of `${NAME}`
 v0.96.15:
   - `--build-tag` is a command-line alias for `--build`
   - Project files support `build_tag` and `build_suffix` with command-line overrides

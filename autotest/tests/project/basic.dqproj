@@ -4,9 +4,9 @@
 
 packagepath = 'packages'
 var TEST_PACKAGE = PackagePath('projectpkg')
-include '${TEST_PACKAGE}/project/common.dqproj'
+include '\{TEST_PACKAGE}/project/common.dqproj'
 
-main = 'project_main.dq'; output = '${PROJECT_DIR}/project_default.exe'
+main = 'project_main.dq'; output = '\{PROJECT_DIR}/project_default.exe'
 optlevel = 1
 debuginfo = false
 define PROJECT_BOOL

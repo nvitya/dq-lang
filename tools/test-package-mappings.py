@@ -104,12 +104,12 @@ def run(compiler):
 
         # Includes anchor only the directory part of a mapping to the declaring file.
         fragment = write('config/board.dqproj',
-                         "var BOARD_DIR = '../boards/adcif'\npkg = 'board:${BOARD_DIR}'\n")
+                         "var BOARD_DIR = '../boards/adcif'\npkg = 'board:\\{BOARD_DIR}'\n")
         write('boards/adcif/settings.dqproj', 'define SELECTED_BOARD = 10\n')
         write('boards/alternate/settings.dqproj', 'define SELECTED_BOARD = 20\n')
         lookup = write('app/lookup.dqproj',
                        "include '../config/board.dqproj'\nvar BOARD = PackagePath('board')\n"
-                       "include '${BOARD}/settings.dqproj'\nmain = '${BOARD}/selected.dq'\nlink=false\n")
+                       "include '\\{BOARD}/settings.dqproj'\nmain = '\\{BOARD}/selected.dq'\nlink=false\n")
         write('boards/adcif/selected.dq',
               '#if SELECTED_BOARD <> 10\n#error "wrong project mapping"\n#endif\n')
         write('boards/alternate/selected.dq',
@@ -121,8 +121,8 @@ def run(compiler):
         compile(lookup)
         # CLI mappings must already be visible before evaluating any project statements.
         cli_lookup = write('app/cli-lookup.dqproj',
-                           "var BOARD=PackagePath('board')\ninclude '${BOARD}/settings.dqproj'\n"
-                           "main='${BOARD}/selected.dq'\nlink=false\n")
+                           "var BOARD=PackagePath('board')\ninclude '\\{BOARD}/settings.dqproj'\n"
+                           "main='\\{BOARD}/selected.dq'\nlink=false\n")
         compile(cli_lookup, '--pkg', 'board:boards/adcif')
 
         for mapping, error in [('board', 'Expected package mapping'),

@@ -28,6 +28,7 @@
 #ifndef __STRPARSE_H_
 #define __STRPARSE_H_
 
+#include <functional>
 #include <string>
 
 using namespace std;
@@ -63,7 +64,7 @@ class TStrParseObj
     bool ReadHexNumbers();           // sets prevptr, prevlen
     bool ReadFloatNum();             // sets prevptr, prevlen
     bool ReadQuotedString();
-    bool ReadQuotedString(string & rvalue); // DQ-style quoted string with escapes
+    bool ReadQuotedString(string & rvalue, const function<bool(string &)> & interpolation = {}); // DQ-style escapes
     bool CheckSymbol(const char * checkstring);
     bool SearchPattern(const char * checkchars);  // sets prevptr, prevlen
 

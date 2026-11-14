@@ -381,19 +381,19 @@ int main()
 /* include-local paths use the fragment directory */
 var SDK_LD = '../ld'
 define FROM_INCLUDE = 17
-linkerpath = '${SDK_LD}'
-linkscript = '${SDK_LD}/board.ld'
+linkerpath = '\{SDK_LD}'
+linkscript = '\{SDK_LD}/board.ld'
 )");
   WriteFile(root / "main.dq", "// parser fixture\n");
   WriteFile(root / "full.dqproj", R"(
 // comments, includes, variables, functions, and semicolon-separated statements
 packagepath = 'packages'
 var SDK = PackagePath('sdk')
-include '${SDK}/project/common.dqproj'
-main = '${PROJECT_DIR}/main.dq'; output = '${THIS_DIR}/out.elf'
+include '\{SDK}/project/common.dqproj'
+main = '\{PROJECT_DIR}/main.dq'; output = '\{THIS_DIR}/out.elf'
 target = 'arm_m7f-bare'
 cpu_features = '+no-movt'
-sysroot = '${THIS_DIR}/target-sysroot'
+sysroot = '\{THIS_DIR}/target-sysroot'
 exceptions = false
 dynstrings = false
 compiler_runtime = 'libgcc'
@@ -404,7 +404,7 @@ optlevel = 2
 debuginfo = true
 define FEATURE
 define COUNT = -42
-linkobject = '${SDK}/objects/startup.o'
+linkobject = '\{SDK}/objects/startup.o'
 linkoption = '--gc-sections'
 )");
 
@@ -455,7 +455,7 @@ linkoption = '--gc-sections'
              && HasDiagnostic(project, "ProjectDuplicate"),
          "duplicate static linking diagnostic");
 
-  WriteFile(root / "build-common.dqproj", "build_suffix='${PROJECT_NAME}'\n");
+  WriteFile(root / "build-common.dqproj", "build_suffix='\\{PROJECT_NAME}'\n");
   struct SBuildCase
   {
     string properties;
@@ -475,7 +475,7 @@ linkoption = '--gc-sections'
     {"build_tag='board'; build_suffix='debug'", {"--build-suffix", "release"}, "board-release"},
     {"build_tag='board'; build_suffix='debug'",
      {"--build-suffix", "release", "--build", "cli"}, "cli-release"},
-    {"build_tag='${PROJECT_NAME}'; include 'build-common.dqproj'", {}, "build-tags-build-tags"},
+    {"build_tag='\\{PROJECT_NAME}'; include 'build-common.dqproj'", {}, "build-tags-build-tags"},
   })
   {
     fs::path filename = root / "build-tags.dqproj";
@@ -511,7 +511,7 @@ linkoption = '--gc-sections'
   WriteFile(root / "package-precedence.dqproj", R"(
 packagepath = 'project-packages'
 var SELECTED = PackagePath('selected')
-main = '${SELECTED}/main.dq'
+main = '\{SELECTED}/main.dq'
 )");
   Expect(LoadProject(project, root / "package-precedence.dqproj", {(root / "cli-packages").string()}),
          "package precedence project should parse");
@@ -549,9 +549,40 @@ main = '${SELECTED}/main.dq'
   Expect(!LoadProject(project, root / "duplicate-define.dqproj") && HasDiagnostic(project, "ProjectDuplicate"),
          "duplicate define diagnostic");
 
-  WriteFile(root / "unknown-variable.dqproj", "main='${UNKNOWN}/main.dq'\n");
+  WriteFile(root / "unknown-variable.dqproj", "main='\\{UNKNOWN}/main.dq'\n");
   Expect(!LoadProject(project, root / "unknown-variable.dqproj") && HasDiagnostic(project, "ProjectVariable"),
          "unknown variable diagnostic");
+
+  WriteFile(root / "variable-escapes.dqproj", R"(
+main = 'main.dq'
+var LITERAL = './\\{UNKNOWN}'
+linkoption = '\{LITERAL}/\{PROJECT_NAME}/\{PROJECT_NAME}'
+linkoption = '\\{UNKNOWN}|{PROJECT_NAME}|${PROJECT_NAME}|\x5c{UNKNOWN}'
+linkoption = '\\\{PROJECT_NAME}'
+linkoption = "line\n\"quoted\"/\{PROJECT_NAME}"
+)");
+  Expect(LoadProject(project, root / "variable-escapes.dqproj"), "project interpolation and escapes should parse");
+  Expect(g_opt.linker_args == vector<string>{
+      project.variables["LITERAL"] + "/variable-escapes/variable-escapes",
+      R"(\{UNKNOWN}|{PROJECT_NAME}|${PROJECT_NAME}|\{UNKNOWN})",
+      R"(\variable-escapes)", "line\n\"quoted\"/variable-escapes"},
+      "project interpolation preserves inserted text, literal braces, dollar signs, and string escapes");
+
+  for (const string reference : {R"(\{)", R"(\{})", R"(\{123})", R"(\{PROJECT_NAME)", R"(\{PROJECT_NAME!})"})
+  {
+    WriteFile(root / "invalid-reference.dqproj", "main='main.dq'\nlinkoption='" + reference + "'\n");
+    Expect(!LoadProject(project, root / "invalid-reference.dqproj") && HasDiagnostic(project, "ProjectVariable"),
+           "invalid project variable reference: " + reference);
+  }
+
+  WriteFile(root / "sdk.dqproj", R"(
+pkg_path = 'packages'
+var SDK = PackagePath('\{PROJECT_NAME}')
+main = '\{SDK}/main.dq'
+)");
+  Expect(LoadProject(project, root / "sdk.dqproj")
+             && g_opt.project_main_filename == (root / "packages/sdk/main.dq").string(),
+         "interpolation in PackagePath arguments");
 
   WriteFile(root / "missing-package.dqproj", "var SDK=PackagePath('missing')\nmain='main.dq'\n");
   Expect(!LoadProject(project, root / "missing-package.dqproj") && HasDiagnostic(project, "ProjectPackage"),

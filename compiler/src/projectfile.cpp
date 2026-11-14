@@ -157,7 +157,39 @@ bool ODqProjectFile::ReadIdentifier(string & rvalue, const string & what)
   return Fail("ProjectSyntax", "Expected " + what);
 }
 
-bool ODqProjectFile::ReadString(string & rvalue)
+bool ODqProjectFile::ReadVariableReference(string & rvalue)
+{
+  const char * start = sp.readptr - 2; // interpolation opener
+  string name;
+  if (!sp.ReadIdentifier(name))
+  {
+    return Fail("ProjectVariable", "Expected a project variable name", start);
+  }
+  if (!sp.CheckSymbol("}"))
+  {
+    return Fail("ProjectVariable", "Expected '}' after project variable name", start);
+  }
+  if (name == "PROJECT_DIR")
+  {
+    rvalue = pproject->project_dir.string();
+  }
+  else if (name == "THIS_DIR")
+  {
+    rvalue = filename.parent_path().string();
+  }
+  else
+  {
+    auto it = pproject->variables.find(name);
+    if (it == pproject->variables.end())
+    {
+      return Fail("ProjectVariable", format("Unknown project variable \"{}\"", name), start);
+    }
+    rvalue = it->second;
+  }
+  return true;
+}
+
+bool ODqProjectFile::ReadExpandedString(string & rvalue)
 {
   if ((sp.readptr >= sp.bufend)
       || ((*sp.readptr != '\'') && (*sp.readptr != '"')))
@@ -165,59 +197,12 @@ bool ODqProjectFile::ReadString(string & rvalue)
     return Fail("ProjectValue", "Expected a quoted string");
   }
   const char * start = sp.readptr;
-  if (!sp.ReadQuotedString(rvalue))
+  if (!sp.ReadQuotedString(rvalue, [this](string & value) { return ReadVariableReference(value); }))
   {
+    if (!pproject->diagnostics.empty()) return false;
     return Fail("ProjectString", "Unterminated quoted string", start);
   }
   return true;
-}
-
-bool ODqProjectFile::ExpandVariables(const string & value, string & rvalue)
-{
-  rvalue.clear();
-  size_t start = 0;
-  while (start < value.size())
-  {
-    size_t marker = value.find("${", start);
-    if (marker == string::npos)
-    {
-      rvalue += value.substr(start);
-      return true;
-    }
-    rvalue += value.substr(start, marker - start);
-    size_t close = value.find('}', marker + 2);
-    if (close == string::npos)
-    {
-      return Fail("ProjectVariable", "Unterminated project variable reference");
-    }
-    string name = value.substr(marker + 2, close - marker - 2);
-    if (name == "PROJECT_DIR")
-    {
-      rvalue += pproject->project_dir.string();
-    }
-    else if (name == "THIS_DIR")
-    {
-      rvalue += filename.parent_path().string();
-    }
-    else
-    {
-      auto it = pproject->variables.find(name);
-      if (it == pproject->variables.end())
-      {
-        return Fail("ProjectVariable", format("Unknown project variable \"{}\"", name));
-      }
-      rvalue += it->second;
-    }
-    start = close + 1;
-  }
-  return true;
-}
-
-bool ODqProjectFile::ReadExpandedString(string & rvalue)
-{
-  string raw;
-  if (!ReadString(raw)) return false;
-  return ExpandVariables(raw, rvalue);
 }
 
 bool ODqProjectFile::ReadPath(filesystem::path & rpath)

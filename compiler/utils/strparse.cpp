@@ -432,7 +432,7 @@ bool TStrParseObj::ReadQuotedString()
   return true;
 }
 
-bool TStrParseObj::ReadQuotedString(string & rvalue)
+bool TStrParseObj::ReadQuotedString(string & rvalue, const function<bool(string &)> & interpolation)
 {
   rvalue.clear();
   if ((readptr >= bufend) || ((*readptr != '"') && (*readptr != '\'')))
@@ -442,6 +442,7 @@ bool TStrParseObj::ReadQuotedString(string & rvalue)
 
   char * savedptr = readptr;
   char qchar = *readptr++;
+  char * content_start = readptr;
   prevptr = readptr;
 
   while (readptr < bufend)
@@ -449,6 +450,7 @@ bool TStrParseObj::ReadQuotedString(string & rvalue)
     char c = *readptr++;
     if (c == qchar)
     {
+      prevptr = content_start;
       prevlen = (readptr - 1) - prevptr;
       return true;
     }
@@ -471,7 +473,13 @@ bool TStrParseObj::ReadQuotedString(string & rvalue)
       break;
     }
     c = *readptr++;
-    if      (c == 'n')  rvalue.push_back('\n');
+    if (c == '{' && interpolation)
+    {
+      string value;
+      if (!interpolation(value)) return false;
+      rvalue += value;
+    }
+    else if (c == 'n')  rvalue.push_back('\n');
     else if (c == 'r')  rvalue.push_back('\r');
     else if (c == 't')  rvalue.push_back('\t');
     else if (c == '\\') rvalue.push_back('\\');

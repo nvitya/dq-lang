@@ -62,8 +62,7 @@ public:
   bool RequireInlineSpaceResult(const string & expected);
   bool FinishStatement();
   bool ReadIdentifier(string & rvalue, const string & what);
-  bool ReadString(string & rvalue);
-  bool ExpandVariables(const string & value, string & rvalue);
+  bool ReadVariableReference(string & rvalue);
   bool ReadExpandedString(string & rvalue);
   bool ReadPath(filesystem::path & rpath);
   bool ReadBool(bool & rvalue);

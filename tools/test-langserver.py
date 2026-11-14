@@ -40,7 +40,7 @@ def run(compiler, mode='roots'):
             else:
                 project_text += "pkg = 'lib:../wrong'\n"
                 arguments = ['--pkg=lib:../physical']
-            project_text += "var LIB=PackagePath('lib')\ninclude '${LIB}/settings.dqproj'\n"
+            project_text += "var LIB=PackagePath('lib')\ninclude '\\{LIB}/settings.dqproj'\n"
         project.write_text(project_text)
         main = (workspace / 'main.dq').as_uri()
         alias = (workspace / 'lib/nested/editor.dq').as_uri()

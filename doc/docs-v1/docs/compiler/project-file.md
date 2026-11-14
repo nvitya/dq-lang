@@ -26,10 +26,10 @@ directory's `.dqbuild` directory, independently of the `main` source location.
 packagepath = 'packages'
 var BOARD_SUPPORT = PackagePath('board_support')
 
-include '${BOARD_SUPPORT}/project/stm32f746.dqproj'
+include '\{BOARD_SUPPORT}/project/stm32f746.dqproj'
 
 main      = 'src/application.dq'
-output    = 'build/${PROJECT_NAME}.elf'
+output    = 'build/\{PROJECT_NAME}.elf'
 target    = 'arm_m7f-bare'
 cpu_features = '+no-movt'
 compiler_runtime = 'libgcc'
@@ -42,7 +42,7 @@ lto       = false
 define BOARD_NUCLEO_F746
 define CPU_CLOCK_HZ = 216000000
 
-linkobject = '${BOARD_SUPPORT}/lib/startup.o'
+linkobject = '\{BOARD_SUPPORT}/lib/startup.o'
 linkoption = '--gc-sections'
 ```
 
@@ -63,8 +63,8 @@ An included fragment might contain the shared target and linker configuration:
 ```text
 // board_support/project/stm32f746.dqproj
 
-linkerpath = '${THIS_DIR}/../lib'
-linkscript = '${THIS_DIR}/../ld/stm32f746.ld'
+linkerpath = '\{THIS_DIR}/../lib'
+linkscript = '\{THIS_DIR}/../ld/stm32f746.ld'
 ```
 
 ## Lexical Rules
@@ -299,30 +299,31 @@ quoted path string or the result of `PackagePath()`:
 var SOURCE_DIR = 'src'
 var SDK = PackagePath('sdk')
 
-main = '${SOURCE_DIR}/main.dq'
-include '${SDK}/project/common.dqproj'
+main = '\{SOURCE_DIR}/main.dq'
+include '\{SDK}/project/common.dqproj'
 ```
 
 A relative quoted value is resolved against the directory of the file that
 declares the variable. Consequently, it keeps the same meaning when it is used
 later from a different included file.
 
-Variable references use only the explicit `${NAME}` form. Expansion is
+Variable references use only the explicit `\{NAME}` form. Expansion is
 performed inside all quoted project values, including path properties,
 `target`, `linkoption`, include paths, and `PackagePath()` arguments.
 
 Variable names are case-sensitive, must be declared before use, and are shared
 through includes. A variable cannot be declared more than once. User variables
-also cannot redefine either built-in variable:
+also cannot redefine a built-in variable:
 
 | Variable | Meaning |
 | --- | --- |
-| `${PROJECT_NAME}` | Name of the top level `.dqproj` file, without extension |
-| `${PROJECT_DIR}` | Directory containing the top-level `.dqproj` file. |
-| `${THIS_DIR}` | Directory containing the file with the current statement. |
+| `\{PROJECT_NAME}` | Name of the top level `.dqproj` file, without extension |
+| `\{PROJECT_DIR}` | Directory containing the top-level `.dqproj` file. |
+| `\{THIS_DIR}` | Directory containing the file with the current statement. |
 
 The project language does not expand environment variables, `~`, `$NAME`, or
-`%NAME%`. A dollar sign has no special meaning unless it starts `${NAME}`.
+`%NAME%`. Dollar signs have no special meaning. Write `\\{NAME}` to insert literal
+`\{NAME}` text without expanding a variable.
 
 ## Package Lookup
 
@@ -357,7 +358,7 @@ An include inserts another `.dqproj` file at the point of the statement:
 
 ```text
 include 'common.dqproj'
-include '${SDK}/project/board.dqproj'
+include '\{SDK}/project/board.dqproj'
 ```
 
 The path is expanded and resolved relative to the including file. Included

@@ -1,9 +1,9 @@
 //?exitcode(0)
 packagepath = 'packages'
 var TEST_PACKAGE = PackagePath('projectpkg')
-include '${TEST_PACKAGE}/project/common.dqproj'
+include '\{TEST_PACKAGE}/project/common.dqproj'
 main = 'project_main.dq'
-build_tag = '${PROJECT_NAME}'
+build_tag = '\{PROJECT_NAME}'
 build_suffix = 'debug'
 link = true
 define PROJECT_BOOL

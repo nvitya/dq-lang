@@ -5051,7 +5051,7 @@ OExpr * ODqCompParserExpr::ParseBuiltinFirstConst(const string & intrinsic_name,
     OExpr * result = nullptr;
     if (auto * int_value = dynamic_cast<OValueInt *>(value))
     {
-      result = new OIntLit(int_value->value);
+      result = new OIntLit(int_value->value, result_type);
     }
     else if (auto * float_value = dynamic_cast<OValueFloat *>(value))
     {
@@ -5363,6 +5363,7 @@ OExpr * ODqCompParserExpr::ParseDqProperty(OScPosition position)
 OType * ODqCompParserExpr::FirstConstResultType(const string & intrinsic_name) const
 {
   if ("FirstInt" == intrinsic_name)    return g_builtins->type_int;
+  if ("FirstUint" == intrinsic_name)   return g_builtins->type_uint;
   if ("FirstFloat" == intrinsic_name)  return g_builtins->type_float;
   if ("FirstBool" == intrinsic_name)   return g_builtins->type_bool;
   return nullptr;

@@ -109,8 +109,8 @@ The group does not create another scope. Later constants can use earlier ones.
 Restricted `?` inference follows the variable rules and does not remove the
 constant-expression requirement; a grouped `const(Type)` header cannot use `?`.
 
-`FirstInt`, `FirstFloat`, and `FirstBool` provide optional constant fallbacks;
-see [Compiler Directives](190-compiler-directives.md#optional-constants).
+`FirstInt`, `FirstUint`, `FirstFloat`, and `FirstBool` provide optional constant
+fallbacks; see [Compiler Directives](190-compiler-directives.md#optional-constants).
 
 ## Lexical Scope and Declaration Order
 

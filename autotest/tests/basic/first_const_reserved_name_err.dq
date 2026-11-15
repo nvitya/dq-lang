@@ -2,5 +2,9 @@ func FirstInt(value : int) -> int: //?error(IntrinsicNameReserved)
     result = value
 endfunc
 
+func FirstUint(value : uint) -> uint: //?error(IntrinsicNameReserved)
+    result = value
+endfunc
+
 func *Main():
 endfunc

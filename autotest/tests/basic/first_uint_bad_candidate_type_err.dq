@@ -1,0 +1,5 @@
+const BOOL_VALUE : bool = true
+const SELECTED : uint = FirstUint(BOOL_VALUE, 0) //?error(TypeMismatchAssign), error(ExprWrongValue)
+
+func *Main():
+endfunc

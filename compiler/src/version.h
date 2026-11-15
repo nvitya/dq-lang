@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.17"
+#define DQ_COMPILER_VERSION  "0.96.18"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.18:
+  - FirstUint() selects the first available constant as uint, with a required fallback
 v0.96.17:
   - Directives with braces: `#{directive ... }` support multi-line expressions
   - VSCode extension: language server follows the configured default build task

@@ -285,12 +285,13 @@ does not permit you to read the variable before assigning a value.
 
 ## Optional Constants
 
-`FirstInt`, `FirstFloat`, and `FirstBool` select the first available constant
-from optional names, with a required fallback at the end. This is useful for
-settings that a board or build configuration may supply:
+`FirstInt`, `FirstUint`, `FirstFloat`, and `FirstBool` select the first available
+constant from optional names, with a required fallback at the end. This is useful
+for settings that a board or build configuration may supply:
 
 ```dq
 const BUFFER_SIZE : int = FirstInt(BOARD_BUFFER_SIZE, DEFAULT_BUFFER_SIZE, 256)
+const CLOCK_HZ : uint = FirstUint(BOARD_CLOCK_HZ, DEFAULT_CLOCK_HZ, 8000000)
 const SCALE : float = FirstFloat(BOARD_SCALE, 1)
 const LOGGING : bool = FirstBool(BOARD_LOGGING, false)
 ```
@@ -300,8 +301,8 @@ be a constant convertible to the required type. A variable or an incompatible
 constant is an error, rather than a reason to try the next name. The fallback
 must be valid even when it is not selected.
 
-The results are `int`, `float`, and `bool`, respectively. These expressions
-always run during compilation and can be used in ordinary expressions or
+The results are `int`, `uint`, `float`, and `bool`, respectively. These
+expressions always run during compilation and can be used in ordinary expressions or
 conditional directives. Optional candidates must be bare names, such as
 `BOARD_SCALE`, rather than qualified names or arbitrary expressions.
 

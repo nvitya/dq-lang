@@ -1,4 +1,4 @@
-// FirstInt, FirstFloat, and FirstBool compile-time intrinsic tests
+// FirstInt, FirstUint, FirstFloat, and FirstBool compile-time intrinsic tests
 
 #define DEFINE_ONLY_VALUE = 77
 
@@ -20,6 +20,19 @@ const DEFINE_FALLBACK : int = FirstInt(MISSING_INT, @def.DEFINE_ONLY_VALUE)
 const NESTED_FALLBACK : int = FirstInt(MISSING_INT, FirstInt(ALSO_MISSING_INT, 6))
 const FORWARD_FALLBACK : int = FirstInt(LATER_INT, 8)
 const LATER_INT : int = 9
+
+const ROOT_UINT : uint = 4000000000
+const ROOT_UINT_MAX : uint = ~0
+const ROOT_UINT_ZERO : uint = 0
+const SELECTED_UINT : uint = FirstUint(MISSING_UINT, ROOT_UINT, ROOT_UINT_MAX, 0)
+const FALLBACK_UINT : uint = FirstUint(MISSING_UINT_A, MISSING_UINT_B, 40 + 2)
+const CONVERTED_UINT : uint = FirstUint(MISSING_UINT, ROOT_SMALL, 0)
+const DEFINE_UINT : uint = FirstUint(DEFINE_ONLY_VALUE, 0)
+const NESTED_UINT : uint = FirstUint(MISSING_UINT, FirstUint(ALSO_MISSING_UINT, 6))
+const ZERO_UINT : uint = FirstUint(ROOT_UINT_ZERO, ROOT_UINT, 99)
+const MAX_UINT : bool = FirstUint(ROOT_UINT_MAX, 0) == ROOT_UINT_MAX
+const UNSIGNED_COMPARE : bool = FirstUint(ROOT_UINT_MAX, 0) > FirstUint(MISSING_UINT, 0)
+const UNSIGNED_FALLBACK : bool = FirstUint(MISSING_UINT, ROOT_UINT_MAX) > FirstUint(MISSING_UINT, 0)
 
 const SELECTED_FLOAT : float = FirstFloat(MISSING_FLOAT, ROOT_FLOAT, 2)
 const INTEGER_TO_FLOAT : float = FirstFloat(MISSING_FLOAT, ROOT_SMALL, 2)
@@ -65,6 +78,16 @@ func *Main():
     printf("definition fallback = %d\n", DEFINE_FALLBACK)     //?check("definition fallback", 77)
     printf("nested fallback = %d\n", NESTED_FALLBACK)         //?check("nested fallback", 6)
     printf("forward fallback = %d\n", FORWARD_FALLBACK)       //?check("forward fallback", 8)
+    printf("selected uint = %u\n", SELECTED_UINT)            //?check("selected uint", 4000000000)
+    printf("fallback uint = %u\n", FALLBACK_UINT)            //?check("fallback uint", 42)
+    printf("converted uint = %u\n", CONVERTED_UINT)          //?check("converted uint", 7)
+    printf("definition uint = %u\n", DEFINE_UINT)            //?check("definition uint", 77)
+    printf("nested uint = %u\n", NESTED_UINT)                //?check("nested uint", 6)
+    printf("zero uint = %u\n", ZERO_UINT)                    //?check("zero uint", 0)
+    printf("max uint = %d\n", iif(MAX_UINT, 1, 0))           //?check("max uint", 1)
+    printf("unsigned compare = %d\n", iif(UNSIGNED_COMPARE, 1, 0)) //?check("unsigned compare", 1)
+    printf("unsigned fallback = %d\n", iif(UNSIGNED_FALLBACK, 1, 0)) //?check("unsigned fallback", 1)
+    printf("uint result type = %s\n", TypeName(FirstUint(MISSING_UINT, 0))) //?check("uint result type", "uint")
     printf("selected float = %.2f\n", SELECTED_FLOAT)         //?check("selected float", 1.50)
     printf("integer to float = %.2f\n", INTEGER_TO_FLOAT)     //?check("integer to float", 7.00)
     printf("fallback float = %.2f\n", FALLBACK_FLOAT)         //?check("fallback float", 2.75)

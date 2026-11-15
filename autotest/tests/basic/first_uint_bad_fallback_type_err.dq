@@ -1,0 +1,5 @@
+const UINT_VALUE : uint = 42
+const SELECTED : uint = FirstUint(UINT_VALUE, false) //?error(TypeMismatchAssign), error(ExprWrongValue)
+
+func *Main():
+endfunc

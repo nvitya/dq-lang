@@ -251,9 +251,8 @@ repeat_skip:  // jumped here when returning from an include
 
   while (curp < bufend)
   {
-    // Directive expressions share comment handling with ordinary code, but
-    // must stop at the line ending instead of consuming the following code.
-    SkipSpaces(!directive_expr_mode);
+    // Only line-form directive expressions stop at the physical line ending.
+    SkipSpaces(!directive_expr_mode || preproc_closer_brace);
 
     // Comments are whitespace.  Keep the end line of the last real token so
     // statement-boundary checks can still see newlines crossed by a comment.
@@ -582,7 +581,7 @@ void OScFeederDq::ParseDirective()
   if (CheckSymbol("{"))
   {
     preproc_closer_brace = true;
-    SkipSpaces(false);
+    SkipSpaces();
   }
   else
   {
@@ -605,17 +604,7 @@ void OScFeederDq::ParseDirective()
   else if (inactive_code)
   {
     // ignore the directives in the inactive code
-    if ("error" == sid || "warning" == sid || "include" == sid)
-    {
-      // Consume the literal without evaluating interpolations, including in #{...}.
-      SetDirectiveExprMode(true);
-      SkipWhite();
-      string ignored;
-      ReadQuotedString(ignored);
-      SkipWhite();
-      SetDirectiveExprMode(false);
-    }
-    if (not FindDirectiveEnd())
+    if (not FindDirectiveEnd(true))
     {
       return;
     }
@@ -993,6 +982,7 @@ bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a cond
   string nsname;
   bool condok = false;
   bool condval = false;
+  bool skip_body = false;
 
   // starters
 
@@ -1033,6 +1023,10 @@ bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a cond
     {
       condval = g_compiler->ParseDefineCondition(scpos_start_directive, &condok);
       ApplyConditionalResult(condok and condval);
+    }
+    else
+    {
+      skip_body = true;
     }
 
     if (g_opt.verblevel >= VERBLEVEL_DEBUG)
@@ -1142,6 +1136,10 @@ bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a cond
       condval = g_compiler->ParseDefineCondition(scpos_start_directive, &condok);
       ApplyConditionalResult(condok and condval);
     }
+    else
+    {
+      skip_body = true;
+    }
 
     if (g_opt.verblevel >= VERBLEVEL_DEBUG)
     {
@@ -1153,17 +1151,39 @@ bool OScFeederDq::CheckConditionals(const string aid)  // returns true if a cond
     return false;
   }
 
-  FindDirectiveEnd();
+  FindDirectiveEnd(skip_body);
   return true;
 }
 
-bool OScFeederDq::FindDirectiveEnd()
+bool OScFeederDq::FindDirectiveEnd(bool askipbody)
 {
   // the #[{]id is already consumed, find the end
 
+  if (preproc_closer_brace || askipbody)
+  {
+    SetDirectiveExprMode(true);
+    SkipWhite();
+    // Inactive expressions must not resolve names. Ignore closers inside
+    // strings and comments while finding the directive's actual end.
+    string ignored;
+    while (askipbody && curp < bufend)
+    {
+      if (preproc_closer_brace ? *curp == '}' : (*curp == '\r' || *curp == '\n'))
+      {
+        break;
+      }
+      if (!ReadQuotedString(ignored))
+      {
+        ++curp;
+        RecalcCurCol();
+      }
+      SkipWhite();
+    }
+    SetDirectiveExprMode(false);
+  }
+
   if (preproc_closer_brace)
   {
-    SkipSpaces();
     if (not CheckSymbol("}"))
     {
       PreprocError2(DQERR_CDIR_CLOSER_MISSING);

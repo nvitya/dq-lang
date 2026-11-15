@@ -308,11 +308,18 @@ conditional directives. Optional candidates must be bare names, such as
 ## Directive Forms
 
 An ordinary directive starts with `#` and ends at the physical line ending.
-For a directive embedded inside a source line, use `#{...}`:
+Use `#{...}` to embed a directive inside a source line or to span multiple
+lines. The closing `}` ends the directive:
 
 ```dq
 #define FAST
 var value : int = #{ifdef FAST} 1 #{else} 2 #{endif}
+
+#{if Defined(MCU_STM32G474) or Defined(MCU_STM32G473)
+     or Defined(MCU_STM32G474RE)
+}
+    const HAS_G4 : bool = true
+#endif
 ```
 
 Directives accept `//` and `/* ... */` comments. A line comment does not extend

@@ -103,7 +103,7 @@ protected:
   void ParseDirectiveSourceDependency();
   void ParseDirectiveDefine();
   void ParseDirectiveLinkLib();
-  bool FindDirectiveEnd();
+  bool FindDirectiveEnd(bool askipbody = false);
 
   void StartConditionalBranch();
   void ApplyConditionalResult(bool acondition_true);

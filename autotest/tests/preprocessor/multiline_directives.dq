@@ -1,0 +1,73 @@
+#{define LEVEL : int =
+    2 + // comments may contain } and #{endif}
+    1
+}
+
+#{if
+    Defined(LEVEL)
+    and (LEVEL == 3 or
+         LEVEL == 4) /* } */
+}
+    const IF_BRANCH : int = 11
+#{elif MISSING_VALUE == "}" // skipped without resolving names or strings
+    or ANOTHER_MISSING_VALUE
+}
+    const IF_BRANCH : int = 0
+#{else}
+    const IF_BRANCH : int = 0
+#{endif}
+
+#if false
+    const ELIF_BRANCH : int = 0
+#{elif LEVEL < 0
+    or LEVEL == 3 // } in a comment does not close the directive
+}
+    const ELIF_BRANCH : int = 12
+#else
+    const ELIF_BRANCH : int = 0
+#endif
+
+#if false
+    #{if MISSING_VALUE == "}" /* } */
+        or ANOTHER_MISSING_VALUE // } #{endif}
+    }
+        #error "inactive"
+    #{elif MISSING_VALUE == '}'}
+        #error "inactive"
+    #{endif}
+    #{define IGNORED = "}" /* } */
+        + MISSING_VALUE
+    }
+    #{include
+        "./missing_}.dqi"
+    }
+    #{error
+        "inactive } \\{MISSING_VALUE}"
+    }
+#endif
+
+// Skipped line-form messages can still contain multiline string literals.
+#if false
+    #error """
+        #{endif} and } are literal text
+        """
+#endif
+
+// A braced directive must also consume trailing comments before its closer.
+#{ifdef LEVEL // }
+}
+    const EXISTS_BRANCH : int = 13
+#{endif /* } */
+}
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+func *Main():
+    var inline_branch : int = #{if LEVEL ==
+        3} 14 #{elif MISSING_VALUE == "}"} 0 #{else} 0 #{endif}
+
+    printf("if = %d\n", IF_BRANCH) //?check("if", 11)
+    printf("elif = %d\n", ELIF_BRANCH) //?check("elif", 12)
+    printf("exists = %d\n", EXISTS_BRANCH) //?check("exists", 13)
+    printf("inline = %d\n", inline_branch) //?check("inline", 14)
+endfunc

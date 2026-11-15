@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.16"
+#define DQ_COMPILER_VERSION  "0.96.17"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.17:
+  - Directives with braces: `#{directive ... }` support multi-line expressions
 v0.96.16:
   - Project file strings use `\{NAME}` for variable interpolation instead of `${NAME}`
 v0.96.15:

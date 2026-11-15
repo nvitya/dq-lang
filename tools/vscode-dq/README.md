@@ -21,8 +21,21 @@ Rainbow bracket coloring is limited to `(` and `)`. Square brackets still match 
 
 ## Language server
 
-The extension detects a folder's project automatically when it contains one
-`.dqproj` file. With several projects, click the **DQ** project name in the
+The extension follows each folder's **default build task** when it directly runs
+`dq-comp` with a `.dqproj` file. Changing the default task switches the language
+server to that project, including its target, defines and package mappings.
+The task does not need to run first. Mark the task with
+`"group": { "kind": "build", "isDefault": true }` in `.vscode/tasks.json`.
+Both `"command": "dq-comp board.dqproj"` and separate `command`/`args` forms
+are supported, including quoted paths, `options.cwd`, `${workspaceFolder}` and
+`${workspaceFolder:name}`. The language server reads settings from the project;
+task-only compiler flags still belong in `dq.languageServerArgs`.
+
+Explicit `dq.languageServerProject` / `dq.languageServerProjects` selections
+take precedence over the default task. Otherwise, if no suitable default task
+exists, the extension detects a folder's project when it contains one
+`.dqproj` file. For tasks that use scripts, input variables, or indirect builds
+such as `make`, click the **DQ** project name in the
 status bar or run **DQ: Select Active Project**. The picker lists projects
 across the workspace, so it also works while editing a library.
 

@@ -23,14 +23,14 @@ class LanguageServers {
   }
 
   start() {
-    const watcher = vscode.workspace.createFileSystemWatcher("**/*.dqproj");
+    const watcher = vscode.workspace.createFileSystemWatcher("**/{*.dqproj,.vscode/tasks.json}");
     this.context.subscriptions.push(
       watcher,
       watcher.onDidCreate(() => this.scheduleRefresh(true)),
       watcher.onDidDelete(() => this.scheduleRefresh(true)),
       watcher.onDidChange(() => this.scheduleRefresh(true)),
       vscode.workspace.onDidChangeConfiguration(event => {
-        if (event.affectsConfiguration("dq")) this.scheduleRefresh(true);
+        if (event.affectsConfiguration("dq") || event.affectsConfiguration("tasks")) this.scheduleRefresh(true);
       }),
       vscode.workspace.onDidChangeWorkspaceFolders(() => this.scheduleRefresh(true)),
       vscode.workspace.onDidOpenTextDocument(() => this.scheduleRefresh()),
@@ -58,6 +58,7 @@ class LanguageServers {
 
   async discoverProjects() {
     this.projectFiles = await vscode.workspace.findFiles("**/*.dqproj", projectExcludes);
+    const tasks = await vscode.tasks.fetchTasks();
     this.projects.clear();
     const configured = vscode.workspace.getConfiguration("dq").get("languageServerProjects", {});
     for (const folder of vscode.workspace.workspaceFolders ?? []) {
@@ -67,6 +68,11 @@ class LanguageServers {
       let filename = typeof mapped === "string" && mapped.trim()
         ? mapped.trim() : configuration.get("languageServerProject", "").trim();
       if (!filename) {
+        const defaults = tasks.filter(task => task.group?.id === vscode.TaskGroup.Build.id && task.group.isDefault)
+          .map(task => this.taskProject(task, folder)).filter(Boolean);
+        if (defaults.length === 1) filename = defaults[0];
+      }
+      if (!filename) {
         const files = this.projectFiles.filter(uri =>
           vscode.workspace.getWorkspaceFolder(uri)?.uri.toString() === key);
         if (files.length === 1) filename = files[0].fsPath;
@@ -75,6 +81,41 @@ class LanguageServers {
         this.projects.set(key, { folder, filename: path.resolve(folder.uri.fsPath, filename) });
       }
     }
+  }
+
+  taskProject(task, folder) {
+    if (task.scope?.uri && task.scope.uri.toString() !== folder.uri.toString()) return;
+    const execution = task.execution;
+    if (!execution) return;
+    const value = argument => typeof argument === "string" ? argument : argument?.value;
+    let command = value(execution.command ?? execution.process);
+    let args = execution.args?.map(value) ?? [];
+    // Existing shell tasks often put the entire invocation in "command".
+    // Recognize direct compiler invocations without interpreting shell scripts.
+    if (execution.commandLine || (command && !/^dq-comp(?:\.exe)?$/i.test(path.basename(command)))) {
+      const line = execution.commandLine ?? command;
+      const word = /(?:[^\s"';&|<>`]+|"[^"]*"|'[^']*')+/g;
+      if (line.replace(word, "").trim()) return;
+      const words = (line.match(word) ?? []).map(text => text.replace(/"([^"]*)"|'([^']*)'/g,
+        (_, double, single) => double ?? single));
+      command = words.shift();
+      args = [...words, ...args];
+    }
+    if (!command || !/^dq-comp(?:\.exe)?$/i.test(path.basename(command))) return;
+    const projects = args.filter((argument, index) => typeof argument === "string"
+      && !argument.startsWith("-") && args[index - 1] !== "-o" && /\.dqproj$/i.test(argument));
+    if (projects.length !== 1) return;
+    const expand = text => text.replace(/\$\{workspaceFolder(?::([^}]+))?\}/g, (match, name) =>
+      (name ? vscode.workspace.workspaceFolders?.find(candidate => candidate.name === name) : folder)?.uri.fsPath ?? match);
+    const project = expand(projects[0]);
+    const cwd = expand(execution.options?.cwd ?? folder.uri.fsPath);
+    // Input/command variables require running VS Code commands. Leave those
+    // tasks to explicit project selection instead of guessing their values.
+    if (/\$/.test(project) || /\$/.test(cwd)) return;
+    const filename = path.resolve(folder.uri.fsPath, cwd, project);
+    if (!task.scope?.uri
+        && vscode.workspace.getWorkspaceFolder(vscode.Uri.file(filename))?.uri.toString() !== folder.uri.toString()) return;
+    return filename;
   }
 
   activateEditorProject(editor) {

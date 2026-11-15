@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------------
 v0.96.17:
   - Directives with braces: `#{directive ... }` support multi-line expressions
+  - VSCode extension: language server follows the configured default build task
 v0.96.16:
   - Project file strings use `\{NAME}` for variable interpolation instead of `${NAME}`
 v0.96.15:

@@ -20,6 +20,9 @@ function fixture(options = {}) {
   const status = { show() { this.visible = true; }, hide() { this.visible = false; }, dispose() {} };
   const vscode = {
     Uri: { file: uri }, StatusBarAlignment: { Left: 1 }, ConfigurationTarget: { Workspace: 2 },
+    TaskGroup: { Build: { id: 'build' } },
+    tasks: { fetchTasks: async () => (options.tasks ?? []).map(task => ({ ...task,
+      scope: folders.find(folder => folder.uri.fsPath === task.folder) ?? task.scope })) },
     RelativePattern: class { constructor(baseUri, pattern) { this.baseUri = baseUri; this.pattern = pattern; } },
     workspace: {
       workspaceFolders: folders, textDocuments: [],
@@ -101,6 +104,83 @@ test('single-project folders are detected automatically without settings writes'
   assert.equal(f.clientFor('/ws/vihal/pins.dq'), f.clientFor('/ws/blink/main.dq'));
   assert.ok(f.clientFor('/ws/blink/main.dq').server.args.includes('/ws/blink/only.dqproj'));
   assert.equal(f.updates.length, 0);
+});
+
+test('default build task selects its project and updates application and library context', async t => {
+  const tasks = [
+    { folder: '/ws/blink', group: { id: 'build', isDefault: true },
+      execution: { command: 'dq-comp blinkled_min_f103.dqproj' } },
+    { folder: '/ws/blink', group: { id: 'build', isDefault: false },
+      execution: { command: 'dq-comp blinkled_nucleo_f746.dqproj' } }
+  ];
+  const f = fixture({ global: {}, tasks,
+    files: ['/ws/blink/blinkled_min_f103.dqproj', '/ws/blink/blinkled_nucleo_f746.dqproj'] });
+  t.after(() => f.manager.stop());
+  await f.focus('/ws/blink/main.dq'); await f.manager.start();
+  const oldClient = f.clientFor('/ws/blink/main.dq');
+  assert.ok(oldClient.server.args.includes('/ws/blink/blinkled_min_f103.dqproj'));
+  assert.equal(f.clientFor('/ws/vihal/pins.dq'), oldClient);
+  tasks[0].group.isDefault = false;
+  tasks[1].group.isDefault = true;
+  f.events.get('project')(); await f.manager.pending;
+  const client = f.clientFor('/ws/blink/main.dq');
+  assert.equal(oldClient.running, false);
+  assert.ok(client.server.args.includes('/ws/blink/blinkled_nucleo_f746.dqproj'));
+  assert.equal(f.clientFor('/ws/vihal/pins.dq'), client);
+  assert.equal(f.updates.length, 0);
+  assert.deepEqual(f.errors, []);
+});
+
+test('default tasks resolve quoted commands, structured arguments, cwd and workspace folders', async t => {
+  const cases = [
+    { commandLine: '"/opt/dq tools/dq-comp" "${workspaceFolder}/boards/min f103.dqproj"' },
+    { command: { value: '/opt/dq tools/dq-comp' }, args: [{ value: 'min f103.dqproj' }],
+      options: { cwd: '${workspaceFolder}/boards' } },
+    { process: 'dq-comp', args: ['-o', 'ignored.dqproj', '${workspaceFolder:blink}/boards/min f103.dqproj'] }
+  ];
+  for (const execution of cases) {
+    const f = fixture({ global: {}, tasks: [{ folder: '/ws/blink', execution,
+      group: { id: 'build', isDefault: true } }] });
+    t.after(() => f.manager.stop()); await f.manager.start();
+    assert.ok(f.clientFor('/ws/blink/main.dq').server.args.includes('/ws/blink/boards/min f103.dqproj'));
+    assert.deepEqual(f.errors, []);
+  }
+});
+
+test('workspace default task routes to its named application folder only', async t => {
+  const f = fixture({ global: {}, tasks: [{ scope: 2, group: { id: 'build', isDefault: true },
+    execution: { process: 'dq-comp', args: ['${workspaceFolder:uart}/board.dqproj'] } }] });
+  t.after(() => f.manager.stop()); await f.manager.start();
+  assert.equal(f.manager.projects.size, 1);
+  assert.ok(f.clientFor('/ws/uart/main.dq').server.args.includes('/ws/uart/board.dqproj'));
+  assert.equal(f.clientFor('/ws/vihal/pins.dq'), f.clientFor('/ws/uart/main.dq'));
+});
+
+test('explicit project selection overrides the default task', async t => {
+  const f = fixture({ tasks: [{ folder: '/ws/blink', group: { id: 'build', isDefault: true },
+    execution: { command: 'dq-comp other.dqproj' } }] });
+  t.after(() => f.manager.stop()); await f.manager.start();
+  assert.ok(f.clientFor('/ws/blink/main.dq').server.args.includes('/ws/blink/blink.dqproj'));
+});
+
+test('unsupported or ambiguous default tasks fall back to project discovery', async t => {
+  const commands = [
+    'make', 'echo app.dqproj', 'dq-comp a.dqproj && dq-comp b.dqproj',
+    'dq-comp "${input:project}.dqproj"', 'dq-comp -o ignored.dqproj main.dq'
+  ];
+  for (const command of commands) {
+    const f = fixture({ global: {}, files: ['/ws/blink/only.dqproj'], tasks: [
+      { folder: '/ws/blink', group: { id: 'build', isDefault: true }, execution: { commandLine: command } }
+    ] });
+    t.after(() => f.manager.stop()); await f.manager.start();
+    assert.ok(f.clientFor('/ws/blink/main.dq').server.args.includes('/ws/blink/only.dqproj'));
+    assert.deepEqual(f.errors, []);
+  }
+  const f = fixture({ global: {}, files: ['/ws/blink/only.dqproj'], tasks: ['a', 'b'].map(name => ({
+    folder: '/ws/blink', group: { id: 'build', isDefault: true }, execution: { commandLine: `dq-comp ${name}.dqproj` }
+  })) });
+  t.after(() => f.manager.stop()); await f.manager.start();
+  assert.ok(f.clientFor('/ws/blink/main.dq').server.args.includes('/ws/blink/only.dqproj'));
 });
 
 test('picker works from a library and persists the selected application', async t => {

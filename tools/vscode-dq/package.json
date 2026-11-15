@@ -2,7 +2,7 @@
   "name": "dq-syntax",
   "displayName": "DQ Language Support",
   "description": "DQ editing, language-server, build, and debug support.",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "publisher": "local",
   "license": "UNLICENSED",
   "scripts": {
@@ -93,7 +93,7 @@
           "type": "string",
           "default": "",
           "scope": "resource",
-          "description": "Active .dqproj file for this workspace folder. Relative paths use the workspace folder. A single project is detected automatically; library folders follow the active application project."
+          "description": "Explicit .dqproj file for this workspace folder. Otherwise follow the default dq-comp build task, then detect a single project. Relative paths use the workspace folder; library folders follow the active application project."
         },
         "dq.languageServerProjects": {
           "type": "object",

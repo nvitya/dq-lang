@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.18"
+#define DQ_COMPILER_VERSION  "0.96.19"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.96.19:
+  - Module import paths expand constant expressions anywhere: `use {HWIMPL_ROOT}/rk_utils`, `use hwimpl/uart_{VARIANT}`
 v0.96.18:
   - FirstUint() selects the first available constant as uint, with a required fallback
 v0.96.17:

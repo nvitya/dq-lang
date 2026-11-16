@@ -538,82 +538,84 @@ bool ODqCompParser::ParseUseModulePath(OModulePath & rpath)
 {
   string path_text;
   string sid;
+  bool path_started = false;
 
   scf->SkipWhite();
-  if (scf->CheckSymbol("{"))
+  // Expand expressions while collecting the path; validate only the final text.
+  while (true)
   {
-    OExpr * expr = ParseExpression();
-    if (!expr)
+    if (scf->CheckSymbol("{"))
     {
-      SkipToModuleStatementStart();
-      return false;
+      OExpr * expr = ParseExpression();
+      if (!expr)
+      {
+        SkipToModuleStatementStart();
+        return false;
+      }
+      OValueTextLiteral value(g_builtins->type_rostr);
+      bool valid = value.CalculateConstant(expr, false);
+      if (valid && value.literal.GetStringLiteral())
+      {
+        path_text += *value.literal.GetStringLiteral();
+      }
+      delete expr;
+      if (!valid)
+      {
+        RootStatementError(DQERR_CONSTEXPR_INVALID_FOR, "use module path");
+        return false;
+      }
+      scf->SkipWhite();
+      if (!scf->CheckSymbol("}"))
+      {
+        RootStatementError(DQERR_USE_PATH_CLOSE);
+        return false;
+      }
     }
-    OValueTextLiteral value(g_builtins->type_rostr);
-    bool valid = value.CalculateConstant(expr, false);
-    if (valid && value.literal.GetStringLiteral())
+    else if (scf->ReadIdentifier(sid))
     {
-      path_text = *value.literal.GetStringLiteral();
+      path_text += sid;
     }
-    delete expr;
-    if (!valid)
+    else if (scf->ReadDecimalNumbers())
     {
-      RootStatementError(DQERR_CONSTEXPR_INVALID_FOR, "use module path");
-      return false;
+      path_text += scf->PrevStr();
     }
-    scf->SkipWhite();
-    if (!scf->CheckSymbol("}"))
+    else if (scf->CheckSymbol("/"))
     {
-      RootStatementError(DQERR_USE_PATH_CLOSE);
-      return false;
+      path_text += "/";
     }
-  }
-  else
-  {
-    if (scf->CheckSymbol("^/"))
+    else if (scf->CheckSymbol("."))
     {
-      path_text = "^/";
+      path_text += ".";
+    }
+    else if (scf->CheckSymbol("^"))
+    {
+      path_text += "^";
     }
     else
     {
-      while (scf->CheckSymbol("../"))
-      {
-        path_text += "../";
-      }
-      if (path_text.empty() && scf->CheckSymbol("./"))
-      {
-        path_text = "./";
-      }
+      break;
     }
+    path_started = true;
 
-    if (!scf->ReadIdentifier(sid))
+    // A directive on the next line may depend on symbols imported by this use.
+    // Leave it for ParseModule(), after the module has populated the scope.
+    if (scf->LineEndsBeforeNextToken())
     {
-      RootStatementError(DQERR_ID_EXP_AFTER, "use");
-      return false;
+      break;
     }
-    path_text += sid;
-
-    while (true)
+    char * part_end = scf->curp;
+    scf->SkipWhite();
+    // Whitespace ends the path unless it precedes a separating slash.
+    if ((scf->curp != part_end) && !scf->CheckSymbol("/", false))
     {
-      // A directive on the next line may depend on symbols imported by this use.
-      // Leave it for ParseModule(), after the module has populated the scope.
-      if (scf->LineEndsBeforeNextToken())
-      {
-        break;
-      }
-      scf->SkipWhite();
-      if (!scf->CheckSymbol("/"))
-      {
-        break;
-      }
-
-      if (!scf->ReadIdentifier(sid))
-      {
-        RootStatementError(DQERR_ID_EXP_AFTER, "/");
-        return false;
-      }
-
-      path_text += "/" + sid;
+      break;
     }
+  }
+
+  if (!path_started)
+  {
+    RootStatementError(DQERR_ID_EXP_AFTER, "use");
+    return false;
   }
 
   string path_error;

@@ -53,7 +53,21 @@ For example, the project-selected `hwconfig` package can declare:
 const UART_MODULE : rostr = 'hwimpl/uart_a'
 ```
 
-The expanded value must be a complete module path, without a `.dq` extension.
+Expressions can appear anywhere in the path, including within a path segment.
+Each expression is evaluated as a constant string and inserted into the path
+before the complete result is validated:
+
+```dq
+const HWIMPL_ROOT : rostr = 'vihal/arma/rk/impl'
+const VARIANT : rostr = 'rk'
+use {HWIMPL_ROOT}/rk_utils
+use vihal/arma/{VARIANT}/impl/rk_utils as utils --
+use vihal/arma/rk/impl/hwuart_{VARIANT} as uart --
+```
+
+The expanded path must be a valid module path, without a `.dq` extension.
+Literal text and expression results are concatenated exactly; no separators
+are added or removed. Inserted text is not expanded again.
 Normal `use` modifiers, including `as`, `only`, `exclude`, and `reexport`, apply.
 Relative paths resolve from the importing module, not the constant's declaration.
 Runtime strings cannot select modules.

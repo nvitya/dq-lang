@@ -1,0 +1,39 @@
+//?compargs('--build-suffix', 'constant-use-partial', '--no-dynstrings', '--pkg-path', 'autotest/tests/modules/constant_use/packages')
+use libc/stdio
+use ./config/paths as cfg --
+use {@cfg.LOCAL_ROOT}/leaf
+#if VALUE <> 31
+  #error "The suffixed import must be visible to the following directive"
+#endif
+use {@cfg.LOCAL_ROOT}/config/paths as nested --
+use {@cfg.HWIMPL_ROOT}/uart_a as selected only(PLATFORM_VALUE)
+use {"hw" + "impl"}/uart_b as other --
+const IMPL : rostr = 'hwimpl'
+const VARIANT : rostr = 'a'
+use hwimpl/{'uart_' + VARIANT} as component --
+use hwimpl/uart_{VARIANT} as fragment --
+use {IMPL}/uart_{'b'} as multiple --
+use {'hw'}impl/uart_{''}{VARIANT} as adjacent --
+use ./{'config'}/paths as relative --
+use {'hwimpl/'}uart_b as separator --
+use {'.'}.{''}/constant_use/leaf as parent --
+use ./leaf_{'1'}31 as numeric --
+
+implementation
+
+use {@nested.HWIMPL_ROOT}/uart_b as private_impl --
+
+func *Main():
+    printf("local = %d\n", VALUE) //?check('local', 31)
+    printf("selected = %d\n", @selected.PLATFORM_VALUE) //?check('selected', 17)
+    printf("expression = %d\n", @other.PLATFORM_VALUE) //?check('expression', 29)
+    printf("private = %d\n", @private_impl.PLATFORM_VALUE) //?check('private', 29)
+    printf("component = %d\n", @component.PLATFORM_VALUE) //?check('component', 17)
+    printf("fragment = %d\n", @fragment.PLATFORM_VALUE) //?check('fragment', 17)
+    printf("multiple = %d\n", @multiple.PLATFORM_VALUE) //?check('multiple', 29)
+    printf("adjacent = %d\n", @adjacent.PLATFORM_VALUE) //?check('adjacent', 17)
+    printf("relative = %s\n", @relative.MODULE.pchar) //?check('relative', './leaf')
+    printf("separator = %d\n", @separator.PLATFORM_VALUE) //?check('separator', 29)
+    printf("parent = %d\n", @parent.VALUE) //?check('parent', 31)
+    printf("numeric = %d\n", @numeric.VALUE) //?check('numeric', 131)
+endfunc

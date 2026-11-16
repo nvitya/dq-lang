@@ -1,3 +1,5 @@
 //?notest
 // Relative to the importer, not this configuration file.
 const MODULE : rostr = './leaf'
+const LOCAL_ROOT : rostr = '.'
+const HWIMPL_ROOT : rostr = 'hwimpl'

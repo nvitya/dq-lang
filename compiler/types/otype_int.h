@@ -62,6 +62,7 @@ public:
   int64_t NormalizeConstant(uint64_t rawbits) const;
   int64_t ConvertConstant(int64_t value) const;
   bool ConvertFloatConstant(double d, int64_t & out) const;
+  OTypeInt * CalculationType(bool force_signed = false) const;
 
   LlType * CreateLlType() override
   {

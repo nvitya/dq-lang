@@ -433,7 +433,7 @@ bool ODqCompAst::HarmonizeNumericOperands(OExpr ** rleft, OExpr ** rright, bool 
     OTypeInt * intl = static_cast<OTypeInt *>(lefttype);
     OTypeInt * intr = static_cast<OTypeInt *>(righttype);
     OTypeInt * result_type = g_builtins->FindIntType(
-        max(intl->bitlength, intr->bitlength), force_signed || intl->issigned || intr->issigned);
+        max(intl->bitlength, intr->bitlength), force_signed || intl->issigned || intr->issigned)->CalculationType();
     if (lefttype != result_type)
     {
       left = new OExprTypeConv(result_type, left);
@@ -634,10 +634,15 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
     }
     if (BINOP_ISHL == op || BINOP_ISHR == op)
     {
-      // The shift count must not change the left operand's type or signedness.
-      if (right->ResolvedType() != left->ResolvedType())
+      // Promote the value independently: the count must not change its width or signedness.
+      OTypeInt * result_type = static_cast<OTypeInt *>(left->ResolvedType())->CalculationType();
+      if (left->ResolvedType() != result_type)
       {
-        newright = new OExprTypeConv(left->ptype, right);
+        newleft = new OExprTypeConv(result_type, left);
+      }
+      if (right->ResolvedType() != result_type)
+      {
+        newright = new OExprTypeConv(result_type, right);
       }
     }
     else

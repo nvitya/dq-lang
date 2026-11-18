@@ -1,0 +1,25 @@
+//?exitcode(0)
+
+use dqautotest
+
+var run <- OTestRun()
+
+func *Main():
+    var output : str = TempPath('.o')
+    run.RunCompiler([
+        '--target=arm_m0-bare', '--no-use-sys', '-O0', '-ir', '-c', '-o', output,
+        SourcePath('../target/integer_promotion.dq')
+    ])
+    run.ExpectExitCode(0)
+    if run.exitcode == 0:
+        run.ExpectOutputContains('zext i8')
+        run.ExpectOutputContains('shl i32')
+        run.ExpectOutputContains('or i32')
+        run.ExpectOutputContains('add i32')
+        run.ExpectOutputContains('add i64')
+        run.ExpectOutputNotContains('shl i8')
+        run.ExpectOutputNotContains('shl i64') // A wide count must not widen the shifted byte.
+        run.ExpectOutputNotContains('add i8')
+    endif
+    RemoveTemp(output)
+endfunc

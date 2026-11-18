@@ -23,6 +23,12 @@
 #include "scope_builtins.h"
 #include <cmath>
 
+OTypeInt * OTypeInt::CalculationType(bool force_signed) const
+{
+  return g_builtins->FindIntType(max(bitlength, g_builtins->native_int->bitlength),
+                                force_signed || issigned);
+}
+
 int64_t OTypeInt::NormalizeConstant(uint64_t rawbits) const
 {
   if (bitlength >= 64)

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.96.19"
+#define DQ_COMPILER_VERSION  "0.97.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.97.0:
+  - Integer expressions now calculate at least at native width (32 or 64 bits)
 v0.96.19:
   - Module import paths expand constant expressions anywhere: `use {HWIMPL_ROOT}/rk_utils`, `use hwimpl/uart_{VARIANT}`
 v0.96.18:

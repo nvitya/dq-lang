@@ -71,21 +71,22 @@ For ordinary numeric operations, DQ first converts operands to a common type:
 
 | Operand types | Common type |
 | --- | --- |
-| Two signed integers | Signed integer at the wider operand width. |
-| Two unsigned integers | Unsigned integer at the wider operand width. |
-| One signed and one unsigned integer | Signed integer at the wider operand width, regardless of operand order. |
+| Two signed integers | Signed integer at least as wide as both operands and the target's native `int`. |
+| Two unsigned integers | Unsigned integer at least as wide as both operands and the target's native `uint`. |
+| One signed and one unsigned integer | Signed integer at least as wide as both operands and the target's native `int`, regardless of operand order. |
 | One integer and one floating-point value | The floating-point operand's type. |
 | Two floating-point values | The wider floating-point type. |
 
 There are two arithmetic exceptions: integer subtraction always uses a signed
-result at the wider width, and `/` always returns floating point. Dividing two
-integers produces the target's default `float` type. Shifts have their own rule:
-the result keeps the left operand's integer type.
+result at the common calculation width, and `/` always returns floating point.
+Dividing two integers produces the target's default `float` type. Shifts have their own rule:
+the left operand is promoted to at least native width, preserving its signedness;
+the count does not affect the result type.
 
 ```dq
 var small : uint8 = 10
 var signed_value : int16 = -3
-var sum : int16 = small + signed_value  // 7; reversing the operands keeps int16
+var sum : int16 = small + signed_value  // 7; calculation uses native int, then stores int16
 var difference : int8 = small - uint8(12) // -2, although both operands are unsigned
 var ratio : float = 3 / 2               // 1.5
 ```
@@ -205,23 +206,29 @@ comparisons joined with `and` when the condition needs those forms.
 
 ## Integer Calculations
 
-DQ integer arithmetic uses fixed widths and has no overflow checks. The widest
-operand determines the calculation width. A whole-number literal has the normal
-`int` calculation type and can widen a mixed calculation:
+DQ integer expressions use fixed widths and have no overflow checks. Operands
+are extended to at least the target's native integer width before calculation:
+32 bits on 32-bit targets and 64 bits on 64-bit targets. Wider operands retain
+their width, so an `int64` calculation still uses 64 bits on a 32-bit target.
+Signed operands are sign-extended; unsigned operands are zero-extended.
+A whole-number literal has the normal `int` calculation type.
 
 ```dq
 var left : uint8 = 250
 var right : uint8 = 10
-var narrow_sum : int = left + right // 4: the calculation uses eight bits
-var wide_sum : int = left + 10     // 260: the literal makes this an int calculation
-left = left + 10                   // 4: storing into uint8 keeps the low bits
+var sum : int = left + right // 260: both bytes are extended before addition
+var literal_sum : int = left + 10 // 260: no type hint is needed
+left = left + 10             // 4: storing into uint8 keeps the low bits
+
+var rxbuf : [2]byte = [0xFF, 0x04]
+var word : uint16 = (rxbuf[0] << 8) | rxbuf[1] // 0xFF04
 ```
 
 The destination does not widen a calculation retroactively. Signed narrowing
 interprets the retained bits as a two's-complement value. The same rules apply
 to compile-time and runtime expressions.
 
-Subtraction always produces a signed result at the widest operand width, even
+Subtraction always produces a signed result at the common calculation width, even
 when both operands are unsigned. Thus `uint(3) - uint(5)` is signed `-2` at the
 native width. An assignment to unsigned storage reinterprets the retained bits.
 
@@ -263,16 +270,16 @@ integer operands and do not implicitly round floating-point values.
 
 | Operator | Operands | Result | Meaning |
 | --- | --- | --- | --- |
-| `~value` | One integer | Operand's integer type | Complement every bit. |
+| `~value` | One integer | Operand's integer type promoted to at least native width | Complement every bit. |
 | `left & right` | Two integers | Common integer type | Set bits present in both operands. |
 | `left \| right` | Two integers | Common integer type | Set bits present in either operand. |
 | `left xor right` | Two integers | Common integer type | Set bits present in exactly one operand. |
-| `value << count` | Two integers | Left operand's type | Shift left, filling low bits with zeroes. |
-| `value >> count` | Two integers | Left operand's type | Shift right; signed values extend the sign bit, unsigned values fill with zeroes. |
+| `value << count` | Two integers | Left operand's type promoted to at least native width | Shift left, filling low bits with zeroes. |
+| `value >> count` | Two integers | Left operand's type promoted to at least native width | Shift right; signed values extend the sign bit, unsigned values fill with zeroes. |
 
 For `&`, `|`, and `xor`, signedness and width follow the common integer rules.
-For shifts, the count does not change the left operand's type or signedness.
-The count must be nonnegative and smaller than that type's bit width. Bits
+For shifts, the count does not change the promoted left operand's type or signedness.
+The count must be nonnegative and smaller than the calculation width. Bits
 shifted out are discarded; shifts do not report overflow.
 
 ```dq
@@ -282,7 +289,7 @@ var both : uint8 = a & b   // 00001000 = 8
 var either : uint8 = a | b // 00001110 = 14
 var different : uint8 = a xor b // 00000110 = 6
 var inverted : uint8 = ~a  // 11110011 = 243
-var shifted : uint8 = a << 1 // 00011000 = 24; result still has type uint8
+var shifted : uint8 = a << 1 // 00011000 = 24; calculated at native width, then narrowed
 ```
 
 To test whether any flag bits are set, compare the masked integer with zero:
@@ -304,15 +311,15 @@ dereference is written after it:
 
 | Form | Operand | Result | Meaning |
 | --- | --- | --- | --- |
-| `-value` | A number | Same floating-point type, or signed integer of the operand's width | Numerical negation. |
+| `-value` | A number | Same floating-point type, or signed integer promoted to at least native width | Numerical negation. |
 | `not value` | `bool` | `bool` | Logical negation. |
-| `~value` | An integer | Same integer type | Bitwise complement. |
+| `~value` | An integer | Operand's integer type promoted to at least native width | Bitwise complement. |
 | `%value` | Addressable storage of type `T` | `^T` | Obtain its address. |
 | `address^` | A typed pointer `^T` | The referenced `T` | Access the value at that address. |
 
-Negating an unsigned integer produces a signed result at the same width. Like
-other fixed-width integer calculations, this can overflow when the mathematical
-result does not fit. Widen the operand before negation when necessary:
+Negating an unsigned integer produces a signed result at least as wide as native
+`int`. Like other fixed-width integer calculations, this can overflow when the
+mathematical result does not fit. Widen the operand before negation when necessary:
 
 ```dq
 var magnitude : uint8 = 7

@@ -2,63 +2,76 @@
 
 func printf(fmt : ^char, ...) -> int [[external]] ..
 
+// Keep native calculation type checks portable between 32-bit and 64-bit hosts.
+func NativeTypeName(name : ^char) -> ^char:
+    var text : rostr = name
+    if text == iif(@def.PTRSIZE == 8, "int64", "int32"):
+        return "int"
+    elif text == iif(@def.PTRSIZE == 8, "uint64", "uint32"):
+        return "uint"
+    endif
+    return name
+endfunc
+
 func check8(u : uint8, s : int8):
-    printf("neg8 = %s,%lld\n", TypeName(-u), int64(-u)) //?check("neg8", "int8,-3")
+    printf("neg8 = %s,%lld\n", NativeTypeName(TypeName(-u)), int64(-u)) //?check("neg8", "int,-3")
     printf("runtime8 = %lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
         int64(u + s), int64(s + u), int64(u - s), int64(s - u),
         int64(u * s), int64(s * u), int64(u div s), int64(s div u),
         int64(u rem s), int64(s rem u), int64(u mod s), int64(s mod u))
     //?check("runtime8", "-4,-4,10,-10,-21,-21,0,-2,3,-1,3,2")
     printf("types8 = %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
-        TypeName(u + s), TypeName(s + u), TypeName(u - s), TypeName(s - u),
-        TypeName(u * s), TypeName(s * u), TypeName(u div s), TypeName(s div u),
-        TypeName(u rem s), TypeName(s rem u), TypeName(u mod s), TypeName(s mod u))
-    //?check("types8", "int8,int8,int8,int8,int8,int8,int8,int8,int8,int8,int8,int8")
+        NativeTypeName(TypeName(u + s)), NativeTypeName(TypeName(s + u)), NativeTypeName(TypeName(u - s)), NativeTypeName(TypeName(s - u)),
+        NativeTypeName(TypeName(u * s)), NativeTypeName(TypeName(s * u)), NativeTypeName(TypeName(u div s)), NativeTypeName(TypeName(s div u)),
+        NativeTypeName(TypeName(u rem s)), NativeTypeName(TypeName(s rem u)), NativeTypeName(TypeName(u mod s)), NativeTypeName(TypeName(s mod u)))
+    //?check("types8", "int,int,int,int,int,int,int,int,int,int,int,int")
     var high : uint8 = s
     var divisor : int8 = u
     printf("signed division8 = %lld,%lld,%lld\n",
         int64(high div divisor), int64(high rem divisor), int64(high mod divisor))
-    //?check("signed division8", "-2,-1,2")
+    //?check("signed division8", "83,0,0")
     printf("compare8 = %d,%d,%d,%d\n", u > s, s < u, u < s, s > u) //?check("compare8", "1,1,0,0")
 endfunc
 
 func check16(u : uint16, s : int16):
-    printf("neg16 = %s,%lld\n", TypeName(-u), int64(-u)) //?check("neg16", "int16,-3")
+    printf("neg16 = %s,%lld\n", NativeTypeName(TypeName(-u)), int64(-u)) //?check("neg16", "int,-3")
     printf("runtime16 = %lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
         int64(u + s), int64(s + u), int64(u - s), int64(s - u),
         int64(u * s), int64(s * u), int64(u div s), int64(s div u),
         int64(u rem s), int64(s rem u), int64(u mod s), int64(s mod u))
     //?check("runtime16", "-4,-4,10,-10,-21,-21,0,-2,3,-1,3,2")
     printf("types16 = %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
-        TypeName(u + s), TypeName(s + u), TypeName(u - s), TypeName(s - u),
-        TypeName(u * s), TypeName(s * u), TypeName(u div s), TypeName(s div u),
-        TypeName(u rem s), TypeName(s rem u), TypeName(u mod s), TypeName(s mod u))
-    //?check("types16", "int16,int16,int16,int16,int16,int16,int16,int16,int16,int16,int16,int16")
+        NativeTypeName(TypeName(u + s)), NativeTypeName(TypeName(s + u)), NativeTypeName(TypeName(u - s)), NativeTypeName(TypeName(s - u)),
+        NativeTypeName(TypeName(u * s)), NativeTypeName(TypeName(s * u)), NativeTypeName(TypeName(u div s)), NativeTypeName(TypeName(s div u)),
+        NativeTypeName(TypeName(u rem s)), NativeTypeName(TypeName(s rem u)), NativeTypeName(TypeName(u mod s)), NativeTypeName(TypeName(s mod u)))
+    //?check("types16", "int,int,int,int,int,int,int,int,int,int,int,int")
     var high : uint16 = s
     var divisor : int16 = u
     printf("signed division16 = %lld,%lld,%lld\n",
         int64(high div divisor), int64(high rem divisor), int64(high mod divisor))
-    //?check("signed division16", "-2,-1,2")
+    //?check("signed division16", "21843,0,0")
     printf("compare16 = %d,%d,%d,%d\n", u > s, s < u, u < s, s > u) //?check("compare16", "1,1,0,0")
 endfunc
 
 func check32(u : uint32, s : int32):
-    printf("neg32 = %s,%lld\n", TypeName(-u), int64(-u)) //?check("neg32", "int32,-3")
+    printf("neg32 = %s,%lld\n", NativeTypeName(TypeName(-u)), int64(-u)) //?check("neg32", "int,-3")
     printf("runtime32 = %lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld,%lld\n",
         int64(u + s), int64(s + u), int64(u - s), int64(s - u),
         int64(u * s), int64(s * u), int64(u div s), int64(s div u),
         int64(u rem s), int64(s rem u), int64(u mod s), int64(s mod u))
     //?check("runtime32", "-4,-4,10,-10,-21,-21,0,-2,3,-1,3,2")
     printf("types32 = %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
-        TypeName(u + s), TypeName(s + u), TypeName(u - s), TypeName(s - u),
-        TypeName(u * s), TypeName(s * u), TypeName(u div s), TypeName(s div u),
-        TypeName(u rem s), TypeName(s rem u), TypeName(u mod s), TypeName(s mod u))
-    //?check("types32", "int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32,int32")
+        NativeTypeName(TypeName(u + s)), NativeTypeName(TypeName(s + u)), NativeTypeName(TypeName(u - s)), NativeTypeName(TypeName(s - u)),
+        NativeTypeName(TypeName(u * s)), NativeTypeName(TypeName(s * u)), NativeTypeName(TypeName(u div s)), NativeTypeName(TypeName(s div u)),
+        NativeTypeName(TypeName(u rem s)), NativeTypeName(TypeName(s rem u)), NativeTypeName(TypeName(u mod s)), NativeTypeName(TypeName(s mod u)))
+    //?check("types32", "int,int,int,int,int,int,int,int,int,int,int,int")
     var high : uint32 = s
     var divisor : int32 = u
-    printf("signed division32 = %lld,%lld,%lld\n",
-        int64(high div divisor), int64(high rem divisor), int64(high mod divisor))
-    //?check("signed division32", "-2,-1,2")
+    printf("signed division32 = %d,%d,%d\n",
+        int64(high div divisor) == iif(@def.PTRSIZE == 8, 1431655763, -2),
+        int64(high rem divisor) == iif(@def.PTRSIZE == 8, 0, -1),
+        int64(high mod divisor) == iif(@def.PTRSIZE == 8, 0, 2))
+    //?check("signed division32", "1,1,1")
     printf("compare32 = %d,%d,%d,%d\n", u > s, s < u, u < s, s > u) //?check("compare32", "1,1,0,0")
 endfunc
 
@@ -85,12 +98,12 @@ endfunc
 func *Main():
     check8(3, -7)
     const neg8 : int64 = -uint8(7)
-    printf("const neg8 = %s,%lld\n", TypeName(-uint8(7)), int64(neg8)) //?check("const neg8", "int8,-7")
+    printf("const neg8 = %s,%lld\n", NativeTypeName(TypeName(-uint8(7))), int64(neg8)) //?check("const neg8", "int,-7")
     const div8 : int64 = uint8(-7) div int8(3)
     const rem8 : int64 = uint8(-7) rem int8(3)
     const mod8 : int64 = uint8(-7) mod int8(3)
     printf("const signed division8 = %lld,%lld,%lld\n", div8, rem8, mod8)
-    //?check("const signed division8", "-2,-1,2")
+    //?check("const signed division8", "83,0,0")
     const c8_0 : int64 = uint8(3) + int8(-7)
     const c8_1 : int64 = int8(-7) + uint8(3)
     const c8_2 : int64 = uint8(3) - int8(-7)
@@ -111,12 +124,12 @@ func *Main():
 
     check16(3, -7)
     const neg16 : int64 = -uint16(7)
-    printf("const neg16 = %s,%lld\n", TypeName(-uint16(7)), int64(neg16)) //?check("const neg16", "int16,-7")
+    printf("const neg16 = %s,%lld\n", NativeTypeName(TypeName(-uint16(7))), int64(neg16)) //?check("const neg16", "int,-7")
     const div16 : int64 = uint16(-7) div int16(3)
     const rem16 : int64 = uint16(-7) rem int16(3)
     const mod16 : int64 = uint16(-7) mod int16(3)
     printf("const signed division16 = %lld,%lld,%lld\n", div16, rem16, mod16)
-    //?check("const signed division16", "-2,-1,2")
+    //?check("const signed division16", "21843,0,0")
     const c16_0 : int64 = uint16(3) + int16(-7)
     const c16_1 : int64 = int16(-7) + uint16(3)
     const c16_2 : int64 = uint16(3) - int16(-7)
@@ -137,12 +150,14 @@ func *Main():
 
     check32(3, -7)
     const neg32 : int64 = -uint32(7)
-    printf("const neg32 = %s,%lld\n", TypeName(-uint32(7)), int64(neg32)) //?check("const neg32", "int32,-7")
+    printf("const neg32 = %s,%lld\n", NativeTypeName(TypeName(-uint32(7))), int64(neg32)) //?check("const neg32", "int,-7")
     const div32 : int64 = uint32(-7) div int32(3)
     const rem32 : int64 = uint32(-7) rem int32(3)
     const mod32 : int64 = uint32(-7) mod int32(3)
-    printf("const signed division32 = %lld,%lld,%lld\n", div32, rem32, mod32)
-    //?check("const signed division32", "-2,-1,2")
+    printf("const signed division32 = %d,%d,%d\n",
+        div32 == iif(@def.PTRSIZE == 8, 1431655763, -2),
+        rem32 == iif(@def.PTRSIZE == 8, 0, -1), mod32 == iif(@def.PTRSIZE == 8, 0, 2))
+    //?check("const signed division32", "1,1,1")
     const c32_0 : int64 = uint32(3) + int32(-7)
     const c32_1 : int64 = int32(-7) + uint32(3)
     const c32_2 : int64 = uint32(3) - int32(-7)
@@ -197,25 +212,25 @@ func *Main():
         int64(u8 + s16), int64(s16 + u8), int64(u16 + s8),
         int64(s8 + u16), int64(u64 + s8), int64(s8 + u64)) //?check("widen values", "-45,-45,249,249,993,993")
     printf("widen types = %s,%s,%s,%s,%s,%s\n",
-        TypeName(u8 + s16), TypeName(s16 + u8), TypeName(u16 + s8),
-        TypeName(s8 + u16), TypeName(u64 + s8), TypeName(s8 + u64)) //?check("widen types", "int16,int16,int16,int16,int64,int64")
+        NativeTypeName(TypeName(u8 + s16)), NativeTypeName(TypeName(s16 + u8)), NativeTypeName(TypeName(u16 + s8)),
+        NativeTypeName(TypeName(s8 + u16)), TypeName(u64 + s8), TypeName(s8 + u64)) //?check("widen types", "int,int,int,int,int64,int64")
 
-    // Same-width conversion reinterprets bits; the result retains that width.
-    printf("high bit = %lld,%lld\n", int64(u8 + s8), int64(s8 + u8)) //?check("high bit", "-8,-8")
+    // Narrow operands are extended before choosing the common signed calculation type.
+    printf("high bit = %lld,%lld\n", int64(u8 + s8), int64(s8 + u8)) //?check("high bit", "248,248")
 
     // Unsigned-only arithmetic and unary bitwise NOT retain unsigned types.
     printf("unsigned types = %s,%s,%s,%s,%s,%s\n",
-        TypeName(u8 + u8), TypeName(u8 * u8), TypeName(u8 div u8),
-        TypeName(u8 rem u8), TypeName(u8 mod u8), TypeName(~u8)) //?check("unsigned types", "uint8,uint8,uint8,uint8,uint8,uint8")
+        NativeTypeName(TypeName(u8 + u8)), NativeTypeName(TypeName(u8 * u8)), NativeTypeName(TypeName(u8 div u8)),
+        NativeTypeName(TypeName(u8 rem u8)), NativeTypeName(TypeName(u8 mod u8)), NativeTypeName(TypeName(~u8))) //?check("unsigned types", "uint,uint,uint,uint,uint,uint")
     var count : int16 = 1
-    printf("wide shift = %s,%lld,%s,%lld\n", TypeName(u8 >> count), int64(u8 >> count),
-        TypeName(s8 >> count), int64(s8 >> count)) //?check("wide shift", "uint8,127,int8,-4")
-    printf("shift = %s,%lld,%s,%lld\n", TypeName(u8 >> s8), int64(u8 >> int8(1)),
-        TypeName(s8 >> u8), int64(s8 >> uint8(1))) //?check("shift", "uint8,127,int8,-4")
+    printf("wide shift = %s,%lld,%s,%lld\n", NativeTypeName(TypeName(u8 >> count)), int64(u8 >> count),
+        NativeTypeName(TypeName(s8 >> count)), int64(s8 >> count)) //?check("wide shift", "uint,127,int,-4")
+    printf("shift = %s,%lld,%s,%lld\n", NativeTypeName(TypeName(u8 >> s8)), int64(u8 >> int8(1)),
+        NativeTypeName(TypeName(s8 >> u8)), int64(s8 >> uint8(1))) //?check("shift", "uint,127,int,-4")
 
     var alias_byte : byte = 7
-    printf("byte negation = %s,%lld\n", TypeName(-alias_byte), int64(-alias_byte))
-    //?check("byte negation", "int8,-7")
+    printf("byte negation = %s,%lld\n", NativeTypeName(TypeName(-alias_byte)), int64(-alias_byte))
+    //?check("byte negation", "int,-7")
 
     // Floating division converts each operand directly to float.
     var three : int8 = 3

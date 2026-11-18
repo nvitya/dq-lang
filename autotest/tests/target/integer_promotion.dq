@@ -1,0 +1,21 @@
+//?notest
+// Inspect calculation widths on a 32-bit target without a target runtime.
+
+func *ReadWord(high : byte, low : byte) -> uint16:
+    var rxbuf : [64]byte
+    rxbuf[0] = high
+    rxbuf[1] = low
+    return (rxbuf[0] << 8) | rxbuf[1]
+endfunc
+
+func *AddBytes(left : byte, right : byte) -> uint:
+    return left + right
+endfunc
+
+func *ShiftByte(value : byte, count : uint64) -> uint:
+    return value << count
+endfunc
+
+func *AddWide(left : uint64, right : byte) -> uint64:
+    return left + right
+endfunc

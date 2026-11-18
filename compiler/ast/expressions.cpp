@@ -1875,7 +1875,15 @@ ONotExpr::~ONotExpr()
 {
   operand = expr;
   ptype = operand->ptype;
-  if (TK_INT != ptype->kind)
+  if (TK_INT == operand->ResolvedType()->kind)
+  {
+    ptype = static_cast<OTypeInt *>(operand->ResolvedType())->CalculationType();
+    if (operand->ResolvedType() != ptype)
+    {
+      operand = new OExprTypeConv(ptype, operand);
+    }
+  }
+  else
   {
     ptype = g_builtins->type_int;
   }
@@ -1909,10 +1917,10 @@ OBinNotExpr::~OBinNotExpr()
   OType * operand_type = operand->ResolvedType();
   if (TK_INT == operand_type->kind)
   {
-    auto * inttype = static_cast<OTypeInt *>(operand_type);
-    if (!inttype->issigned)
+    ptype = static_cast<OTypeInt *>(operand_type)->CalculationType(true);
+    if (operand_type != ptype)
     {
-      ptype = g_builtins->FindIntType(inttype->bitlength, true);
+      operand = new OExprTypeConv(ptype, operand);
     }
   }
 }

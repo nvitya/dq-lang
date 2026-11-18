@@ -1,0 +1,63 @@
+// Small integer expressions calculate at native width, then narrow on storage.
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+#if @def.PTRSIZE == 8
+    const native_int_name : rostr = "int64"
+    const native_uint_name : rostr = "uint64"
+#else
+    const native_int_name : rostr = "int32"
+    const native_uint_name : rostr = "uint32"
+#endif
+
+const wide_uint_name : rostr = "uint64"
+
+func ReadWord(high : byte, low : byte) -> uint16:
+    var rxbuf : [64]byte
+    rxbuf[0] = high
+    rxbuf[1] = low
+    return (rxbuf[0] << 8) | rxbuf[1]
+endfunc
+
+func CheckArithmetic(a : uint8, b : uint8, signed_a : int8, signed_b : int8):
+    printf("unsigned arithmetic = %lld,%lld,%lld\n", int64(a + b), int64(a - b), int64(a * b))
+    //?check("unsigned arithmetic", "259,251,1020")
+    printf("signed arithmetic = %lld,%lld,%lld\n",
+        int64(signed_a + signed_b), int64(signed_a - signed_b), int64(signed_a * signed_b))
+    //?check("signed arithmetic", "130,110,1200")
+    printf("mixed arithmetic = %lld,%lld,%lld,%lld,%lld\n",
+        int64(a + signed_b), int64(signed_b + a), int64(a div signed_b),
+        int64(a rem signed_b), int64(a mod signed_b))
+    //?check("mixed arithmetic", "265,265,25,5,5")
+    printf("unsigned shift = %lld,%lld\n", int64(a << 8), int64(a >> 1))
+    //?check("unsigned shift", "65280,127")
+    printf("signed shift = %lld,%lld\n", int64(signed_a << 8), int64(-signed_a >> 1))
+    //?check("signed shift", "30720,-60")
+    printf("unary = %lld,%d,%d\n", int64(-a), ~a == ~uint(a), ~signed_a == ~int(signed_a))
+    //?check("unary", "-255,1,1")
+    printf("native types = %d,%d,%d,%d,%d\n", TypeName(a + b) == native_uint_name,
+        TypeName(a - b) == native_int_name, TypeName(a << 8) == native_uint_name,
+        TypeName(-a) == native_int_name, TypeName(~a) == native_uint_name)
+    //?check("native types", "1,1,1,1,1")
+    var stored : uint8 = a + b
+    printf("narrow storage = %d\n", stored) //?check("narrow storage", 3)
+endfunc
+
+func *Main():
+    printf("received word = 0x%04X\n", ReadWord(0xFF, 0x04)) //?check("received word", 0xFF04)
+    CheckArithmetic(255, 4, 120, 10)
+
+    const folded_word : uint16 = (byte(0xFF) << 8) | byte(0x04)
+    const folded_sum : int = uint8(250) + uint8(10)
+    const folded_neg : int = -uint8(255)
+    const folded_complement : uint = ~byte(0)
+    printf("folded = %d,%d,%d,%d\n", folded_word, folded_sum, folded_neg, folded_complement == ~uint(0))
+    //?check("folded", "65284,260,-255,1")
+
+    var wide : uint64 = 1
+    var count : uint64 = 24
+    var small : byte = 1
+    printf("wide calculations = %lld,%d,%d\n", int64((wide << 40) | small),
+        TypeName(wide + small) == wide_uint_name, TypeName(small << count) == native_uint_name)
+    //?check("wide calculations", "1099511627777,1,1")
+endfunc

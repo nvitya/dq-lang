@@ -1,0 +1,10 @@
+//?notest
+// Runtime arguments keep arithmetic and conversions from being constant-folded.
+func _start(a : float32, b : float32, c : float64, d : float64, value : int32) -> float64 [[cexport]]:
+    var single : float32 = (a + b) * (a - b) / b
+    var double : float64 = (c + d) * (c - d) / d
+    if single < a or double > c:
+        return float64(single) + float64(value)
+    endif
+    return double + float64(float32(c))
+endfunc

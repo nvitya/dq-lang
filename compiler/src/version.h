@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.97.1"
+#define DQ_COMPILER_VERSION  "0.97.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.97.2:
+  - Corrected the LLVM ARM Platform "triplets" for linking agains the gcc libs
 v0.97.1:
   - Integer promotion handling fixes, uint first rule
 v0.97.0:

@@ -1,0 +1,8 @@
+//?build_only
+//?compargs('--no-use-sys')
+main = 'arm_m0_soft_float.dq'
+target = 'arm_m0-bare'
+link = true
+lto = false
+optlevel = 0
+linkoption = '--entry=_start'

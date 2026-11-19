@@ -427,23 +427,25 @@ void OStmtModifyAssign::Generate(OScope * scope)
   llvm::LoadInst * ll_curval = ll_builder.CreateLoad(valtype->GetLlType(), ll_addr, "cur");
   ll_curval->setVolatile(target->RequiresVolatileMemoryAccess());
   LlValue * ll_mod_value = value->Generate(scope);
-  LlValue * ll_newval = GenerateModifyAssignValue(valtype, op, ll_curval, ll_mod_value);
+  LlValue * ll_newval = GenerateModifyAssignValue(valtype, op, ll_curval, ll_mod_value, value->ResolvedType());
   llvm::StoreInst * store = ll_builder.CreateStore(ll_newval, ll_addr);
   store->setVolatile(target->RequiresVolatileMemoryAccess());
 }
 
 LlValue * GenerateModifyAssignValue(OType * valtype, EBinOp op,
-                                    LlValue * ll_curval, LlValue * ll_mod_value)
+                                    LlValue * ll_curval, LlValue * ll_mod_value,
+                                    OType * modtype)
 {
   LlValue * ll_newval = nullptr;
   if (TK_POINTER == valtype->kind)
   {
     OTypePointer * ptrtype = static_cast<OTypePointer *>(valtype);
     LlType * ll_elemtype = ptrtype->basetype->GetLlType();
+    LlValue * ll_offset = ToNativeInt(ll_mod_value, modtype);
     if (BINOP_ADD == op)
-      ll_newval = ll_builder.CreateGEP(ll_elemtype, ll_curval, {ll_mod_value}, "ptr.adv");
+      ll_newval = ll_builder.CreateGEP(ll_elemtype, ll_curval, {ll_offset}, "ptr.adv");
     else if (BINOP_SUB == op)
-      ll_newval = ll_builder.CreateGEP(ll_elemtype, ll_curval, {ll_builder.CreateNeg(ll_mod_value)}, "ptr.rev");
+      ll_newval = ll_builder.CreateGEP(ll_elemtype, ll_curval, {ll_builder.CreateNeg(ll_offset)}, "ptr.rev");
   }
   else if (TK_FLOAT == valtype->kind)
   {
@@ -454,21 +456,37 @@ LlValue * GenerateModifyAssignValue(OType * valtype, EBinOp op,
   }
   else if (TK_INT == valtype->kind)
   {
-    bool issigned = static_cast<OTypeInt *>(valtype->ResolveAlias())->issigned;
+    OTypeInt * dst_int = static_cast<OTypeInt *>(valtype->ResolveAlias());
+    OTypeInt * calc_int = (modtype && (TK_INT == modtype->ResolveAlias()->kind))
+        ? static_cast<OTypeInt *>(modtype->ResolveAlias())
+        : dst_int;
+    LlValue * ll_lhs = ll_curval;
+    if (calc_int->bitlength > dst_int->bitlength)
+    {
+      ll_lhs = dst_int->issigned
+          ? ll_builder.CreateSExt(ll_curval, calc_int->GetLlType())
+          : ll_builder.CreateZExt(ll_curval, calc_int->GetLlType());
+    }
 
-    if      (BINOP_ADD  == op)  ll_newval = ll_builder.CreateAdd(ll_curval, ll_mod_value);
-    else if (BINOP_SUB  == op)  ll_newval = ll_builder.CreateSub(ll_curval, ll_mod_value);
-    else if (BINOP_MUL  == op)  ll_newval = ll_builder.CreateMul(ll_curval, ll_mod_value);
-    else if (BINOP_IDIV == op)  ll_newval = ( issigned ? ll_builder.CreateSDiv(ll_curval, ll_mod_value)
-                                                       : ll_builder.CreateUDiv(ll_curval, ll_mod_value) );
-    else if (BINOP_IREM == op)  ll_newval = static_cast<OTypeInt *>(valtype->ResolveAlias())->GenerateRemainder(ll_curval, ll_mod_value);
-    else if (BINOP_IMOD == op)  ll_newval = static_cast<OTypeInt *>(valtype->ResolveAlias())->GenerateModulo(ll_curval, ll_mod_value);
-    else if (BINOP_IAND == op)  ll_newval = ll_builder.CreateAnd(ll_curval, ll_mod_value);
-    else if (BINOP_IOR  == op)  ll_newval = ll_builder.CreateOr (ll_curval, ll_mod_value);
-    else if (BINOP_IXOR == op)  ll_newval = ll_builder.CreateXor(ll_curval, ll_mod_value);
-    else if (BINOP_ISHL == op)  ll_newval = ll_builder.CreateShl (ll_curval, ll_mod_value);
-    else if (BINOP_ISHR == op)  ll_newval = ( issigned ? ll_builder.CreateAShr(ll_curval, ll_mod_value)
-                                                       : ll_builder.CreateLShr(ll_curval, ll_mod_value) );
+    bool issigned = calc_int->issigned;
+    if      (BINOP_ADD  == op)  ll_newval = ll_builder.CreateAdd(ll_lhs, ll_mod_value);
+    else if (BINOP_SUB  == op)  ll_newval = ll_builder.CreateSub(ll_lhs, ll_mod_value);
+    else if (BINOP_MUL  == op)  ll_newval = ll_builder.CreateMul(ll_lhs, ll_mod_value);
+    else if (BINOP_IDIV == op)  ll_newval = ( issigned ? ll_builder.CreateSDiv(ll_lhs, ll_mod_value)
+                                                       : ll_builder.CreateUDiv(ll_lhs, ll_mod_value) );
+    else if (BINOP_IREM == op)  ll_newval = calc_int->GenerateRemainder(ll_lhs, ll_mod_value);
+    else if (BINOP_IMOD == op)  ll_newval = calc_int->GenerateModulo(ll_lhs, ll_mod_value);
+    else if (BINOP_IAND == op)  ll_newval = ll_builder.CreateAnd(ll_lhs, ll_mod_value);
+    else if (BINOP_IOR  == op)  ll_newval = ll_builder.CreateOr (ll_lhs, ll_mod_value);
+    else if (BINOP_IXOR == op)  ll_newval = ll_builder.CreateXor(ll_lhs, ll_mod_value);
+    else if (BINOP_ISHL == op)  ll_newval = ll_builder.CreateShl (ll_lhs, ll_mod_value);
+    else if (BINOP_ISHR == op)  ll_newval = ( issigned ? ll_builder.CreateAShr(ll_lhs, ll_mod_value)
+                                                       : ll_builder.CreateLShr(ll_lhs, ll_mod_value) );
+
+    if (ll_newval && (calc_int->bitlength > dst_int->bitlength))
+    {
+      ll_newval = ll_builder.CreateTrunc(ll_newval, dst_int->GetLlType());
+    }
   }
   else
   {

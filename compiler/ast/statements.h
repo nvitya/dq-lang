@@ -25,7 +25,8 @@ bool GenerateAssignmentToAddress(OScope * scope, OType * targettype,
                                  LlValue * targetaddr, OExpr * value,
                                  bool volatile_store = false);
 LlValue * GenerateModifyAssignValue(OType * valtype, EBinOp op,
-                                    LlValue * ll_curval, LlValue * ll_mod_value);
+                                    LlValue * ll_curval, LlValue * ll_mod_value,
+                                    OType * modtype = nullptr);
 
 class OStmt
 {

@@ -82,8 +82,8 @@ var real : float64 = small
 ```
 
 A destination does not retroactively widen the operands of an expression. The
-calculation width and signedness rules are explained in
-[Expressions and Operators](040-expressions-and-operators.md#integer-calculations).
+literal typing, calculation width, and signedness rules are explained in detail
+in [Literals and Integer Promotion](045-literals-and-integer-promotion.md).
 
 Floating-point values do not implicitly convert to integers. Use `Round`, `Floor`,
 `Ceil`, or `Trunc` to choose the rounding operation:

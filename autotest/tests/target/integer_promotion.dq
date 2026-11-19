@@ -19,3 +19,21 @@ endfunc
 func *AddWide(left : uint64, right : byte) -> uint64:
     return left + right
 endfunc
+
+func *WideLiterals() -> int64:
+    var high32 : uint64 = 0x80000000
+    var over32 : uint64 = 0x100000000
+    var dec64 : uint64 = 5000000000
+    var neg_min32 : int64 = -2147483648
+    var neg_over32 : int64 = -2147483649
+    var neg3b : int64 = -3000000000
+    return int64(high32 + over32 + dec64) + neg_min32 + neg_over32 + neg3b
+endfunc
+
+func *UnsignedRegisterOps(r : uint32) -> uint32:
+    var gt0 : bool = r > 0
+    var half : uint32 = r div 2
+    var sh : uint32 = (r | 1) >> 1
+    var masked : uint32 = r & ~(1 << 5)
+    return half + sh + masked + uint32(gt0)
+endfunc

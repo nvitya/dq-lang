@@ -211,7 +211,11 @@ are extended to at least the target's native integer width before calculation:
 32 bits on 32-bit targets and 64 bits on 64-bit targets. Wider operands retain
 their width, so an `int64` calculation still uses 64 bits on a 32-bit target.
 Signed operands are sign-extended; unsigned operands are zero-extended.
-A whole-number literal has the normal `int` calculation type.
+A non-negative whole-number literal starts as native `uint` (or `uint64` if it
+exceeds 32 bits on a 32-bit target); unary negation and subtraction switch the
+calculation mode to signed `int` (or `int64`). See
+[Literals and Integer Promotion](045-literals-and-integer-promotion.md) for the
+complete rules.
 
 ```dq
 var left : uint8 = 250

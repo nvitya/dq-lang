@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.97.0"
+#define DQ_COMPILER_VERSION  "0.97.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.97.1:
+  - Integer promotion handling fixes, uint first rule
 v0.97.0:
   - Integer expressions now calculate at least at native width (32 or 64 bits)
 v0.96.19:

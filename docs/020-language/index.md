@@ -19,6 +19,7 @@ and run it with `dq-run filename.dq`. Assembly examples identify their target.
 - [Basic Types and Conversions](020-basic-types-and-conversions.md)
 - [Variables, Constants, References, and Scope](030-variables-constants-references-and-scope.md)
 - [Expressions and Operators](040-expressions-and-operators.md)
+- [Literals and Integer Promotion](045-literals-and-integer-promotion.md)
 - [Statements and Control Flow](050-statements-and-control-flow.md)
 - [Functions](060-functions.md)
 - [Character and String Types](070-strings-and-characters.md)

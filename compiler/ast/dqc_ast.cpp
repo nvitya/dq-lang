@@ -432,8 +432,7 @@ bool ODqCompAst::HarmonizeNumericOperands(OExpr ** rleft, OExpr ** rright, bool 
   {
     OTypeInt * intl = static_cast<OTypeInt *>(lefttype);
     OTypeInt * intr = static_cast<OTypeInt *>(righttype);
-    OTypeInt * result_type = g_builtins->FindIntType(
-        max(intl->bitlength, intr->bitlength), force_signed || intl->issigned || intr->issigned)->CalculationType();
+    OTypeInt * result_type = intl->CommonCalculationType(intr, force_signed);
     if (lefttype != result_type)
     {
       left = new OExprTypeConv(result_type, left);
@@ -1755,6 +1754,27 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
     return false;
   }
 
+  auto convert_assign_rhs = [&](OType * dsttype) -> bool
+  {
+    if (BINOP_NONE != op)
+    {
+      OType * resolved_dst = dsttype->ResolveAlias();
+      OType * resolved_rhs = rightexpr->ResolvedType();
+      if (resolved_dst && resolved_rhs
+          && (TK_INT == resolved_dst->kind) && !IsCharacterType(resolved_dst)
+          && (TK_INT == resolved_rhs->kind) && !IsCharacterType(resolved_rhs))
+      {
+        auto * dst_int = static_cast<OTypeInt *>(resolved_dst);
+        auto * rhs_int = static_cast<OTypeInt *>(resolved_rhs);
+        OTypeInt * calc_type = (BINOP_ISHL == op || BINOP_ISHR == op)
+            ? dst_int->CalculationType()
+            : dst_int->CommonCalculationType(rhs_int, BINOP_SUB == op);
+        return CheckAssignType(calc_type, &rightexpr, "Assignment");
+      }
+    }
+    return CheckAssignType(dsttype, &rightexpr, "Assignment");
+  };
+
   if (auto * property_expr = dynamic_cast<OPropertyExpr *>(leftexpr))
   {
     OValSymProperty * property = property_expr->property;
@@ -1814,7 +1834,7 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
         return false;
       }
     }
-    else if (!CheckAssignType(property->ptype, &rightexpr, "Assignment"))
+    else if (!convert_assign_rhs(property->ptype))
     {
       delete leftexpr;
       delete rightexpr;
@@ -1921,7 +1941,7 @@ bool ODqCompAst::FinalizeStmtAssign(OLValueExpr * leftexpr, EBinOp op, OExpr * r
     return true;
   }
 
-  if (not CheckAssignType(targettype, &rightexpr, "Assignment"))
+  if (not convert_assign_rhs(targettype))
   {
     delete leftexpr;
     delete rightexpr;

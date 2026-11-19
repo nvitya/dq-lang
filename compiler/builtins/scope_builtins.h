@@ -74,6 +74,7 @@ public:
 
   void Init();
   OTypeInt * FindIntType(uint8_t abitlength, bool asigned);
+  OType *    DefaultIntLiteralType(uint64_t rawvalue) const;
 };
 
 extern OScopeBuiltins *  g_builtins;

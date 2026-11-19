@@ -40,7 +40,8 @@ bool OValueFloat::CalculateConstant(OExpr * expr, bool emit_errors)
     auto * ex = dynamic_cast<OIntLit *>(expr);
     if (ex)
     {
-      value = ex->value;
+      auto * srctype = dynamic_cast<OTypeInt *>(ex->ResolvedType());
+      value = srctype ? srctype->ConstantToDouble(ex->value) : double(ex->value);
       return true;
     }
   }
@@ -74,7 +75,7 @@ bool OValueFloat::CalculateConstant(OExpr * expr, bool emit_errors)
         {
           return false;
         }
-        value = srcvalue.value;
+        value = static_cast<OTypeInt *>(srctype)->ConstantToDouble(srcvalue.value);
         return true;
       }
 
@@ -113,6 +114,11 @@ bool OValueFloat::CalculateConstant(OExpr * expr, bool emit_errors)
       OValueFloat * v = dynamic_cast<OValueFloat *>(vsconst->pvalue);
       if (not v)
       {
+        if (auto * vint = dynamic_cast<OValueInt *>(vsconst->pvalue))
+        {
+          value = static_cast<OTypeInt *>(vint->ResolvedType())->ConstantToDouble(vint->value);
+          return true;
+        }
         if (emit_errors)
         {
           g_compiler->Error(DQERR_TYPE_EXPECTED, "float", ex->ResolvedType()->name);
@@ -203,7 +209,7 @@ int OTypeFloat::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool convert)
 
   if (TK_INT == tks)
   {
-    return WrapTypeConv(rexpr, convert);
+    return WrapTypeConv(rexpr, convert, 2);
   }
   if (TK_FLOAT != tks)
   {

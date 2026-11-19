@@ -159,7 +159,8 @@ bool OExprTypeConv::TryFoldSelf(OExpr ** rreplacement)
 
 /* ctor */ OIntLit::OIntLit(int64_t v, OType * atype)
 {
-  ptype = (atype ? atype : g_builtins->type_int);
+  is_plain_literal = (nullptr == atype);
+  ptype = (atype ? atype : g_builtins->DefaultIntLiteralType(uint64_t(v)));
   value = v;
 }
 
@@ -1178,7 +1179,7 @@ void OPropertyExpr::GenerateModifyWrite(OScope * scope, EBinOp op, OExpr * value
   else
   {
     LlValue * ll_mod_value = value->Generate(scope);
-    ll_newval = GenerateModifyAssignValue(ptype, op, ll_curval, ll_mod_value);
+    ll_newval = GenerateModifyAssignValue(ptype, op, ll_curval, ll_mod_value, value->ResolvedType());
   }
 
   if (auto * setter = dynamic_cast<OValSymFunc *>(property->write_accessor))
@@ -1313,13 +1314,14 @@ LlValue * OBinExpr::Generate(OScope * scope)
 
   if (TK_POINTER == ptype->kind)
   {
-    // Pointer arithmetic: ptr + int or ptr - int
+    // Pointer arithmetic: ptr + int or ptr - int (widen narrow unsigned offsets with zext).
     OTypePointer * ptrtype = static_cast<OTypePointer *>(ptype);
     LlType * ll_elemtype = ptrtype->basetype->GetLlType();
+    LlValue * ll_offset = ToNativeInt(ll_right, right->ResolvedType());
     if (BINOP_ADD == op)
-      return ll_builder.CreateGEP(ll_elemtype, ll_left, {ll_right}, "ptr.add");
+      return ll_builder.CreateGEP(ll_elemtype, ll_left, {ll_offset}, "ptr.add");
     else if (BINOP_SUB == op)
-      return ll_builder.CreateGEP(ll_elemtype, ll_left, {ll_builder.CreateNeg(ll_right)}, "ptr.sub");
+      return ll_builder.CreateGEP(ll_elemtype, ll_left, {ll_builder.CreateNeg(ll_offset)}, "ptr.sub");
 
     throw logic_error(std::format("OBinExpr.Generate(): Unhandled pointer binop = {} ", int(op)));
   }
@@ -1917,7 +1919,20 @@ OBinNotExpr::~OBinNotExpr()
   OType * operand_type = operand->ResolvedType();
   if (TK_INT == operand_type->kind)
   {
-    ptype = static_cast<OTypeInt *>(operand_type)->CalculationType(true);
+    auto * inttype = static_cast<OTypeInt *>(operand_type);
+    auto * lit = dynamic_cast<OIntLit *>(operand);
+    if (lit && lit->is_plain_literal
+        && (inttype->bitlength < 64)
+        && (uint64_t(lit->value) > (uint64_t(1) << (inttype->bitlength - 1))))
+    {
+      // Negated plain literal does not fit in native signed int (e.g. -3000000000 on 32-bit):
+      // promote directly to int64 instead of wrapping in 32-bit.
+      ptype = g_builtins->type_int64;
+    }
+    else
+    {
+      ptype = inttype->CalculationType(true);
+    }
     if (operand_type != ptype)
     {
       operand = new OExprTypeConv(ptype, operand);
@@ -2059,7 +2074,7 @@ LlValue * OObjectTypeLiteralExpr::Generate(OScope * scope)
 LlValue * OPointerIndexExpr::Generate(OScope * scope)
 {
   LlValue *      ll_ptr   = ptrexpr->Generate(scope);
-  LlValue *      ll_index = indexexpr->Generate(scope);
+  LlValue *      ll_index = ToNativeInt(indexexpr->Generate(scope), indexexpr->ResolvedType());
   OTypePointer * ptrtype  = static_cast<OTypePointer *>(ptype);
   LlType *       ll_elem  = ptrtype->basetype->GetLlType();
   return ll_builder.CreateGEP(ll_elem, ll_ptr, {ll_index}, "ptr.idx");

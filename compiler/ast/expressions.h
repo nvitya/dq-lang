@@ -45,6 +45,7 @@ class OIntLit : public OExpr
 {
 public:
   int64_t    value;
+  bool       is_plain_literal;
 
   /* ctor */ OIntLit(int64_t v, OType * atype = nullptr);
   LlValue *  Generate(OScope * scope) override;

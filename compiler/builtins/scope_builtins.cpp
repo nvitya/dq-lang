@@ -112,6 +112,15 @@ OTypeInt * OScopeBuiltins::FindIntType(uint8_t abitlength, bool asigned)
   return nullptr;
 }
 
+OType * OScopeBuiltins::DefaultIntLiteralType(uint64_t rawvalue) const
+{
+  if ((native_uint->bitlength < 64) && (rawvalue > UINT32_MAX))
+  {
+    return type_uint64;
+  }
+  return type_uint;
+}
+
 void init_scope_builtins()
 {
   g_builtins = new OScopeBuiltins();

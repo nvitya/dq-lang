@@ -3583,7 +3583,9 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
     }
     if ("last" == ctxname)
     {
-      return new OIntLit(array_index_context_len - 1);
+      return array_index_context_len > 0
+          ? new OIntLit(array_index_context_len - 1)
+          : new OIntLit(-1, g_builtins->type_int);
     }
     Error(DQERR_VS_UNKNOWN, "$" + ctxname);
     return nullptr;
@@ -3612,7 +3614,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
       char c = *scf->curp;
       if (('.' == c) or ('e' == c) or ('E' == c)) // convert to floating point
       {
-        double fpval = intval;
+        double fpval = double(uint64_t(intval));
         if (not scf->ReadFloatFracExp(fpval))
         {
           Error(DQERR_LIT_FLOAT);

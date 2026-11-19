@@ -29,6 +29,12 @@ OTypeInt * OTypeInt::CalculationType(bool force_signed) const
                                 force_signed || issigned);
 }
 
+OTypeInt * OTypeInt::CommonCalculationType(const OTypeInt * other, bool force_signed) const
+{
+  return g_builtins->FindIntType(max(bitlength, other->bitlength),
+                                force_signed || issigned || other->issigned)->CalculationType();
+}
+
 int64_t OTypeInt::NormalizeConstant(uint64_t rawbits) const
 {
   if (bitlength >= 64)
@@ -50,6 +56,12 @@ int64_t OTypeInt::NormalizeConstant(uint64_t rawbits) const
 int64_t OTypeInt::ConvertConstant(int64_t value) const
 {
   return NormalizeConstant(uint64_t(value));
+}
+
+double OTypeInt::ConstantToDouble(int64_t value) const
+{
+  int64_t norm = ConvertConstant(value);
+  return issigned ? double(norm) : double(uint64_t(norm));
 }
 
 LlValue * OTypeInt::GenerateRemainder(LlValue * left, LlValue * right) const
@@ -116,7 +128,9 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
     auto * ex = dynamic_cast<OIntLit *>(expr);
     if (ex)
     {
-      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(ex->value);
+      auto * srctype = dynamic_cast<OTypeInt *>(ex->ResolvedType());
+      int64_t srcval = srctype ? srctype->ConvertConstant(ex->value) : ex->value;
+      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(srcval);
       return true;
     }
   }
@@ -125,12 +139,15 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
     auto * ex = dynamic_cast<ONegExpr *>(expr);
     if (ex)
     {
-      OValueInt v(this->ptype, 0);
+      OTypeInt * exprtype = dynamic_cast<OTypeInt *>(ex->ResolvedType());
+      if (!exprtype) exprtype = static_cast<OTypeInt *>(ResolvedType());
+      OValueInt v(exprtype, 0);
       if (not v.CalculateConstant(ex->operand, emit_errors))
       {
         return false;
       }
-      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(int64_t(0ULL - uint64_t(v.value)));
+      int64_t negval = exprtype->ConvertConstant(int64_t(0ULL - uint64_t(v.value)));
+      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(negval);
       return true;
     }
   }
@@ -139,12 +156,15 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
     auto * ex = dynamic_cast<OBinNotExpr *>(expr);
     if (ex)
     {
-      OValueInt v(this->ptype, 0);
+      OTypeInt * exprtype = dynamic_cast<OTypeInt *>(ex->ResolvedType());
+      if (!exprtype) exprtype = static_cast<OTypeInt *>(ResolvedType());
+      OValueInt v(exprtype, 0);
       if (not v.CalculateConstant(ex->operand, emit_errors))
       {
         return false;
       }
-      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(~v.value);
+      int64_t notval = exprtype->ConvertConstant(~v.value);
+      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(notval);
       return true;
     }
   }
@@ -237,8 +257,10 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
     auto * ex = dynamic_cast<OBinExpr *>(expr);
     if (ex)
     {
-      OValueInt vleft(this->ptype, 0);
-      OValueInt vright(this->ptype, 0);
+      OTypeInt * exprtype = dynamic_cast<OTypeInt *>(ex->ResolvedType());
+      if (!exprtype) exprtype = static_cast<OTypeInt *>(ResolvedType());
+      OValueInt vleft(exprtype, 0);
+      OValueInt vright(exprtype, 0);
 
       if (not vleft.CalculateConstant(ex->left, emit_errors)
           or not vright.CalculateConstant(ex->right, emit_errors))
@@ -261,8 +283,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
           return false;
         }
 
-        auto * inttype = static_cast<OTypeInt *>(ResolvedType());
-        if (inttype->issigned)
+        if (exprtype->issigned)
         {
           if ((INT64_MIN == vleft.value) && (-1 == vright.value))
           {
@@ -296,7 +317,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
 
       else if ((BINOP_ISHL == ex->op) || (BINOP_ISHR == ex->op))
       {
-        if ((vright.value < 0) || (vright.value >= 64))
+        if ((vright.value < 0) || (uint64_t(vright.value) >= exprtype->bitlength))
         {
           if (emit_errors)
           {
@@ -309,7 +330,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
         {
           value = int64_t(uint64_t(vleft.value) << shift);
         }
-        else if (static_cast<OTypeInt *>(ResolvedType())->issigned && (vleft.value < 0))
+        else if (exprtype->issigned && (vleft.value < 0))
         {
           value = int64_t(~((~uint64_t(vleft.value)) >> shift));
         }
@@ -328,7 +349,7 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
         return false;
       }
 
-      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(value);
+      value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(exprtype->ConvertConstant(value));
       return true;
     }
   }

@@ -12,6 +12,14 @@ func printf(fmt : ^char, ...) -> int [[external]] ..
 
 const wide_uint_name : rostr = "uint64"
 
+func PickOverload(value : int) -> int [[overload]]:
+    return 1
+endfunc
+
+func PickOverload(value : float) -> int [[overload]]:
+    return 2
+endfunc
+
 func ReadWord(high : byte, low : byte) -> uint16:
     var rxbuf : [64]byte
     rxbuf[0] = high
@@ -60,4 +68,82 @@ func *Main():
     printf("wide calculations = %lld,%d,%d\n", int64((wide << 40) | small),
         TypeName(wide + small) == wide_uint_name, TypeName(small << count) == native_uint_name)
     //?check("wide calculations", "1099511627777,1,1")
+
+    // Non-negative literals start as uint; negation and subtraction switch to int.
+    printf("literal types = %s,%s,%d,%d,%d\n",
+        TypeName(0), TypeName(5),
+        TypeName(-5) == native_int_name,
+        TypeName(5 - 3) == native_int_name,
+        TypeName(~0) == native_uint_name)
+    //?check("literal types", "uint,uint,1,1,1")
+
+    // High-bit unsigned values stay unsigned with plain literals (runtime and const).
+    var uhigh : uint64 = 0x8000000000000000
+    const cuhigh : uint64 = 0x8000000000000000
+    printf("unsigned literals = %d,%d,%d,%d,0x%llX,0x%llX,0x%llX,0x%llX,%lld,%lld\n",
+        uhigh > 0, cuhigh > 0, uhigh < 0, cuhigh < 0,
+        uhigh div 2, cuhigh div 2,
+        (uhigh | 1) >> 1, (cuhigh | 1) >> 1,
+        int64(uhigh rem 10), int64(cuhigh rem 10))
+    //?check("unsigned literals", "1,1,0,0,0x4000000000000000,0x4000000000000000,0x4000000000000000,0x4000000000000000,8,8")
+
+    // Unsigned subtraction machine wraparound and bit-copy identity.
+    var uzero : uint = 0
+    var uwrap : uint = uzero - 1
+    var ubig : uint64 = 0x8000000000000000
+    var sneg : int8 = -5
+    printf("sub wrap = %d,%d,%d,%d\n",
+        uwrap == ~0,
+        uint(uint(uzero) - uint(1)) == uint(uzero - 1),
+        uint(uint(ubig) - uint(1)) == uint(ubig - 1),
+        uint(uint(sneg) - uint(1)) == uint(sneg - 1))
+    //?check("sub wrap", "1,1,1,1")
+
+    // Large unsigned integer to float conversion matches between runtime and const.
+    var umax : uint64 = 0xFFFFFFFFFFFFFFFF
+    const cumax : uint64 = 0xFFFFFFFFFFFFFFFF
+    const cint : int = -42
+    var f_rt1 : float = umax
+    const f_ct1 : float = cumax
+    var f_rt2 : float = umax / 2
+    const f_ct2 : float = cumax / 2
+    const f_cint : float = cint
+    printf("uint64 float = %d,%d,%.1f\n", f_rt1 == f_ct1, f_rt2 == f_ct2, f_cint)
+    //?check("uint64 float", "1,1,-42.0")
+
+    // Modify-assignment on narrow integers promotes like regular assignment.
+    var ma1 : uint8 = 200
+    var ma2 : uint8 = 200
+    ma1 = ma1 div 300
+    ma2 =div= 300
+    var ma3 : uint8 = 10
+    var ma4 : uint8 = 10
+    ma3 = ma3 div -3
+    ma4 =div= -3
+    var ma5 : int8 = -10
+    var ma6 : int8 = -10
+    ma5 = ma5 mod 200
+    ma6 =mod= 200
+    var ma7 : uint8 = 1
+    ma7 <<= 8
+    printf("modify assign = %u,%u,%u,%u,%d,%d,%u\n", ma1, ma2, ma3, ma4, ma5, ma6, ma7)
+    //?check("modify assign", "0,0,253,253,-66,-66,0")
+
+    // Pointer arithmetic and indexing zero-extend narrow unsigned offsets.
+    var buf : [256]byte
+    var base : ^byte = %buf[0]
+    var off : uint8 = 200
+    var p_add : ^byte = base + off
+    var p_idx : ^byte = base[off]
+    var p_adv : ^byte = base
+    p_adv += off
+    var p_sub : ^byte = %buf[250] - off
+    printf("ptr offset = %lld,%lld,%lld,%lld\n",
+        int64(p_add - base), int64(p_idx - base), int64(p_adv - base), int64(p_sub - base))
+    //?check("ptr offset", "200,200,200,50")
+
+    // Overload ranking prefers int over float for integer literals and narrow integers.
+    printf("overloads = %d,%d,%d,%d\n",
+        PickOverload(5), PickOverload(-5), PickOverload(off), PickOverload(2.5))
+    //?check("overloads", "1,1,1,2")
 endfunc

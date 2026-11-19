@@ -17,9 +17,21 @@ func *Main():
         run.ExpectOutputContains('or i32')
         run.ExpectOutputContains('add i32')
         run.ExpectOutputContains('add i64')
+        run.ExpectOutputContains('store i64 2147483648')
+        run.ExpectOutputContains('store i64 4294967296')
+        run.ExpectOutputContains('store i64 5000000000')
+        run.ExpectOutputContains('store i64 -2147483648')
+        run.ExpectOutputContains('store i64 -2147483649')
+        run.ExpectOutputContains('store i64 -3000000000')
+        run.ExpectOutputContains('icmp ugt i32')
+        run.ExpectOutputContains('udiv i32')
+        run.ExpectOutputContains('lshr i32')
+        run.ExpectOutputContains('and i32')
         run.ExpectOutputNotContains('shl i8')
         run.ExpectOutputNotContains('shl i64') // A wide count must not widen the shifted byte.
         run.ExpectOutputNotContains('add i8')
+        run.ExpectOutputNotContains('sdiv i32')
+        run.ExpectOutputNotContains('ashr i32')
     endif
     RemoveTemp(output)
 endfunc

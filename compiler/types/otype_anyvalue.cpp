@@ -437,5 +437,5 @@ int OTypeAnyValue::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool conve
     if (!EnsureAnyValueRtlUse()) return -1;
     *rexpr = new OAnyValueBoxExpr(src, this);
   }
-  return 1;
+  return 3;
 }

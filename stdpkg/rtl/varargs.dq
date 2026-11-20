@@ -1,4 +1,224 @@
-// `varargs` helper funcitons
+// Proposed private compiler/RTL ABI. All pointers borrow storage for the call.
+// The descriptor starts with a byte count followed by one tag byte per element.
+// Bits 1–7 hold the kind. Bit 0 is set for two words and clear for one word.
+//
+// Logical kind       Words                     Payload
+// SINT, UINT         1, or 2 for a wide int    sign/zero extended to slot width
+// FLOAT32, FLOAT64   ceil(float bytes / word)  original float bytes at slot start
+// BOOL, CHAR, WCHAR  1                         0/1 or unsigned character value
+// STRVIEW            2                         byte pointer, known byte length
+// PCHAR              1                         zero-terminated text pointer
+// POINTER            1                         pointer, including nil
+//
+// On M0, [int, float64, strslice, ^char] has tags 0x02, 0x09, 0x11, 0x12
+// at word offsets 0, 1, 3, 5. The payload is word-aligned and has no padding.
+// Wide scalars use native byte order.
 
+const(byte):
+    DQVA_SINT    = ( 1 << 1)
+    DQVA_UINT    = ( 2 << 1)
+    DQVA_FLOAT32 = ( 3 << 1)
+    DQVA_FLOAT64 = ( 4 << 1)
+    DQVA_BOOL    = ( 5 << 1)
+    DQVA_CHAR    = ( 6 << 1)
+    DQVA_WCHAR   = ( 7 << 1)
+    DQVA_STRVIEW = ( 8 << 1)
+    DQVA_PCHAR   = ( 9 << 1)
+    DQVA_POINTER = (10 << 1)
+endconst
+
+const DQVA_TWO_WORDS : byte = 0x01
+const DQVA_KIND_MASK : byte = 0xFE
+
+// Each reader borrows the original two ABI components and has its own position.
+object OVarArgReader:
+private
+    m_descriptor : ^byte
+    m_payload    : ^uint
+    m_data       : ^uint // actual data, nil when there is no current element
+    m_length     : byte
+    m_index      : byte  
+
+    m_tag        : byte
+    m_kind       : byte
+    m_wordcount  : byte  // 0 when there is no current element
+
+#if PTRSIZE <= 4
+    // Copy in address order so the payload needs only four-byte alignment.
+    func CopyWide(words : ^uint32) [[inline]]:
+        words[0]^ = m_data[0]^
+        words[1]^ = m_data[1]^
+    endfunc
+#endif
+
+    func SetInvalid():
+        m_index = 255
+        m_tag = 0
+        m_kind = 0
+        m_wordcount = 0
+        m_data = nil        
+    endfunc
+
+public
+    // A nonempty reader starts on element zero.
+    func *Create(descriptor : ^byte, payload : ^uint):
+        m_descriptor = descriptor
+        m_payload = payload
+
+        m_length = m_descriptor[0]^
+        m_index = 0
+        if m_length > 0:
+            m_tag = m_descriptor[1]^
+            m_kind = m_tag & @.DQVA_KIND_MASK
+            m_wordcount = 1 + m_tag & @.DQVA_TWO_WORDS
+            m_data = m_payload
+        else:
+            m_tag = 0
+            m_kind = 0
+            m_wordcount = 0
+            m_data = nil
+        endif
+    endfunc
+
+    // Move past the current element. False means there is no next element.
+    func Next() -> bool:
+        if m_index + 1 >= m_length:
+            SetInvalid()
+            return false
+        endif
+        ++m_index
+        m_data = m_data + m_wordcount
+        m_tag = m_descriptor[m_index + 1]^
+        m_kind = m_tag & @.DQVA_KIND_MASK
+        m_wordcount = 1 + m_tag & @.DQVA_TWO_WORDS
+        return true
+    endfunc
+
+    // Seek from the start of the pack. On failure, leave the position intact.
+    func Seek(aindex : uint) -> bool:
+        if aindex >= m_length:
+            SetInvalid()
+            return false
+        endif
+        m_index = 0
+        m_data = m_payload
+        var pkind : ^byte = m_descriptor[1]
+        while m_index < aindex:
+            m_data += 1 + pkind^ & @.DQVA_TWO_WORDS
+            ++pkind
+            ++m_index
+        endwhile
+        m_tag = pkind^
+        m_kind = m_tag & @.DQVA_KIND_MASK
+        m_wordcount = 1 + m_tag & @.DQVA_TWO_WORDS
+        return true
+    endfunc
+
+    // Each accessor returns defval on a kind mismatch.
+    func AsInt64(defval : int64) -> int64 ..
+    func AsUInt64(defval : uint64) -> uint64 ..
+    func AsFloat32(defval : float32) -> float32 ..
+    func AsFloat64(defval : float64) -> float64 ..
+    func AsBool(defval : bool) -> bool ..
+    func AsChar(defval : char) -> char ..
+    func AsWChar(defval : wchar) -> wchar ..
+    func AsText(defval : strslice) -> strslice ..
+    func AsPointer(defval : pointer) -> pointer ..
+
+    property length    : byte   read m_length
+    property index     : byte   read m_index
+    property kind      : byte   read m_kind
+    property wordcount : byte   read m_wordcount
+    property data      : ^uint  read m_data  // nil if no more data present
+endobject
 
 implementation
+
+use rtl/strfunc
+
+func OVarArgReader.AsInt64(defval : int64) -> int64:
+    if m_kind <> @.DQVA_SINT:
+        return defval
+    endif
+#if @def.PTRSIZE > 4
+    return ^int64(m_data)^
+#else
+    if m_wordcount == 1:
+        return ^int(m_data)^
+    endif
+    result = 0
+    CopyWide(^uint32(%result))
+#endif
+endfunc
+
+func OVarArgReader.AsUInt64(defval : uint64) -> uint64:
+    if m_kind <> @.DQVA_UINT:
+        return defval
+    endif
+#if @def.PTRSIZE > 4
+    return ^uint64(m_data)^
+#else
+    if m_wordcount == 1:
+        return m_data^
+    endif
+    result = 0
+    CopyWide(^uint32(%result))
+#endif
+endfunc
+
+func OVarArgReader.AsFloat32(defval : float32) -> float32:
+    if m_kind <> @.DQVA_FLOAT32:
+        return defval
+    endif
+    return ^float32(m_data)^
+endfunc
+
+func OVarArgReader.AsFloat64(defval : float64) -> float64:
+    if m_kind <> @.DQVA_FLOAT64:
+        return defval
+    endif
+#if @def.PTRSIZE > 4
+    return ^float64(m_data)^
+#else
+    result = 0
+    CopyWide(^uint32(%result))  // for wide platform LLVM compatibility
+#endif
+endfunc
+
+func OVarArgReader.AsBool(defval : bool) -> bool:
+    if m_kind <> @.DQVA_BOOL:
+        return defval
+    endif
+    return m_data^ <> 0
+endfunc
+
+func OVarArgReader.AsChar(defval : char) -> char:
+    if m_kind <> @.DQVA_CHAR:
+        return defval
+    endif
+    return char(m_data^)
+endfunc
+
+func OVarArgReader.AsWChar(defval : wchar) -> wchar:
+    if m_kind <> @.DQVA_WCHAR:
+        return defval
+    endif
+    return wchar(m_data^)
+endfunc
+
+func OVarArgReader.AsText(defval : strslice) -> strslice:
+    if m_kind == @.DQVA_STRVIEW:
+        return @strfunc.StrSlice(^^char(m_data)^, m_data[1]^)
+    elif m_kind == @.DQVA_PCHAR:
+        // Conversion to strslice resolves the zero-terminated length here.
+        return ^^char(m_data)^
+    endif
+    return defval
+endfunc
+
+func OVarArgReader.AsPointer(defval : pointer) -> pointer:
+    if m_kind <> @.DQVA_POINTER:
+        return defval
+    endif
+    return ^pointer(m_data)^
+endfunc

@@ -323,15 +323,15 @@ public:
   bool         TryFoldSelf(OExpr ** rreplacement) override;
 };
 
-// A range comparison uses this pair to evaluate its shared middle operand once.
-class OCompareCachedExpr : public OLValueExpr
+// Capture one evaluated value in a slot, retaining managed string storage.
+class OCachedValueExpr : public OLValueExpr
 {
 public:
   OExpr *      source;
   LlValue *    ll_storage = nullptr;
 
-  /* ctor */   OCompareCachedExpr(OExpr * asource);
-  ~OCompareCachedExpr() override;
+  /* ctor */   OCachedValueExpr(OExpr * asource);
+  ~OCachedValueExpr() override;
   void         PrepareStorage();
   LlValue *    GenerateAddress(OScope * scope) override;
   bool         NeedsCallCleanup() const override;
@@ -342,9 +342,9 @@ public:
 class OCompareCachedLoadExpr : public OLValueExpr
 {
 public:
-  OCompareCachedExpr * source;
+  OCachedValueExpr * source;
 
-  /* ctor */   OCompareCachedLoadExpr(OCompareCachedExpr * asource);
+  /* ctor */   OCompareCachedLoadExpr(OCachedValueExpr * asource);
   LlValue *    GenerateAddress(OScope * scope) override;
 };
 
@@ -389,8 +389,8 @@ public:
 class ORangeCompareExpr : public OLogicalExpr
 {
 public:
-  OCompareCachedExpr * middle;
-  ORangeCompareExpr(OExpr * first, OExpr * second, OCompareCachedExpr * amiddle);
+  OCachedValueExpr * middle;
+  ORangeCompareExpr(OExpr * first, OExpr * second, OCachedValueExpr * amiddle);
   LlValue * Generate(OScope * scope) override;
 };
 
@@ -974,6 +974,7 @@ class OCallLifetimeCleanup
 {
 private:
   OScope * scope;
+  unique_ptr<OCallLifetimeCleanup> argument_cleanup;
   vector<OExpr *> temporaries;
   vector<LlValue *> temporary_dynstrs;
   LlBasicBlock * saved_lpad_bb = nullptr;

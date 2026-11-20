@@ -1,0 +1,39 @@
+type Args = varargs
+func Consume(args : Args):
+endfunc
+func CCall(fmt : ^char, ...) [[external]] ..
+var global : Args //?error(NotSupported)
+var array : [2]Args //?error(NotSupported)
+struct BadField:
+    field : Args //?error(NotSupported)
+endstruct //?error(ModStatementUnknown)
+var result_type : func() -> Args //?error(NotSupported)
+var mode : func(a : refin Args) //?error(NotSupported)
+var defaults : func(a : Args = []) //?error(FuncParDefaultType)
+func CFunction(args : Args) [[external]] .. //?error(NotSupported)
+
+func Choose(args : varargs) [[overload]]:
+endfunc
+func Choose(x : int) [[overload]]:
+endfunc
+
+func Invalid(args : Args, boxed : anyvalue, stored : [2]int, slice : []int, boxes : []anyvalue):
+    Choose([1, boxed]) //?error(TypeMismatch)
+    Consume(boxed) //?error(TypeMismatch)
+    Consume([boxed]) //?error(TypeMismatch)
+    Consume(stored) //?error(TypeMismatch)
+    Consume([stored]) //?error(TypeMismatch)
+    Consume(slice) //?error(TypeMismatch)
+    Consume([slice]) //?error(TypeMismatch)
+    Consume(boxes) //?error(TypeMismatch)
+    Consume([boxes]) //?error(TypeMismatch)
+    Consume([args]) //?error(TypeMismatch)
+    Consume(1, 2) //?error(FuncArgsTooMany)
+    CCall("bad", args) //?error(NotSupported)
+    var local : ? = args //?error(NotSupported)
+    var p : pointer = %args //?error(ExprAddrofInvalid)
+    args = args //?error(RefReadonly)
+    args[0].AsUInt64(0) //?error(StmtAssignOrFCallExp)
+    var casted : pointer = pointer(args) //?error(CastInvalid)
+    var raw : pointer = args.data //?error(MemberUnknown)
+endfunc

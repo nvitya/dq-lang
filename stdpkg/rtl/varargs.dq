@@ -50,14 +50,17 @@ private
 
     func SetInvalid() ..
 
+  #if @def.PTRSIZE == 4
     func CopyWide(words : ^uint32) [[inline]]:  // used only on 32-bit architectures, the payload needs only four-byte alignment
         words[0]^ = m_data[0]^
         words[1]^ = m_data[1]^
     endfunc
+  #endif
 
 public
 
-    func *Create(payload : ^uint, descriptor : ^byte) .. // prepares the first element to use, when exists
+    func *Create(payload : ^uint, descriptor : ^byte) [[overload]] ..
+    func *Create(args : varargs) [[overload]] ..
 
     func Next() -> bool ..               // Move past the current element. False means there is no next element.
     func Seek(aindex : uint) -> bool ..  // Seek from the start of the pack. On failure, leave the position intact.
@@ -85,7 +88,11 @@ implementation
 
 use rtl/strfunc
 
-func OVarArgReader.*Create(payload : ^uint, descriptor : ^byte):
+func OVarArgReader.*Create(args : varargs) [[overload]]:
+    Create(args.data, args.desc)
+endfunc
+
+func OVarArgReader.*Create(payload : ^uint, descriptor : ^byte) [[overload]]:
     use .
     m_descriptor = descriptor
     m_payload    = payload
@@ -95,7 +102,7 @@ func OVarArgReader.*Create(payload : ^uint, descriptor : ^byte):
         m_index = 0
         m_tag = m_descriptor[1]^
         m_kind = m_tag & DQVA_KIND_MASK
-        m_wordcount = 1 + m_tag & DQVA_TWO_WORDS
+        m_wordcount = 1 + (m_tag & DQVA_TWO_WORDS)
         m_data = m_payload
     else:
         SetInvalid()
@@ -105,7 +112,7 @@ endfunc
 // Move past the current element. False means there is no next element.
 func OVarArgReader.Next() -> bool:
     use .
-    if m_index + 1 >= m_length:
+    if m_data == nil or m_index + 1 >= m_length:
         SetInvalid()
         return false
     endif
@@ -113,7 +120,7 @@ func OVarArgReader.Next() -> bool:
     m_data = m_data + m_wordcount
     m_tag = m_descriptor[m_index + 1]^
     m_kind = m_tag & DQVA_KIND_MASK
-    m_wordcount = 1 + m_tag & DQVA_TWO_WORDS
+    m_wordcount = 1 + (m_tag & DQVA_TWO_WORDS)
     return true
 endfunc
 
@@ -121,20 +128,19 @@ endfunc
 func OVarArgReader.Seek(aindex : uint) -> bool:
     use .
     if aindex >= m_length:
-        SetInvalid()
         return false
     endif
     m_index = 0
     m_data = m_payload
     var pkind : ^byte = m_descriptor[1]
     while m_index < aindex:
-        m_data += 1 + pkind^ & DQVA_TWO_WORDS
+        m_data += 1 + (pkind^ & DQVA_TWO_WORDS)
         ++pkind
         ++m_index
     endwhile
     m_tag = pkind^
     m_kind = m_tag & DQVA_KIND_MASK
-    m_wordcount = 1 + m_tag & DQVA_TWO_WORDS
+    m_wordcount = 1 + (m_tag & DQVA_TWO_WORDS)
     return true
 endfunc
 
@@ -172,6 +178,7 @@ func OVarArgReader.TrySint64(rvalue : refout int64) -> bool:
     if m_wordcount == 1:
         rvalue = ^int(m_data)^
     else:
+        rvalue = 0
         CopyWide(^uint32(%rvalue))
     endif
   #endif
@@ -188,7 +195,8 @@ func OVarArgReader.TryUint64(rvalue : refout uint64) -> bool:
     if m_wordcount == 1:
         rvalue = ^uint(m_data)^
     else:
-        CopyWide(%rvalue)
+        rvalue = 0
+        CopyWide(^uint32(%rvalue))
     endif
   #endif
     return true
@@ -209,6 +217,7 @@ func OVarArgReader.TryFloat64(rvalue : refout float64) -> bool:
   #if @def.PTRSIZE > 4
     rvalue = ^float64(m_data)^
   #else
+    rvalue = 0
     CopyWide(^uint32(%rvalue))  // for wide platform LLVM compatibility
   #endif
     return true
@@ -256,5 +265,5 @@ func OVarArgReader.TryPointer(rvalue : refout pointer) -> bool:
         return false
     endif
     rvalue = ^pointer(m_data)^
-    return false
+    return true
 endfunc

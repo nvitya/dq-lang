@@ -572,7 +572,7 @@ OExpr * ODqCompAst::CreateBinExpr(EBinOp op, OExpr * left, OExpr * right)
   ETypeKind tkl = left->ptype->kind;
   ETypeKind tkr = right->ptype->kind;
 
-  if ((TK_ENUM == tkl) || (TK_ENUM == tkr))
+  if (TK_ENUM == tkl || TK_ENUM == tkr || TK_VARARGS == tkl || TK_VARARGS == tkr)
   {
     Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetBinopSymbol(op), right->ptype->name);
     return nullptr;
@@ -712,6 +712,8 @@ int ODqCompAst::AnalyzeExprConversion(OType * dsttype, OExpr ** rexpr, uint32_t 
   }
 
   OType * resolved_dst = dsttype->ResolveAlias();
+  if (TK_VARARGS == resolved_dst->kind)
+    return resolved_dst->AnalyzeConversion(rexpr, aflags, convert);
   if (auto * unresolved = dynamic_cast<OUnresolvedEnumItemExpr *>(src))
   {
     if (auto * enum_dst = dynamic_cast<OTypeEnum *>(resolved_dst))
@@ -745,7 +747,10 @@ int ODqCompAst::AnalyzeExprConversion(OType * dsttype, OExpr ** rexpr, uint32_t 
     }
     return -1;
   }
-  if (dynamic_cast<OArrayLit *>(src) && !src->ptype)
+  // The provisional array type uses the first element. A concrete call
+  // candidate still needs to accept every element before outranking a pack.
+  if (dynamic_cast<OArrayLit *>(src) && (!src->ptype
+      || ((aflags & EXPCF_ALLOW_VARARGS) && TK_ARRAY == resolved_dst->kind)))
   {
     auto * array_dst = dynamic_cast<OTypeArray *>(resolved_dst);
     return array_dst ? array_dst->AnalyzeConversion(rexpr, aflags, convert) : -1;
@@ -789,6 +794,12 @@ bool ODqCompAst::ResolveIifType(OExpr ** rtrueexpr, OExpr ** rfalseexpr, OType *
   if (!truetype || !falsetype)
   {
     ErrorTxt(DQERR_TYPE_EXPECTED, "iif() expects non-void value expressions");
+    return false;
+  }
+
+  if (TK_VARARGS == truetype->kind || TK_VARARGS == falsetype->kind)
+  {
+    ErrorTxt(DQERR_NOT_SUPPORTED, "a varargs parameter can only be inspected or forwarded");
     return false;
   }
 
@@ -1211,10 +1222,14 @@ bool ODqCompAst::CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr *> 
   }
 
   bool ambiguous = false;
-  rctor = object_type->FindConstructorForArgs(rargs, &ambiguous);
+  OExpr * rejected_pack = nullptr;
+  rctor = object_type->FindConstructorForArgs(rargs, &ambiguous, &rejected_pack);
   if (!rctor)
   {
-    Error(ambiguous ? DQERR_OVERLOAD_AMBIGUOUS : DQERR_OVERLOAD_NO_MATCH, "Create");
+    if (!ambiguous && rejected_pack)
+      g_builtins->type_varargs->AnalyzeConversion(&rejected_pack, EXPCF_CALL_ARGUMENT | EXPCF_GENERATE_ERRORS, false);
+    else
+      Error(ambiguous ? DQERR_OVERLOAD_AMBIGUOUS : DQERR_OVERLOAD_NO_MATCH, "Create");
     return false;
   }
 
@@ -1227,7 +1242,7 @@ bool ODqCompAst::CheckObjectCtorArgs(OTypeObject * object_type, vector<OExpr *> 
 
   for (size_t i = 0; i < rargs.size(); ++i)
   {
-    if (!CheckAssignType(sigtype->params[i + 1]->ptype, &rargs[i], "constructor argument"))
+    if (!ConvertExprToType(sigtype->params[i + 1]->ptype, &rargs[i], EXPCF_GENERATE_ERRORS | EXPCF_CALL_ARGUMENT))
     {
       return false;
     }
@@ -1449,7 +1464,7 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
       {
         OType * argtype = tfunc->params[pcnt]->ptype;
         if (!ConvertExprToType(argtype, &argexpr,
-                               EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR | EXPCF_ALLOW_TEMP_ARRAY_SLICE))
+                               EXPCF_GENERATE_ERRORS | EXPCF_CALL_ARGUMENT))
         {
           bok = false;
           break;
@@ -1457,7 +1472,13 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
         // CheckAssignType may have replaced argexpr (e.g. array->slice conversion)
         rargs[pcnt] = argexpr;
       }
-      else if (TK_ROSTR == argexpr->ResolvedType()->kind)
+      else if (argexpr->ResolvedType() && TK_VARARGS == argexpr->ResolvedType()->kind)
+      {
+        ErrorTxt(DQERR_NOT_SUPPORTED, "cannot pass a varargs list through C ...");
+        bok = false;
+        break;
+      }
+      else if (argexpr->ResolvedType() && TK_ROSTR == argexpr->ResolvedType()->kind)
       {
         // Apply the same C variadic string conversion for direct and indirect calls.
         rargs[pcnt] = new OExprTypeConv(g_builtins->type_char->GetPointerType(), argexpr);

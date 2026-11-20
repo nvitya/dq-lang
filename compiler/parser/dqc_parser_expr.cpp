@@ -16,6 +16,7 @@
 #include "dq_module.h"
 #include "dqc.h"
 #include "otype_array.h"
+#include "otype_varargs.h"
 #include "otype_compound.h"
 #include "otype_enum.h"
 #include "otype_char.h"
@@ -23,6 +24,7 @@
 #include "otype_float.h"
 #include "otype_string.h"
 #include "named_scopes.h"
+#include "module_path.h"
 
 static bool DecodeSingleUtf8Scalar(const string & bytes, int64_t & rvalue)
 {
@@ -570,7 +572,7 @@ bool ODqCompParserExpr::CheckSpecialReservedRootName(const string & aname)
   return false;
 }
 
-OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
+OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors, bool allow_varargs)
 {
   // Parses type specification after ":"
   // Handles prefix type constructors: ^type, [N]type, []type
@@ -818,6 +820,13 @@ OType * ODqCompParserExpr::ParseTypeSpec(bool aemit_errors)
     ptype = ptype->ResolveAlias();
   }
 
+  if (TK_VARARGS == ptype->kind && !allow_varargs)
+  {
+    if (aemit_errors)
+      ErrorTxt(DQERR_NOT_SUPPORTED, "varargs is a borrowed parameter type; copy the required values for storage");
+    return nullptr;
+  }
+
   // embstr(N) handling: N is the total storage size, including the terminator.
   if (TK_EMBSTR == ptype->kind)
   {
@@ -1063,7 +1072,7 @@ bool ODqCompParserExpr::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec
         scf->ReadIdentifier(mode_keyword);
       }
 
-      OType * ptype = ParseTypeSpec(aemit_errors);
+      OType * ptype = ParseTypeSpec(aemit_errors, FPM_VALUE == pmode);
       if (!ptype)
       {
         if (atypespec)
@@ -1239,6 +1248,11 @@ bool ODqCompParserExpr::ParseFunctionSignature(OTypeFunc * tfunc, bool atypespec
 
   }
 
+  if (tfunc->has_varargs && tfunc->HasVarArgsParameter())
+  {
+    if (aemit_errors) ErrorTxt(DQERR_NOT_SUPPORTED, "C variadic signatures cannot contain varargs parameters");
+    return false;
+  }
   if (tfunc->has_varargs && tfunc->params.empty())
   {
     if (aemit_errors)
@@ -1458,7 +1472,7 @@ OExpr * ODqCompParserExpr::ParseComparison()
   {
     return FreeLeftRight(left, right);
   }
-  auto * middle = new OCompareCachedExpr(right);
+  auto * middle = new OCachedValueExpr(right);
   OExpr * first_expr = CreateCompareExpr(op, left, middle);
   auto * first = dynamic_cast<OCompareExpr *>(first_expr);
   if (!first)
@@ -1500,7 +1514,8 @@ OExpr * ODqCompParserExpr::CreateCompareExpr(ECompareOp op, OExpr * left, OExpr 
     OExpr::DeleteTree(right);
     return new OBoolLit(false);
   }
-  if ((left_enum || right_enum) && left_enum != right_enum)
+  if (((left_enum || right_enum) && left_enum != right_enum)
+      || (left->ptype && TK_VARARGS == left->ptype->kind) || (right->ptype && TK_VARARGS == right->ptype->kind))
   {
     Error(DQERR_TYPEMISM_FOR_OP, left->ptype->name, GetCompareSymbol(op), right->ptype->name);
     OExpr::DeleteTree(left);
@@ -1699,17 +1714,18 @@ OExpr * ODqCompParserExpr::ParseExprUnary()
     return new OAddrOfExpr(lval);
   }
 
-  if (scf->CheckSymbol("-"))
+  bool negate = scf->CheckSymbol("-");
+  if (negate || scf->CheckSymbol("~"))
   {
     OExpr * val = ParseExprUnary();
     if (!val) return nullptr;
-    return new ONegExpr(val);
-  }
-
-  if (scf->CheckSymbol("~"))
-  {
-    OExpr * val = ParseExprUnary();
-    if (!val) return nullptr;
+    if (val->ptype && TK_VARARGS == val->ptype->kind)
+    {
+      ErrorTxt(DQERR_NOT_SUPPORTED, "a varargs parameter can only be inspected or forwarded");
+      delete val;
+      return nullptr;
+    }
+    if (negate) return new ONegExpr(val);
     return new OBinNotExpr(val);
   }
 
@@ -1722,7 +1738,7 @@ OLValueExpr * ODqCompParserExpr::ParseAddressableExpr()
   if (!expr) return nullptr;
 
   OLValueExpr * lval = dynamic_cast<OLValueExpr *>(expr);
-  if (!lval)
+  if (!lval || TK_VARARGS == lval->ResolvedType()->kind)
   {
     Error(DQERR_EXPR_INVALID_ADDROF);  // Address-of requires an lvalue expression;
     delete expr;
@@ -3184,6 +3200,27 @@ ODqCompParserExpr::EPostfixResult ODqCompParserExpr::ParsePostfixDotMember(
       return EPostfixResult::Stop;
     }
 
+    if (TK_VARARGS == tk)
+    {
+      bool readable = membername == "length";
+      if (membername == "data" || membername == "desc")
+      {
+        OModulePath module;
+        string error;
+        readable = module.InitCurrent(g_opt.input_filename, error)
+            && OModulePath::IsRtlPackageSubmodule(module.module_id, module.root_dir);
+      }
+      if (readable)
+      {
+        result = new OVarArgsFieldExpr(result, membername);
+        return EPostfixResult::Continue;
+      }
+      HandleUnknownMemberError(result, membername, "varargs");
+      delete result;
+      result = nullptr;
+      return EPostfixResult::Stop;
+    }
+
     if (TK_ANYVALUE == tk)
     {
       result = ParseAnyValueMethod(result, lval, membername);
@@ -4096,6 +4133,15 @@ OExpr * ODqCompParserExpr::ParseArrayLit()
     }
   }
 
+  for (OExpr * elem : elems)
+  {
+    if (elem->ptype && TK_VARARGS == elem->ptype->kind)
+    {
+      ErrorTxt(DQERR_TYPEMISM, "unsupported array or varargs element of type varargs; forward the parameter directly");
+      for (OExpr * e : elems) delete e;
+      return nullptr;
+    }
+  }
   return new OArrayLit(elems);
 }
 
@@ -4505,13 +4551,14 @@ OExpr * ODqCompParserExpr::ParseExprOverloadCallWithRawArgs(OValSymOverloadSet *
 
   OValSymFunc * best_func = nullptr;
   TFuncCallMatchScore best_score;
+  OExpr * rejected_pack = nullptr;
   bool ambiguous = false;
 
   for (OValSymFunc * fn : ovset->funcs)
   {
     OTypeFunc * tfunc = dynamic_cast<OTypeFunc *>(fn ? fn->ptype : nullptr);
     TFuncCallMatchScore score;
-    if (!tfunc || !tfunc->AnalyzeCallCandidate(callargs, score))
+    if (!tfunc || !tfunc->AnalyzeCallCandidate(callargs, score, &rejected_pack))
     {
       continue;
     }
@@ -4542,6 +4589,10 @@ OExpr * ODqCompParserExpr::ParseExprOverloadCallWithRawArgs(OValSymOverloadSet *
     if (ambiguous)
     {
       Error(DQERR_OVERLOAD_AMBIGUOUS, ovset->name);
+    }
+    else if (rejected_pack)
+    {
+      g_builtins->type_varargs->AnalyzeConversion(&rejected_pack, EXPCF_CALL_ARGUMENT | EXPCF_GENERATE_ERRORS, false);
     }
     else
     {

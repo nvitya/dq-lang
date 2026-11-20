@@ -1,0 +1,18 @@
+//?notest
+
+type Arguments = varargs
+func Inspect(prefix : uint, args : Arguments, suffix : uint) -> uint:
+    var r <- OVarArgReader(args)
+    var first : uint = 0
+    r.TryUint(first)
+    var second : uint = 0
+    r.Next()
+    r.TryUint(second)
+    return prefix + first + second + suffix
+endfunc
+
+object OConsumer:
+    func Forward(args : varargs) -> uint:
+        return @.Inspect(2, args, 3)
+    endfunc
+endobject

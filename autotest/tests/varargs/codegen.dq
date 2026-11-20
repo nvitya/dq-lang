@@ -1,0 +1,31 @@
+//?exitcode(0)
+use dqautotest
+use file
+
+func *Main():
+    var run <- OTestRun()
+    var source : str = TempPath('.dq')
+    var output : str = TempPath('.o')
+    var contents : str = 'var observed : uint [[volatile]]\nfunc Observe(args : varargs) [[noinline]]:\n observed = args.length\nendfunc\n'
+    contents.Append('func Call(x : uint):\n Observe(x)\n Observe([x])\n Observe([1,2])\n Observe([')
+    for i : uint = 0 count 254:
+        contents.Append('1,')
+    endfor
+    contents.Append('1')
+    FileWriteText(source, contents + '])\nendfunc\n')
+    run.RunCompiler(['--target=arm_m0-bare', '--no-use-sys', '-Oz', '-ir', '-c', '-o', output, source])
+    run.ExpectExitCode(0)
+    run.ExpectOutputContains('constant [256 x i8]')
+    run.ExpectOutputContains('<{ i32 1, i32 2 }>')
+    run.ExpectOutputNotContains('AnyVal')
+    run.ExpectOutputNotContains('DynStr')
+    run.ExpectOutputNotContains('landingpad')
+
+    FileWriteText(source, contents + ',1])\nendfunc\n')
+    run.RunCompiler(['--target=arm_m0-bare', '--no-use-sys', '-c', '-o', output, source])
+    run.ExpectExitCode(1)
+    run.ExpectOutputContains('at most 255 elements')
+    RemoveTemp(source)
+    RemoveTemp(output)
+    exit_code = TestResult()
+endfunc

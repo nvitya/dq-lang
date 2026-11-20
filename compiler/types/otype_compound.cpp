@@ -98,7 +98,7 @@ OValSymFunc * OTypeObject::FindSpecialMethod(EObjectSpecFuncKind akind, size_t a
   return nullptr;
 }
 
-OValSymFunc * OTypeObject::FindConstructorForArgs(const vector<OExpr *> & aargs, bool * rambiguous) const
+OValSymFunc * OTypeObject::FindConstructorForArgs(const vector<OExpr *> & aargs, bool * rambiguous, OExpr ** rejected_pack) const
 {
   if (rambiguous)
   {
@@ -160,14 +160,8 @@ OValSymFunc * OTypeObject::FindConstructorForArgs(const vector<OExpr *> & aargs,
 
       if (!fparam->IsRefLike())
       {
-        int conv_cost = g_compiler->GetAssignTypeConversionCost(
-            fparam->ptype, arg, EXPCF_ALLOW_LAZY_EMBSTR | EXPCF_ALLOW_TEMP_ARRAY_SLICE);
-        if (conv_cost < 0)
-        {
-          match = false;
-          break;
-        }
-        score.conversions += conv_cost;
+        match = score.MatchValue(fparam->ptype, arg, rejected_pack);
+        if (!match) break;
         continue;
       }
 

@@ -350,8 +350,29 @@ bool OTypeFunc::SameRefBindingType(OType * dsttype, OType * srctype, bool ignore
   return (resolved_dst && resolved_src && (resolved_dst == resolved_src));
 }
 
+bool OTypeFunc::HasVarArgsParameter() const
+{
+  return any_of(params.begin(), params.end(), [](OFuncParam * param) {
+    return TK_VARARGS == param->ptype->ResolveAlias()->kind;
+  });
+}
+
+bool TFuncCallMatchScore::MatchValue(OType * type, OExpr * arg, OExpr ** rejected_pack)
+{
+  int cost = g_compiler->GetAssignTypeConversionCost(type, arg, EXPCF_CALL_ARGUMENT);
+  bool pack = type->ResolveAlias() == g_builtins->type_varargs;
+  if (cost < 0)
+  {
+    if (rejected_pack && pack) *rejected_pack = arg;
+    return false;
+  }
+  if (cost && pack) ++packs;
+  conversions += cost;
+  return true;
+}
+
 bool OTypeFunc::AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
-                                     TFuncCallMatchScore & rscore) const
+                                     TFuncCallMatchScore & rscore, OExpr ** rejected_pack) const
 {
   rscore = TFuncCallMatchScore();
 
@@ -375,6 +396,7 @@ bool OTypeFunc::AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
 
     if (i >= params.size())
     {
+      if (callarg.expr->ResolvedType() == g_builtins->type_varargs) return false;
       rscore.uses_varargs = true;
       continue;
     }
@@ -382,13 +404,7 @@ bool OTypeFunc::AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
     OFuncParam * fparam = params[i];
     if (!fparam->IsRefLike())
     {
-      int conv_cost = g_compiler->GetAssignTypeConversionCost(fparam->ptype, callarg.expr, EXPCF_ALLOW_LAZY_EMBSTR | EXPCF_ALLOW_TEMP_ARRAY_SLICE);
-      if (conv_cost < 0)
-      {
-        return false;
-      }
-
-      rscore.conversions += conv_cost;
+      if (!rscore.MatchValue(fparam->ptype, callarg.expr, rejected_pack)) return false;
       continue;
     }
 
@@ -438,6 +454,7 @@ bool OTypeFunc::AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
 int OTypeFunc::CompareCallCandidateScore(const TFuncCallMatchScore & left,
                                          const TFuncCallMatchScore & right)
 {
+  if (left.packs != right.packs) return left.packs < right.packs ? -1 : 1;
   if (left.conversions != right.conversions)
   {
     return (left.conversions < right.conversions ? -1 : 1);

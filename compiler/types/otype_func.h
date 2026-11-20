@@ -60,9 +60,12 @@ struct TFuncCallArgMatch
 
 struct TFuncCallMatchScore
 {
+  int   packs = 0;
   int   conversions = 0;
   int   defaults = 0;
   bool  uses_varargs = false;
+
+  bool MatchValue(OType * type, OExpr * arg, OExpr ** rejected_pack);
 };
 
 class OFuncParam
@@ -145,8 +148,9 @@ public:
   bool          MatchesSignature(const OTypeFunc * other, bool check_modes = true) const;
   bool          MatchesOverloadDeclIdentity(const OTypeFunc * other) const { return MatchesSignature(other, false); }
   void          MergeForwardDeclFrom(OTypeFunc * other, bool copy_param_names);
+  bool          HasVarArgsParameter() const;
   bool          AnalyzeCallCandidate(const vector<TFuncCallArgMatch> & callargs,
-                                     TFuncCallMatchScore & rscore) const;
+                                     TFuncCallMatchScore & rscore, OExpr ** rejected_pack = nullptr) const;
 
   static bool   SameRefBindingType(OType * dsttype, OType * srctype, bool ignore_source_autofree = false);
   static int    CompareCallCandidateScore(const TFuncCallMatchScore & left,

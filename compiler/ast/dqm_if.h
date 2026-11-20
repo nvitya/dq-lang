@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    29 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    29 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    30 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    30 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {

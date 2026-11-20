@@ -84,7 +84,7 @@ public: // expressions
   OExpr * ParseStructLit();
 
 public: // type parsing
-  OType * ParseTypeSpec(bool aemit_errors = true);  // parses type after ":" — handles ^T, [N]T, []T
+  OType * ParseTypeSpec(bool aemit_errors = true, bool allow_varargs = false);  // parses type after ":" — handles ^T, [N]T, []T
   OTypeFunc * ParseFunctionType(bool aemit_errors = true, const string & aowner_name = "func");
 
 public: // utility from parser that are needed early

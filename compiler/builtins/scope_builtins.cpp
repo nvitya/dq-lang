@@ -12,6 +12,7 @@
  */
 
 #include "scope_builtins.h"
+#include "otype_varargs.h"
 #include "otype_compound.h"
 
 OScopeBuiltins *  g_builtins;
@@ -76,6 +77,7 @@ void OScopeBuiltins::Init()
   type_strslice = new OTypeStrSlice();
   type_rostr = new OTypeRoStr();
   type_anyvalue = new OTypeAnyValue();
+  type_varargs = new OTypeVarArgs();
   type_object = new OTypeObject("Object", this);
   type_object->is_abstract = true;
   type_object->EnsureLayout();
@@ -87,6 +89,7 @@ void OScopeBuiltins::Init()
   DefineType(type_strslice);
   DefineType(type_rostr);
   DefineType(type_anyvalue);
+  DefineType(type_varargs);
   DefineType(type_object);
 
   DefineType(new OTypeAlias("byte", type_uint8));

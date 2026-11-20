@@ -64,6 +64,7 @@ public:
   OTypeStrSlice *   type_strslice;
   OTypeRoStr *     type_rostr;
   OTypeAnyValue *  type_anyvalue;
+  OType *          type_varargs;
   OTypeObject *    type_object;
 
   OScopeBuiltins()

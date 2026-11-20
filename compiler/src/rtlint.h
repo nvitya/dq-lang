@@ -30,6 +30,7 @@ enum ETypeKind
   TK_DYNSTR       = 10,
   TK_ROSTR        = 11,
 
+  TK_VARARGS      = 14,
   TK_ANYVALUE     = 15,
 
   TK_STRUCT       = 16,

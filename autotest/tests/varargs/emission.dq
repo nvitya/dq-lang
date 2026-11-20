@@ -1,0 +1,126 @@
+use ./consumer
+use libc/stdio
+
+var count : uint = 0
+var shared : str
+
+func Next() -> uint:
+    ++count
+    return count
+endfunc
+
+func Single(args : varargs) -> uint:
+    var r <- OVarArgReader(args)
+    if r.TryUint(result):
+        return result
+    endif
+    return 99
+endfunc
+
+func Length(args : varargs) -> uint:
+    return args.length
+endfunc
+
+func Choose(arg : int) -> uint [[overload]]:
+    return 1
+endfunc
+func Choose(arg : []int) -> uint [[overload]]:
+    return 2
+endfunc
+func Choose(arg : varargs) -> uint [[overload]]:
+    return 3
+endfunc
+
+object OCtor:
+    stored : uint
+    func *Create(args : varargs):
+        var r <- OVarArgReader(args)
+        r.TryUint(stored)
+    endfunc
+endobject
+
+func Fixed(args : [2]int) -> uint [[overload]]:
+    return 1
+endfunc
+
+func Fixed(args : varargs) -> uint [[overload]]:
+    return 2
+endfunc
+
+func Mixed(args : varargs):
+    var r <- OVarArgReader(args)
+    var signed_value : int64
+    var unsigned_value : uint64
+    var f32 : float32
+    var f64 : float64
+    var flag : bool
+    var ch : char
+    var wide : wchar
+    var text : strslice
+    var cstr : strslice
+    var ptr : pointer
+
+    var signed_ok : bool = r.TrySint64(signed_value) and signed_value == -9223372036854775807
+    r.Next()
+    var unsigned_ok : bool = r.TryUint64(unsigned_value) and unsigned_value == 0xFFFFFFFFFFFFFFFF
+    r.Next()
+    var f32_ok : bool = r.TryFloat32(f32) and f32 == 1.25
+    r.Next()
+    var f64_ok : bool = r.TryFloat64(f64) and f64 == -3.5
+    printf("numbers = %d %d %d %d\n", signed_ok, unsigned_ok, f32_ok, f64_ok) //?check("numbers", "1 1 1 1")
+
+    r.Next()
+    var mismatch_ok : bool = not r.TrySint64(signed_value)
+    var flag_ok : bool = r.TryBool(flag) and flag
+    r.Next()
+    var char_ok : bool = r.TryChar(ch) and Ord(ch) == 65
+    r.Next()
+    var wide_ok : bool = r.TryWchar(wide) and Ord(wide) == 8364
+    r.Next()
+    var text_ok : bool = r.kind == DQVA_STRVIEW and r.TryText(text)
+        and text.length == 3 and Ord(text[1]) == 0 and Ord(text[2]) == 66
+    r.Next()
+    var cstr_ok : bool = r.kind == DQVA_PCHAR and r.TryText(cstr) and cstr == "abc"
+    r.Next()
+    var pointer_ok : bool = r.TryPointer(ptr) and ptr == nil
+    r.Next()
+    var char16_ok : bool = r.TryWchar(wide) and Ord(wide) == 257
+    printf("others = %d %d %d %d %d %d %d %d\n",
+        flag_ok, char_ok, wide_ok, text_ok, cstr_ok, pointer_ok, char16_ok, mismatch_ok) //?check("others", "1 1 1 1 1 1 1 1")
+endfunc
+
+func Replace() -> uint:
+    shared = "next"
+    return 0
+endfunc
+
+func Temp() -> str:
+    return "temporary"
+endfunc
+
+func Text(args : varargs, ignored : uint):
+    var r <- OVarArgReader(args)
+    var a : strslice
+    var b : strslice
+    var first_ok : bool = r.TryText(a) and a == "first"
+    var second_ok : bool = r.Next() and r.TryText(b) and b == "temporary"
+    printf("retained = %d %d\n", first_ok, second_ok)
+endfunc
+
+func *Main():
+    shared = "first"
+    printf("empty = %lu\n", Length([])) //?check("empty", 0)
+    printf("single = %lu %lu %lu\n", Single(Next()), Single([Next()]), count) //?check("single", "1 2 2")
+    printf("overload = %lu %lu %lu\n", Choose(5), Choose([1,2]), Choose([1,"mixed"])) //?check("overload", "1 2 3")
+    var constructed <- OCtor([9])
+    printf("ctor = %lu\n", constructed.stored) //?check("ctor", 9)
+    printf("fixed = %lu %lu\n", Fixed([int(1), 2]), Fixed([int(1), "two"])) //?check("fixed", "1 2")
+    var obj <- OConsumer()
+    printf("forward = %lu\n", obj.Forward([count, Next()])) //?check("forward", 10)
+    var cb : func(p : uint, a : varargs, s : uint) -> uint = Inspect
+    printf("callback = %lu\n", cb(1, [2,3], 4)) //?check("callback", 10)
+    var p : ^char = "abc"
+    Mixed([int64(-9223372036854775807), 0xFFFFFFFFFFFFFFFF, float32(1.25), float64(-3.5), true,
+        char(65), wchar(8364), "A\x00B", p, nil, char16(257)])
+    Text([shared, Temp(), Replace()], 0) //?check("retained", "1 1")
+endfunc

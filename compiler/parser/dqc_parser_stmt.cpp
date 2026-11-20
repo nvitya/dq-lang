@@ -262,6 +262,7 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
   {
     scf->SkipWhite();
     initexpr = ParseExpression();
+    if (!initexpr && infer_type) return;
   }
 
   if (arootstmt)
@@ -286,7 +287,9 @@ void ODqCompParserStmt::ParseStmtVar(bool arootstmt)
     ptype = GetInferredDeclType(initexpr, detected_type);
     if (!ptype)
     {
-      if (dynamic_cast<OStructLit *>(initexpr))
+      if (detected_type && TK_VARARGS == detected_type->kind)
+        ErrorTxt(DQERR_NOT_SUPPORTED, "varargs is borrowed; copy the required values for storage");
+      else if (dynamic_cast<OStructLit *>(initexpr))
       {
         StatementError(DQERR_STRUCT_INIT_CONTEXT);
       }
@@ -1571,7 +1574,7 @@ void ODqCompParserStmt::ParseStmtInherited()
   }
   for (size_t i = 0; i < args.size(); ++i)
   {
-    if (!CheckAssignType(sig->params[i + 1]->ptype, &args[i], "inherited argument"))
+    if (!ConvertExprToType(sig->params[i + 1]->ptype, &args[i], EXPCF_GENERATE_ERRORS | EXPCF_CALL_ARGUMENT))
     {
       for (OExpr * arg : args) OExpr::DeleteTree(arg);
       return;

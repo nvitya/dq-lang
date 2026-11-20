@@ -807,7 +807,7 @@ public:
 
   inline bool IsRefWriteable() const
   {
-    return (!IsRefLike() || (FPM_REFIN != param_mode));
+    return (!IsRefLike() || (FPM_REFIN != param_mode)) && (!ptype || TK_VARARGS != ptype->ResolveAlias()->kind);
   }
 
   virtual OType * GetStorageType() const;

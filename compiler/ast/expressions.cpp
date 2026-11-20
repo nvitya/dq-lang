@@ -12,6 +12,7 @@
  */
 
 #include "expressions.h"
+#include "otype_varargs.h"
 #include "statements.h"
 #include "scope_builtins.h"
 #include "otype_bool.h"
@@ -1616,19 +1617,19 @@ OCompareExpr::~OCompareExpr()
   delete right;
 }
 
-/* ctor */ OCompareCachedExpr::OCompareCachedExpr(OExpr * asource)
+/* ctor */ OCachedValueExpr::OCachedValueExpr(OExpr * asource)
 {
   source = asource;
   ptype = source->ptype;
 }
 
-void OCompareCachedExpr::PrepareStorage()
+void OCachedValueExpr::PrepareStorage()
 {
-  ll_storage = CreateEntryBlockAlloca(ptype->GetLlType(), nullptr, "range.middle");
+  ll_storage = CreateEntryBlockAlloca(ptype->GetLlType(), nullptr, "cached.value");
   ll_builder.CreateStore(llvm::Constant::getNullValue(ptype->GetLlType()), ll_storage);
 }
 
-LlValue * OCompareCachedExpr::GenerateAddress(OScope * scope)
+LlValue * OCachedValueExpr::GenerateAddress(OScope * scope)
 {
   ll_builder.CreateStore(source->Generate(scope), ll_storage);
   if (NeedsCallCleanup() && source->IsStableStorageLValue())
@@ -1638,28 +1639,28 @@ LlValue * OCompareCachedExpr::GenerateAddress(OScope * scope)
   return ll_storage;
 }
 
-bool OCompareCachedExpr::NeedsCallCleanup() const
+bool OCachedValueExpr::NeedsCallCleanup() const
 {
   return source->ResolvedType()->kind == TK_DYNSTR;
 }
 
-void OCompareCachedExpr::GenerateCallCleanup(OScope * scope)
+void OCachedValueExpr::GenerateCallCleanup(OScope * scope)
 {
   g_builtins->type_str->GenerateDestroy(scope, ll_storage);
 }
 
-void OCompareCachedExpr::FoldChildren()
+void OCachedValueExpr::FoldChildren()
 {
   OExpr::FoldTree(&source);
   ptype = source->ptype;
 }
 
-OCompareCachedExpr::~OCompareCachedExpr()
+OCachedValueExpr::~OCachedValueExpr()
 {
   delete source;
 }
 
-/* ctor */ OCompareCachedLoadExpr::OCompareCachedLoadExpr(OCompareCachedExpr * asource)
+/* ctor */ OCompareCachedLoadExpr::OCompareCachedLoadExpr(OCachedValueExpr * asource)
 {
   source = asource;
   ptype = source->ptype;
@@ -1674,7 +1675,7 @@ LlValue * OCompareCachedLoadExpr::GenerateAddress(OScope * scope)
   return source->ll_storage;
 }
 
-ORangeCompareExpr::ORangeCompareExpr(OExpr * first, OExpr * second, OCompareCachedExpr * amiddle)
+ORangeCompareExpr::ORangeCompareExpr(OExpr * first, OExpr * second, OCachedValueExpr * amiddle)
   : OLogicalExpr(LOGIOP_AND, first, second), middle(amiddle)
 {
 }
@@ -2392,12 +2393,20 @@ void OCallLifetimeCleanup::GenerateExceptionCleanup()
 OCallLifetimeCleanup::OCallLifetimeCleanup(OScope * ascope, const vector<OExpr *> & args)
   : scope(ascope)
 {
+  vector<OExpr *> owners;
   for (OExpr * arg : args)
   {
+    if (auto * pack = dynamic_cast<OVarArgsPackExpr *>(arg)) pack->PrepareOwners(owners);
     if (arg && arg->NeedsCallCleanup())
     {
       temporaries.push_back(arg);
     }
+  }
+  if (!owners.empty())
+  {
+    // Pack owners may already be live when a later argument raises.
+    argument_cleanup = make_unique<OCallLifetimeCleanup>(scope, owners);
+    argument_cleanup->Prepare();
   }
 }
 
@@ -2422,6 +2431,7 @@ void OCallLifetimeCleanup::Cleanup()
 {
   if (!HasCleanups())
   {
+    if (argument_cleanup) argument_cleanup->Cleanup();
     return;
   }
 
@@ -2435,6 +2445,7 @@ void OCallLifetimeCleanup::Cleanup()
     g_builtins->type_str->GenerateDestroy(scope, temporary_dynstr);
   }
   GenerateExceptionCleanup();
+  if (argument_cleanup) argument_cleanup->Cleanup();
 }
 
 void OCallLifetimeCleanup::CaptureArgument(OExpr * expr, LlValue * val, OFuncParam * param)

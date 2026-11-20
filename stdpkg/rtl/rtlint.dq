@@ -28,6 +28,7 @@ const(uint8):
     DQTK_STRSLICE     =  9
     DQTK_DYNSTR       = 10
     DQTK_ROSTR        = 11
+    DQTK_VARARGS      = 14
     DQTK_ANYVALUE     = 15
     DQTK_STRUCT       = 16
     DQTK_OBJECT       = 17

@@ -1,0 +1,47 @@
+// Exercise the reader independently of compiler-generated argument lists.
+implementation
+use rtl/varargs
+use libc/stdio
+
+func *Main():
+    var empty : [1]byte = [0]
+    var r <- OVarArgReader(nil, %empty[0])
+    printf("empty = %d %d %d\n", r.length, r.data == nil, r.Next()) //?check("empty", "0 1 0")
+
+    var text : [3]char = [char(65), char(0), char(66)]
+    var words : [6]uint = {}
+    words[0] = 17
+    var wide : uint64 = 0x1122334455667788
+  #if @def.PTRSIZE == 4
+    var tags : [5]byte = [4, DQVA_UINT, DQVA_UINT | 1, DQVA_STRVIEW | 1, DQVA_POINTER]
+    words[1] = ^uint(%wide)[0]^
+    words[2] = ^uint(%wide)[1]^
+    const tail : uint = 3
+  #else
+    var tags : [5]byte = [4, DQVA_UINT, DQVA_UINT, DQVA_STRVIEW | 1, DQVA_POINTER]
+    words[1] = wide
+    const tail : uint = 2
+  #endif
+    words[tail] = uint(%text[0])
+    words[tail + 1] = 3
+    words[tail + 2] = uint(%wide)
+    var a <- OVarArgReader(%words[0], %tags[0])
+    var b <- OVarArgReader(%words[0], %tags[0])
+    var n : uint = 0
+    var big : uint64 = 0
+    var view : strslice = ""
+    var ptr : pointer = nil
+    printf("first = %d %lu %d\n", a.TryUint(n), n, a.TryPointer(ptr)) //?check("first", "1 17 0")
+    a.Next()
+    printf("wide = %d %d %d\n", a.TryUint64(big), big == wide, b.index) //?check("wide", "1 1 0")
+    b.Seek(2)
+    printf("text = %d %lu %d %d\n", b.TryText(view), view.length, Ord(view[1]), Ord(view[2])) //?check("text", "1 3 0 66")
+    printf("seek failure = %d %d\n", b.Seek(4), b.index) //?check("seek failure", "0 2")
+    b.Next()
+    printf("pointer = %d %d\n", b.TryPointer(ptr), ptr == %wide) //?check("pointer", "1 1")
+    printf("end = %d %d %d\n", b.Next(), b.index, b.data == nil) //?check("end", "0 255 1")
+
+    var single : [2]byte = [1, DQVA_UINT]
+    var s <- OVarArgReader(%words[0], %single[0])
+    printf("single = %d %d %d\n", s.TryUint(n), s.Next(), s.Seek(0)) //?check("single", "1 0 1")
+endfunc

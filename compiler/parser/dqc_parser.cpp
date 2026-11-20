@@ -985,7 +985,7 @@ void ODqCompParser::ParseRootTypeDecl()
     return;
   }
 
-  ptype = ParseTypeSpec();
+  ptype = ParseTypeSpec(true, true);
   if (not ptype)
   {
     SkipToModuleStatementStart();
@@ -1802,6 +1802,9 @@ bool ODqCompParser::ValidateFunctionDecl(OValSymFunc * vsfunc, bool aallow_exter
     RecoverFailedFunctionDecl();
     return false;
   }
+
+  if (vsfunc->is_external && tfunc->HasVarArgsParameter())
+    ErrorTxt(DQERR_NOT_SUPPORTED, "varargs parameters require a DQ function");
 
   if (tfunc->has_varargs && !vsfunc->is_external)
   {

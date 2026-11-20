@@ -1,0 +1,45 @@
+//?compargs('-DHEAPCHECK')
+//?build_suffix('heapcheck')
+use libc/stdio
+
+var shared : str
+var failure : Exception
+var reached : uint = 0
+
+func Make() -> str:
+    return "temporary"
+endfunc
+
+func Fail() -> uint:
+    raise failure
+    return 0
+endfunc
+
+func Read(args : varargs, finish : uint):
+    ++reached
+    if finish == 0:
+        Fail()
+    endif
+endfunc
+
+func *Main():
+    failure = new Exception("stop")
+    shared = "original"
+    var baseline : int64 = heap_allocated_size
+    try:
+        Read([shared, Make(), Fail(), shared], 1)
+    except Exception as e:
+        printf("element = %lu %lu\n", reached, shared.refcount) //?check("element", "0 1")
+    endtry
+    try:
+        Read([shared, Make()], Fail())
+    except Exception as e:
+        printf("argument = %lu %lu\n", reached, shared.refcount) //?check("argument", "0 1")
+    endtry
+    try:
+        Read([shared, Make()], 0)
+    except Exception as e:
+        printf("callee = %lu %lu\n", reached, shared.refcount) //?check("callee", "1 1")
+    endtry
+    printf("heap = %d\n", heap_allocated_size == baseline) //?check("heap", 1)
+endfunc

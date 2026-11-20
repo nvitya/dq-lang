@@ -1,0 +1,42 @@
+//?compargs('--no-dynstrings', '--no-exceptions')
+//?build_suffix('unmanaged')
+use libc/stdio
+
+func Inspect(args : varargs):
+    var r <- OVarArgReader(args)
+    var narrow : int64
+    var wide : uint64
+    var signed_word : int64
+    var embedded : strslice
+    var readonly : strslice
+    var narrow_ok : bool = r.TrySint64(narrow) and narrow == -128
+    var wide_ok : bool = r.Next() and r.TryUint64(wide) and wide == 0xFEDCBA9876543210
+    var word_ok : bool = r.Next() and r.TrySint64(signed_word) and signed_word == -99
+    var embedded_ok : bool = r.Next() and r.TryText(embedded) and embedded == "edited"
+    var readonly_ok : bool = r.Next() and r.TryText(readonly) and readonly == "char pointer"
+    printf("borrowed = %d %d %d %d %d\n", narrow_ok, wide_ok, word_ok, embedded_ok, readonly_ok)
+endfunc
+
+func Change(buf : ref embstr(16)) -> uint:
+    buf.Set("edited")
+    return 0
+endfunc
+
+func Text(args : varargs) -> uint:
+    var r <- OVarArgReader(args)
+    var s : strslice
+    if r.TryText(s):
+        return s.length
+    endif
+    return 0
+endfunc
+
+func *Main():
+    var buf : embstr(16) = "before"
+    var signed_byte : int8 = -128
+    var wide : uint64 = 0xFEDCBA9876543210
+    var p : ^char = "char pointer"
+    var unknown : rostr = p
+    Inspect([signed_byte, wide, -99, buf, unknown, Change(buf)]) //?check("borrowed", "1 1 1 1 1")
+    printf("text = %lu %lu\n", Text("A\x00B"), Text(["words"])) //?check("text", "3 5")
+endfunc

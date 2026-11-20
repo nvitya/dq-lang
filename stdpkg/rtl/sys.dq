@@ -15,6 +15,7 @@
 
 use rtl/rtlint     reexport
 use rtl/mem        reexport
+use rtl/varargs    reexport
 
 #ifdef EXCEPTIONS
 use rtl/exception  reexport

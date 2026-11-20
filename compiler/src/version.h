@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.98.3"
+#define DQ_COMPILER_VERSION  "0.98.4"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.98.4:
+  - .dqm_if dependency check / re-building fix
 v0.98.3:
   - Textformat optimizations for small embedded targets
 v0.98.2:

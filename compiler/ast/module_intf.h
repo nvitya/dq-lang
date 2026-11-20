@@ -90,12 +90,18 @@ private:
   string FormatUnresolvedDqmIfTypeError(const string & atype_name) const;
   void ClearDqmIfMetadata();
   bool ReadDqmIfHeaderMetadata(ODqmIfReader & reader, bool abegin_current = false);
-  bool ReadDqmIfSourceDependency(ODqmIfReader & reader);
+  bool ReadDqmIfSourceDependency(ODqmIfReader & reader, TDqmIfRecId begin_recid, TDqmIfRecId end_recid,
+                                 vector<SSourceDependency> & rdeps);
+  bool MetadataMatchesSourceSet(const vector<SSourceDependency> & sources,
+                                const vector<pair<string, string>> & mod_sources,
+                                bool require_non_empty, string & rreason) const;
   string DqmIfTargetArch() const;
   string DqmIfTargetRtl() const;
   string DqmIfBuildOptions(const vector<SSourceDependency> & sources) const;
   bool WriteDqmIfSourceMetadata(ODqmIfWriter & writer, const vector<SSourceDependency> & source_dependencies,
                                 const vector<pair<string, string>> & module_sources,
+                                const vector<SSourceDependency> & impl_source_dependencies,
+                                const vector<pair<string, string>> & impl_module_sources,
                                 const string & object_filename);
   bool WriteInterfaceRecords(ODqmIfWriter & writer, const vector<SSourceDependency> & source_dependencies,
                              const string & object_filename);
@@ -115,6 +121,8 @@ public:
   map<string, OValSymConst *> exported_defines;
   vector<SSourceDependency> source_dependencies;
   vector<pair<string, string>> module_sources;
+  vector<SSourceDependency> impl_source_dependencies;
+  vector<pair<string, string>> impl_module_sources;
   int64_t  object_filesize = 0;
   int64_t  object_filetime = 0;
   string   target_arch;

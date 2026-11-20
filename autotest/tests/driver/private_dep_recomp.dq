@@ -1,0 +1,99 @@
+//?exitcode(0)
+// Recompiling a private (implementation) dependency must invalidate dependents
+// whose objects and .dqm_if metadata rely on its ModuleInit or implementation.
+
+use dqautotest
+use file
+
+func WriteLeaf(workdir : rostr, leaf_has_init : bool):
+    var leaf_code : str
+    if leaf_has_init:
+        leaf_code =
+            'use libc/stdio\n' +
+            'func Log(msg : ^char) .. \n' +
+            'implementation\n' +
+            'object OInit:\n' +
+            '    func *Create():\n' +
+            '        @stdio.printf("leaf_init\\n")\n' +
+            '    endfunc\n' +
+            'endobject\n' +
+            'var g_init <- OInit()\n' +
+            'func Log(msg : ^char):\n' +
+            '    @stdio.printf("%s\\n", msg)\n' +
+            'endfunc\n'
+    else:
+        leaf_code =
+            'func Log(msg : ^char) [[inline]]:\n' +
+            'endfunc\n'
+    endif
+    FileWriteText(Format('{}/leaf.dq', [workdir]), leaf_code)
+endfunc
+
+func WriteTree(workdir : rostr, leaf_has_init : bool, main_uses_leaf : bool):
+    WriteLeaf(workdir, leaf_has_init)
+
+    var mid_code : str =
+        'func RunMid() .. \n' +
+        'implementation\n' +
+        'use ./leaf\n' +
+        'func RunMid():\n' +
+        '    Log("mid_log")\n' +
+        'endfunc\n'
+
+    var main_code : str =
+        'use libc/stdio\n' +
+        'use ./mid\n'
+    if main_uses_leaf:
+        main_code.Append('use ./leaf\n')
+    endif
+    main_code.Append(
+        'func *Main():\n' +
+        '    RunMid()\n' +
+        '    printf("main_done\\n")\n' +
+        'endfunc\n')
+
+    FileWriteText(Format('{}/mid.dq', [workdir]), mid_code)
+    FileWriteText(Format('{}/main.dq', [workdir]), main_code)
+endfunc
+
+func VerifyCase(main_uses_leaf : bool):
+    var run <- OTestRun()
+    var workdir : str = TempPath('.privrecomp')
+    var buildroot : str = Format('{}/build', [workdir])
+    var main_src : str = Format('{}/main.dq', [workdir])
+    var exe_path : str = Format('{}/app.exe', [workdir])
+
+    run.RunTool(['/bin/mkdir', '-p', buildroot])
+    run.ExpectExitCode(0)
+
+    WriteTree(workdir, true, main_uses_leaf)
+    run.RunTool([CompilerPath(), '--build-root', buildroot, '-o', exe_path, main_src])
+    run.ExpectExitCode(0)
+    if run.exitcode == 0:
+        run.RunTool([exe_path])
+        run.ExpectExitCode(0)
+        run.ExpectOutputContains('leaf_init')
+        run.ExpectOutputContains('mid_log')
+        run.ExpectOutputContains('main_done')
+    endif
+
+    // Remove leaf's implementation/ModuleInit without touching mid.dq or main.dq.
+    WriteLeaf(workdir, false)
+    run.RunTool([CompilerPath(), '--build-root', buildroot, '-o', exe_path, main_src])
+    run.ExpectExitCode(0)
+    if run.exitcode == 0:
+        run.RunTool([exe_path])
+        run.ExpectExitCode(0)
+        run.ExpectOutputNotContains('leaf_init')
+        run.ExpectOutputNotContains('mid_log')
+        run.ExpectOutputContains('main_done')
+    endif
+
+    run.RunTool(['/bin/rm', '-rf', '--', workdir])
+endfunc
+
+func *Main():
+    VerifyCase(true)
+    VerifyCase(false)
+    exit_code = TestResult()
+endfunc

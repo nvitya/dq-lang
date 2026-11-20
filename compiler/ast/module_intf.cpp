@@ -538,6 +538,8 @@ void OModuleIntf::ClearDqmIfMetadata()
 {
   source_dependencies.clear();
   module_sources.clear();
+  impl_source_dependencies.clear();
+  impl_module_sources.clear();
   object_filesize = 0;
   object_filetime = 0;
   target_arch.clear();
@@ -554,9 +556,10 @@ void OModuleIntf::ClearDqmIfMetadata()
   has_build_options = false;
 }
 
-bool OModuleIntf::ReadDqmIfSourceDependency(ODqmIfReader & reader)
+bool OModuleIntf::ReadDqmIfSourceDependency(ODqmIfReader & reader, TDqmIfRecId begin_recid,
+                                            TDqmIfRecId end_recid, vector<SSourceDependency> & rdeps)
 {
-  if (!reader.ExpectEmpty(DQMIF_H_SRC_BEGIN))
+  if (!reader.ExpectEmpty(begin_recid))
   {
     return false;
   }
@@ -571,14 +574,14 @@ bool OModuleIntf::ReadDqmIfSourceDependency(ODqmIfReader & reader)
     {
       return false;
     }
-    if (DQMIF_H_SRC_END == reader.recid)
+    if (end_recid == reader.recid)
     {
-      if (!reader.ExpectEmpty(DQMIF_H_SRC_END)) return false;
+      if (!reader.ExpectEmpty(end_recid)) return false;
       if (!has_filename || !has_filesize || !has_filetime)
       {
         return reader.Fail("Incomplete source dependency metadata");
       }
-      source_dependencies.push_back(dep);
+      rdeps.push_back(dep);
       return true;
     }
     if (DQMIF_H_SRC_FILENAME == reader.recid)
@@ -633,7 +636,18 @@ bool OModuleIntf::ReadDqmIfHeaderMetadata(ODqmIfReader & reader, bool abegin_cur
 
     if (DQMIF_H_SRC_BEGIN == reader.recid)
     {
-      if (!ReadDqmIfSourceDependency(reader)) return false;
+      if (!ReadDqmIfSourceDependency(reader, DQMIF_H_SRC_BEGIN, DQMIF_H_SRC_END, source_dependencies))
+      {
+        return false;
+      }
+    }
+    else if (DQMIF_H_IMPL_SRC_BEGIN == reader.recid)
+    {
+      if (!ReadDqmIfSourceDependency(reader, DQMIF_H_IMPL_SRC_BEGIN, DQMIF_H_IMPL_SRC_END,
+                                     impl_source_dependencies))
+      {
+        return false;
+      }
     }
     else if (DQMIF_H_OBJ_FILESIZE == reader.recid)
     {
@@ -666,6 +680,13 @@ bool OModuleIntf::ReadDqmIfHeaderMetadata(ODqmIfReader & reader, bool abegin_cur
       string source_filename;
       if (!reader.ReadStringPair(module_name, source_filename)) return false;
       module_sources.push_back({module_name, source_filename});
+    }
+    else if (DQMIF_H_IMPL_MODULE_SOURCE == reader.recid)
+    {
+      string module_name;
+      string source_filename;
+      if (!reader.ReadStringPair(module_name, source_filename)) return false;
+      impl_module_sources.push_back({module_name, source_filename});
     }
     else if (DQMIF_H_MODULE_ID == reader.recid)
     {
@@ -734,15 +755,17 @@ bool OModuleIntf::MetadataMatchesCurrentBuild(string & rreason) const
   return true;
 }
 
-bool OModuleIntf::MetadataMatchesSources(string & rreason) const
+bool OModuleIntf::MetadataMatchesSourceSet(const vector<SSourceDependency> & sources,
+                                           const vector<pair<string, string>> & mod_sources,
+                                           bool require_non_empty, string & rreason) const
 {
-  if (source_dependencies.empty())
+  if (require_non_empty && sources.empty())
   {
     rreason = "missing source freshness metadata";
     return false;
   }
 
-  for (const SSourceDependency & dep : source_dependencies)
+  for (const SSourceDependency & dep : sources)
   {
     filesystem::path source_path(dep.filename);
     int64_t cur_source_filesize = 0;
@@ -767,7 +790,7 @@ bool OModuleIntf::MetadataMatchesSources(string & rreason) const
     }
   }
 
-  for (const auto & [module_name, stored_source] : module_sources)
+  for (const auto & [module_name, stored_source] : mod_sources)
   {
     filesystem::path resolved_source;
     if (!OModulePath::ResolveCanonicalSource(module_name, name, interface_filename,
@@ -787,6 +810,11 @@ bool OModuleIntf::MetadataMatchesSources(string & rreason) const
   }
 
   return true;
+}
+
+bool OModuleIntf::MetadataMatchesSources(string & rreason) const
+{
+  return MetadataMatchesSourceSet(source_dependencies, module_sources, true, rreason);
 }
 
 bool OModuleIntf::InterfaceArtifactIsFresh(const filesystem::path & interface_path,
@@ -839,6 +867,10 @@ bool OModuleIntf::ObjectArtifactIsFresh(const filesystem::path & object_path,
   }
 
   if (!InterfaceArtifactIsFresh(interface_path, rreason, false))
+  {
+    return false;
+  }
+  if (!MetadataMatchesSourceSet(impl_source_dependencies, impl_module_sources, false, rreason))
   {
     return false;
   }
@@ -1240,36 +1272,70 @@ public:
   vector<SFlattenedDqmExport> exports;
   vector<SSourceDependency> source_dependencies;
   vector<pair<string, string>> module_sources;
+  vector<SSourceDependency> impl_source_dependencies;
+  vector<pair<string, string>> impl_module_sources;
   string error;
 
 private:
   unordered_set<OType *> visited_types;
   unordered_set<OValSym *> visited_values;
   unordered_set<OModuleBase *> visited_freshness_modules;
+  unordered_set<OModuleBase *> visited_impl_freshness_modules;
   set<pair<int, string>> export_keys;
+
+  static bool HasSourceDependency(const vector<SSourceDependency> & list, const string & filename)
+  {
+    return any_of(list.begin(), list.end(),
+      [&](const SSourceDependency & item) { return item.filename == filename; });
+  }
 
   void AddSourceDependency(const SSourceDependency & dep)
   {
-    auto found = find_if(source_dependencies.begin(), source_dependencies.end(),
-      [&](const SSourceDependency & item) { return item.filename == dep.filename; });
-    if (found == source_dependencies.end())
+    if (!HasSourceDependency(source_dependencies, dep.filename))
     {
       source_dependencies.push_back(dep);
     }
   }
 
+  void AddImplSourceDependency(const SSourceDependency & dep)
+  {
+    if (!HasSourceDependency(source_dependencies, dep.filename)
+        && !HasSourceDependency(impl_source_dependencies, dep.filename))
+    {
+      impl_source_dependencies.push_back(dep);
+    }
+  }
+
+  bool CheckModuleSourceConflict(const vector<pair<string, string>> & list,
+                                 const string & module_name, const string & source_filename)
+  {
+    for (const auto & [existing_name, existing_source] : list)
+    {
+      if (existing_name != module_name) continue;
+      if (existing_source != source_filename)
+      {
+        error = format("Conflicting source paths for module {}: {} and {}",
+                       module_name, existing_source, source_filename);
+      }
+      return true;
+    }
+    return false;
+  }
+
   void AddModuleSource(const string & module_name, const string & source_filename)
   {
-    auto found = find_if(module_sources.begin(), module_sources.end(),
-      [&](const auto & item) { return item.first == module_name; });
-    if (found == module_sources.end())
+    if (!CheckModuleSourceConflict(module_sources, module_name, source_filename))
     {
       module_sources.push_back({module_name, source_filename});
     }
-    else if (found->second != source_filename)
+  }
+
+  void AddImplModuleSource(const string & module_name, const string & source_filename)
+  {
+    if (!CheckModuleSourceConflict(module_sources, module_name, source_filename)
+        && !CheckModuleSourceConflict(impl_module_sources, module_name, source_filename))
     {
-      error = format("Conflicting source paths for module {}: {} and {}",
-                     module_name, found->second, source_filename);
+      impl_module_sources.push_back({module_name, source_filename});
     }
   }
 
@@ -1294,6 +1360,35 @@ private:
     for (OModuleUse * use : module->used_modules)
     {
       if (use && !use->is_private) CollectFreshnessModule(use->module);
+    }
+  }
+
+  void CollectImplFreshnessModule(OModuleBase * module)
+  {
+    if (!module || !visited_impl_freshness_modules.insert(module).second)
+    {
+      return;
+    }
+    if (auto * intf = dynamic_cast<OModuleIntf *>(module))
+    {
+      for (const SSourceDependency & dep : intf->source_dependencies) AddImplSourceDependency(dep);
+      for (const SSourceDependency & dep : intf->impl_source_dependencies) AddImplSourceDependency(dep);
+      if (!intf->source_dependencies.empty())
+      {
+        AddImplModuleSource(intf->name, intf->source_dependencies.front().filename);
+      }
+      for (const auto & [module_name, source_filename] : intf->module_sources)
+      {
+        AddImplModuleSource(module_name, source_filename);
+      }
+      for (const auto & [module_name, source_filename] : intf->impl_module_sources)
+      {
+        AddImplModuleSource(module_name, source_filename);
+      }
+    }
+    for (OModuleUse * use : module->used_modules)
+    {
+      if (use) CollectImplFreshnessModule(use->module);
     }
   }
 
@@ -1479,7 +1574,8 @@ private:
   }
 
 public:
-  OFlattenedDqmInterface(OModuleIntf * aroot, const vector<SSourceDependency> & root_sources)
+  OFlattenedDqmInterface(OModuleIntf * aroot, const vector<SSourceDependency> & root_sources,
+                         bool include_impl_freshness)
   :
     root(aroot),
     source_dependencies(root_sources)
@@ -1516,6 +1612,14 @@ public:
           AddExport(IDK_VALSYM, symbol->module, symbol->name);
           IncludeValue(symbol, root->name);
         }
+      }
+    }
+
+    if (include_impl_freshness)
+    {
+      for (OModuleUse * use : root->used_modules)
+      {
+        if (use) CollectImplFreshnessModule(use->module);
       }
     }
   }
@@ -1568,6 +1672,8 @@ vector<string> OModuleIntf::ChildInterfaceArgs(const filesystem::path & source_p
 bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer,
                                            const vector<SSourceDependency> & source_dependencies,
                                            const vector<pair<string, string>> & module_sources,
+                                           const vector<SSourceDependency> & impl_source_dependencies,
+                                           const vector<pair<string, string>> & impl_module_sources,
                                            const string & object_filename)
 {
   if (!writer.AddRecEmpty(DQMIF_H_BEGIN)) return false;
@@ -1575,19 +1681,33 @@ bool OModuleIntf::WriteDqmIfSourceMetadata(ODqmIfWriter & writer,
   {
     return writer.Fail("Can not write module interface without source dependencies");
   }
-  for (const SSourceDependency & dep : source_dependencies)
+
+  auto write_source_deps = [&](const vector<SSourceDependency> & deps,
+                               TDqmIfRecId begin_recid, TDqmIfRecId end_recid) -> bool
   {
-    if (dep.filename.empty()) return writer.Fail("Can not write an unnamed source dependency");
-    if (!writer.AddRecEmpty(DQMIF_H_SRC_BEGIN)) return false;
-    if (!writer.AddRecStr(DQMIF_H_SRC_FILENAME, dep.filename)) return false;
-    if (!writer.AddRecI64(DQMIF_H_SRC_FILESIZE, dep.filesize)) return false;
-    if (!writer.AddRecI64(DQMIF_H_SRC_FILETIME, dep.filetime)) return false;
-    if (!writer.AddRecEmpty(DQMIF_H_SRC_END)) return false;
-  }
+    for (const SSourceDependency & dep : deps)
+    {
+      if (dep.filename.empty()) return writer.Fail("Can not write an unnamed source dependency");
+      if (!writer.AddRecEmpty(begin_recid)) return false;
+      if (!writer.AddRecStr(DQMIF_H_SRC_FILENAME, dep.filename)) return false;
+      if (!writer.AddRecI64(DQMIF_H_SRC_FILESIZE, dep.filesize)) return false;
+      if (!writer.AddRecI64(DQMIF_H_SRC_FILETIME, dep.filetime)) return false;
+      if (!writer.AddRecEmpty(end_recid)) return false;
+    }
+    return true;
+  };
+
+  if (!write_source_deps(source_dependencies, DQMIF_H_SRC_BEGIN, DQMIF_H_SRC_END)) return false;
+  if (!write_source_deps(impl_source_dependencies, DQMIF_H_IMPL_SRC_BEGIN, DQMIF_H_IMPL_SRC_END)) return false;
 
   for (const auto & [module_name, source_filename] : module_sources)
   {
     if (!writer.AddRecStringPair(DQMIF_H_MODULE_SOURCE, module_name, source_filename)) return false;
+  }
+
+  for (const auto & [module_name, source_filename] : impl_module_sources)
+  {
+    if (!writer.AddRecStringPair(DQMIF_H_IMPL_MODULE_SOURCE, module_name, source_filename)) return false;
   }
 
   if (!writer.AddRecStr(DQMIF_H_MODULE_ID, name)) return false;
@@ -1614,11 +1734,14 @@ bool OModuleIntf::WriteInterfaceRecords(ODqmIfWriter & writer,
                                         const vector<SSourceDependency> & source_dependencies,
                                         const string & object_filename)
 {
-  OFlattenedDqmInterface flattened(this, source_dependencies);
+  OFlattenedDqmInterface flattened(this, source_dependencies, !object_filename.empty());
   if (!flattened.error.empty()) return writer.Fail(flattened.error);
 
   if (!WriteDqmIfSourceMetadata(writer, flattened.source_dependencies,
-                                flattened.module_sources, object_filename))
+                                flattened.module_sources,
+                                flattened.impl_source_dependencies,
+                                flattened.impl_module_sources,
+                                object_filename))
   {
     return false;
   }

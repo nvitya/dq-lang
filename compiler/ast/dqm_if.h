@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    31 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    31 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    32 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    32 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -186,6 +186,9 @@ TDqmIfRecId  DQMIF_H_SRC_FILETIME         = 0x0114;  // int64
 TDqmIfRecId  DQMIF_H_MODULE_SOURCE        = 0x0115;  // str pair: canonical module id, source filename
 TDqmIfRecId  DQMIF_H_MODULE_ID             = 0x0116;  // str: canonical module id
 TDqmIfRecId  DQMIF_H_SRC_END              = 0x011F;  // 0
+TDqmIfRecId  DQMIF_H_IMPL_SRC_BEGIN       = 0x0120;  // 0: implementation-only source dependency
+TDqmIfRecId  DQMIF_H_IMPL_MODULE_SOURCE   = 0x0125;  // str pair: implementation-only canonical module id, source filename
+TDqmIfRecId  DQMIF_H_IMPL_SRC_END         = 0x012F;  // 0
 
 
 // 0200: Type aliases

@@ -488,11 +488,17 @@ bool OModule::UseCompiledModule(const string & module_path, const string & names
   for (const string & link_dep : intf->link_dependencies)
   {
     filesystem::path dep_source;
-    if (auto source = find_if(intf->module_sources.begin(), intf->module_sources.end(),
-                              [&](const auto & item) { return item.first == link_dep; });
-        source != intf->module_sources.end())
+    auto find_dep_source = [&](const vector<pair<string, string>> & sources) -> bool
     {
+      auto source = find_if(sources.begin(), sources.end(),
+                            [&](const auto & item) { return item.first == link_dep; });
+      if (source == sources.end()) return false;
       dep_source = source->second;
+      return true;
+    };
+    if (!find_dep_source(intf->module_sources))
+    {
+      find_dep_source(intf->impl_module_sources);
     }
 
     filesystem::path dep_artifact;

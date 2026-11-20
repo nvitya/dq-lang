@@ -108,6 +108,21 @@ void OScopeDefines::Init()
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "DYNSTRINGS", true));
   }
 
+  if (g_opt.target.hardfloat32 || g_opt.target.hardfloat64)
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "HARDFLOAT", true));
+  }
+
+  if (g_opt.target.hardfloat32)
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "HARDFLOAT32", true));
+  }
+
+  if (g_opt.target.hardfloat64)
+  {
+    DefineValSym(g_builtins->type_bool->CreateConst(scpos, "HARDFLOAT64", true));
+  }
+
   if (4 == g_opt.target.pointer_size)
   {
     DefineValSym(g_builtins->type_bool->CreateConst(scpos, "TARGET_32BIT", true));

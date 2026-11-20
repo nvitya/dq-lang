@@ -51,8 +51,9 @@ x86 uses `X86_FAMILY` and `X86`, while 64-bit x86 uses `X86_FAMILY` and `X64`.
 Arm targets use `ARM` plus `ARM_M` or `ARM_A`; the hosted hard-float target also
 defines `ARMHF`. AArch64 defines `ARM_A`, `ARM64`, and `AARCH64`. RISC-V targets
 define `RISCV` plus `RV32` or `RV64`. Bare targets also define `BARE`, and
-`WASM`/`WASI`, `TARGET_32BIT`/`TARGET_64BIT`, `EXCEPTIONS`, and `DYNSTRINGS`
-continue to reflect the selected target and feature settings.
+`WASM`/`WASI`, `TARGET_32BIT`/`TARGET_64BIT`, `EXCEPTIONS`, `DYNSTRINGS`, and
+`HARDFLOAT`/`HARDFLOAT32`/`HARDFLOAT64` continue to reflect the selected target
+and feature settings.
 
 ### Windows cross-compilation from Linux
 

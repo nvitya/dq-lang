@@ -164,6 +164,9 @@ The compiler supplies names for the selected target and enabled features:
 | `PTRSIZE` | Pointer size in bytes. |
 | `EXCEPTIONS` | DQ exception support is enabled. |
 | `DYNSTRINGS` | Heap-backed dynamic strings are enabled. |
+| `HARDFLOAT` | Hardware floating-point instructions are supported (32-bit or 64-bit). |
+| `HARDFLOAT32` | Hardware 32-bit (`float32`) floating-point support is available. |
+| `HARDFLOAT64` | Hardware 64-bit (`float64`) floating-point support is available. |
 
 Check the feature you need rather than assuming every target has it. Disabled
 features are normally absent, so use `#ifdef EXCEPTIONS`, for example, to test

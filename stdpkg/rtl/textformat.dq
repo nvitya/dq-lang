@@ -13,6 +13,26 @@
  * brief:   DQ RTL text formatting framework
  */
 
+// Compile time configuration
+
+#ifndef TEXTFORMAT_INT64
+    #if PTRSIZE > 4  or not Defined(BARE)
+        #define TEXTFORMAT_INT64
+    #endif
+#endif
+
+#ifndef TEXTFORMAT_FLOAT32
+    #if Defined(HARDFLOAT32)  or not Defined(BARE)
+        #define TEXTFORMAT_FLOAT32
+    #endif
+#endif
+
+#ifndef TEXTFORMAT_FLOAT64
+    #if Defined(HARDFLOAT64)  or not Defined(BARE)
+        #define TEXTFORMAT_FLOAT64
+    #endif
+#endif
+
 // Design goals:
 //   * one heap-free formatter core
 //   * stack-allocated formatter object
@@ -275,6 +295,38 @@ func OTextFormatter.Format(afmt : strslice, aargs : varargs):
                 ArgError("<s-f!>")
             endif
 
+        elif ar.TrySint(usv.num_int):
+            FormatInteger(uint64(usv.num_int), true, ar.wordcount)
+
+        elif ar.TryUint(usv.num_uint):
+            FormatInteger(usv.num_uint, false, ar.wordcount)
+
+      #if @def.PTRSIZE <= 4 and Defined(@def.TEXTFORMAT_INT64)
+        elif ar.TrySint64(usv.num_i64):
+            FormatInteger(uint64(usv.num_i64), true, ar.wordcount)
+
+        elif ar.TryUint64(usv.num_u64):
+            FormatInteger(usv.num_u64, false, ar.wordcount)
+      #endif
+
+      #if Defined(@def.TEXTFORMAT_FLOAT32)
+        elif ar.TryFloat32(usv.num_f32):
+            if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_FLOAT:
+                FormatFloat(usv.num_f32) // use only 32-bit calculations !
+            else:
+                ArgError("<f-f!>")
+            endif
+      #endif
+
+      #if Defined(@def.TEXTFORMAT_FLOAT64)
+        elif ar.TryFloat64(usv.num_f64):
+            if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_FLOAT:
+                FormatFloat(usv.num_f64)
+            else:
+                ArgError("<f-f!>")
+            endif
+      #endif
+
         elif ar.TryChar(usv.ch):
             if text_format:
                 WriteFieldPad(1, false)
@@ -289,26 +341,6 @@ func OTextFormatter.Format(afmt : strslice, aargs : varargs):
                 FormatWChar(usv.wc)
             else:
                 FormatInteger(Ord(usv.wc), false, ar.wordcount)
-            endif
-
-        elif ar.TrySint64(usv.num_i64):
-            FormatInteger(uint64(usv.num_i64), true, ar.wordcount)
-
-        elif ar.TryUint64(usv.num_u64):
-            FormatInteger(usv.num_u64, false, ar.wordcount)
-
-        elif ar.TryFloat32(usv.num_f32):
-            if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_FLOAT:
-                FormatFloat(usv.num_f32) // use only 32-bit calculations !
-            else:
-                ArgError("<f-f!>")
-            endif
-
-        elif ar.TryFloat64(usv.num_f64):
-            if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_FLOAT:
-                FormatFloat(usv.num_f64)
-            else:
-                ArgError("<f-f!>")
             endif
 
         elif ar.TryBool(usv.bv):

@@ -76,26 +76,28 @@ int main()
     const char * gcc_multilib;
     ETargetFloatAbi float_abi;
     uint8_t default_float_bits;
+    bool hardfloat32;
+    bool hardfloat64;
   };
   const STargetExpectation target_expectations[] = {
     {"arm_m0-bare", "arm_m0", "thumbv6m-unknown-none-eabi", "cortex-m0",
-      "-fpregs", "", "arm-none-eabi", "thumb/v6-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
+      "-fpregs", "", "arm-none-eabi", "thumb/v6-m/nofp", TARGET_FLOAT_ABI_SOFT, 64, false, false},
     {"arm_m3-bare", "arm_m3", "thumbv7m-unknown-none-eabi", "cortex-m3",
-      "-fpregs", "", "arm-none-eabi", "thumb/v7-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
+      "-fpregs", "", "arm-none-eabi", "thumb/v7-m/nofp", TARGET_FLOAT_ABI_SOFT, 64, false, false},
     {"arm_m4-bare", "arm_m4", "thumbv7em-unknown-none-eabi", "cortex-m4",
-      "-fpregs", "", "arm-none-eabi", "thumb/v7e-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
+      "-fpregs", "", "arm-none-eabi", "thumb/v7e-m/nofp", TARGET_FLOAT_ABI_SOFT, 64, false, false},
     {"arm_m4f-bare", "arm_m4f", "thumbv7em-unknown-none-eabihf", "cortex-m4",
       "+vfp4d16sp,-fp64,-d32", "fpv4-sp-d16", "arm-none-eabi", "thumb/v7e-m+fp/hard",
-      TARGET_FLOAT_ABI_HARD, 32},
+      TARGET_FLOAT_ABI_HARD, 32, true, false},
     {"arm_m33f-bare", "arm_m33f", "thumbv8m.main-unknown-none-eabihf", "cortex-m33",
       "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "arm-none-eabi", "thumb/v8-m.main+fp/hard",
-      TARGET_FLOAT_ABI_HARD, 32},
+      TARGET_FLOAT_ABI_HARD, 32, true, false},
     {"arm_m7f-bare", "arm_m7f", "thumbv7em-unknown-none-eabihf", "cortex-m7",
       "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "arm-none-eabi", "thumb/v7e-m+fp/hard",
-      TARGET_FLOAT_ABI_HARD, 32},
+      TARGET_FLOAT_ABI_HARD, 32, true, false},
     {"arm_m7fd-bare", "arm_m7fd", "thumbv7em-unknown-none-eabihf", "cortex-m7",
       "+fp-armv8d16,+fp64,-d32", "fpv5-d16", "arm-none-eabi", "thumb/v7e-m+dp/hard",
-      TARGET_FLOAT_ABI_HARD, 64},
+      TARGET_FLOAT_ABI_HARD, 64, true, true},
   };
   for (const STargetExpectation & expected : target_expectations)
   {
@@ -114,6 +116,8 @@ int main()
     Expect(target.float_abi == expected.float_abi, string("target float ABI ") + expected.name);
     Expect(target.default_float_bits == expected.default_float_bits,
            string("default float width ") + expected.name);
+    Expect(target.hardfloat32 == expected.hardfloat32 && target.hardfloat64 == expected.hardfloat64,
+           string("hardfloat capabilities ") + expected.name);
     Expect(target.IsArm() && target.IsBare() && (target.pointer_size == 4),
            string("common ARM bare properties ") + expected.name);
   }
@@ -126,7 +130,7 @@ int main()
          && armhf.llvm_features == "+v7,+vfp3d16" && armhf.clang_arch == "armv7-a"
          && armhf.clang_fpu == "vfpv3-d16" && armhf.float_abi == TARGET_FLOAT_ABI_HARD
          && armhf.IsArm() && armhf.IsLinux() && armhf.pointer_size == 4
-         && !armhf.static_relocation,
+         && !armhf.static_relocation && armhf.hardfloat32 && armhf.hardfloat64,
          "ARM hard-float Linux target metadata");
 #endif
 
@@ -136,7 +140,7 @@ int main()
   Expect(arm64.Configure("arm64-linux", arm64_error), "configure ARM64 Linux target");
   Expect(arm64.arch == "arm64" && arm64.llvm_triple == "aarch64-unknown-linux-gnu"
          && arm64.IsAArch64() && arm64.IsLinux() && arm64.pointer_size == 8
-         && !arm64.static_relocation,
+         && !arm64.static_relocation && arm64.hardfloat32 && arm64.hardfloat64,
          "ARM64 Linux target metadata");
 #endif
 
@@ -148,7 +152,7 @@ int main()
          && rv64g.llvm_features == "+m,+a,+f,+d,+zicsr,+zifencei"
          && rv64g.clang_arch == "rv64g_zicsr_zifencei" && rv64g.llvm_abi == "lp64d"
          && rv64g.IsRiscV() && rv64g.IsLinux() && rv64g.pointer_size == 8
-         && !rv64g.static_relocation,
+         && !rv64g.static_relocation && rv64g.hardfloat32 && rv64g.hardfloat64,
          "RV64G Linux target metadata");
 #endif
 
@@ -161,7 +165,8 @@ int main()
          && wasm_wasi.llvm_backend == "WebAssembly" && wasm_wasi.llvm_cpu == "generic",
          "WASI LLVM target metadata");
   Expect(wasm_wasi.pointer_size == 4 && wasm_wasi.default_float_bits == 64
-         && wasm_wasi.static_relocation && wasm_wasi.IsWasi() && wasm_wasi.IsWasm(),
+         && wasm_wasi.static_relocation && wasm_wasi.IsWasi() && wasm_wasi.IsWasm()
+         && wasm_wasi.hardfloat32 && wasm_wasi.hardfloat64,
          "WASI representation and relocation");
   Expect(!wasm_wasi.exceptions_supported && !wasm_wasi.default_exceptions
          && wasm_wasi.default_dynstrings && !wasm_wasi.IsBare(),
@@ -171,7 +176,8 @@ int main()
   string wasm_bare_error;
   Expect(wasm_bare.Configure("wasm32-bare", wasm_bare_error), "configure bare WebAssembly target");
   Expect(wasm_bare.llvm_triple == "wasm32-unknown-unknown" && wasm_bare.IsWasm()
-         && wasm_bare.IsBare() && wasm_bare.pointer_size == 4 && wasm_bare.static_relocation,
+         && wasm_bare.IsBare() && wasm_bare.pointer_size == 4 && wasm_bare.static_relocation
+         && wasm_bare.hardfloat32 && wasm_bare.hardfloat64,
          "bare WebAssembly target metadata");
 
   OCompTarget rv32;
@@ -184,7 +190,7 @@ int main()
          && rv32.gcc_toolchain == "riscv-none-elf"
          && rv32.gcc_multilib == "rv32imac_zicsr"
          && rv32.IsRiscV() && rv32.IsBare() && rv32.pointer_size == 4
-         && rv32.static_relocation,
+         && rv32.static_relocation && !rv32.hardfloat32 && !rv32.hardfloat64,
          "RV32IMAC ABI and target properties");
 
   vector<OCompTarget> canonical_targets = OCompTarget::CanonicalTargets();

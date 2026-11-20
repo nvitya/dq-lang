@@ -88,6 +88,8 @@ public:
   bool default_exceptions = true;
   bool default_dynstrings = true;
   bool static_relocation = false;
+  bool hardfloat32 = true;
+  bool hardfloat64 = true;
 
   bool IsWindows() const { return TARGET_PLATFORM_WIN == platform; }
   bool IsLinux() const { return TARGET_PLATFORM_LINUX == platform; }

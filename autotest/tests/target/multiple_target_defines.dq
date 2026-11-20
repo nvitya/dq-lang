@@ -20,6 +20,15 @@
   #ifndef TARGET_32BIT
     var missing_width_define : OExpected32Bit
   #endif
+  #ifndef HARDFLOAT
+    var missing_float_define : OExpectedHardFloat
+  #endif
+  #ifndef HARDFLOAT32
+    var missing_float_define : OExpectedHardFloat32
+  #endif
+  #ifndef HARDFLOAT64
+    var missing_float_define : OExpectedHardFloat64
+  #endif
 #endif
 
 #ifdef EXPECT_ARM64
@@ -37,6 +46,15 @@
   #endif
   #ifndef TARGET_64BIT
     var missing_width_define : OExpected64Bit
+  #endif
+  #ifndef HARDFLOAT
+    var missing_float_define : OExpectedHardFloat
+  #endif
+  #ifndef HARDFLOAT32
+    var missing_float_define : OExpectedHardFloat32
+  #endif
+  #ifndef HARDFLOAT64
+    var missing_float_define : OExpectedHardFloat64
   #endif
 #endif
 
@@ -56,6 +74,57 @@
   #ifndef BARE
     var missing_platform_define : OExpectedBare
   #endif
+  #ifdef HARDFLOAT
+    var unexpected_float_define : OUnexpectedHardFloat
+  #endif
+  #ifdef HARDFLOAT32
+    var unexpected_float_define : OUnexpectedHardFloat32
+  #endif
+  #ifdef HARDFLOAT64
+    var unexpected_float_define : OUnexpectedHardFloat64
+  #endif
+#endif
+
+#ifdef EXPECT_ARM_M4F
+  #ifndef ARM
+    var missing_target_define : OExpectedArm
+  #endif
+  #ifndef ARM_M
+    var missing_profile_define : OExpectedArmM
+  #endif
+  #ifndef BARE
+    var missing_platform_define : OExpectedBare
+  #endif
+  #ifndef HARDFLOAT
+    var missing_float_define : OExpectedHardFloat
+  #endif
+  #ifndef HARDFLOAT32
+    var missing_float_define : OExpectedHardFloat32
+  #endif
+  #ifdef HARDFLOAT64
+    var unexpected_float_define : OUnexpectedHardFloat64
+  #endif
+#endif
+
+#ifdef EXPECT_ARM_M7FD
+  #ifndef ARM
+    var missing_target_define : OExpectedArm
+  #endif
+  #ifndef ARM_M
+    var missing_profile_define : OExpectedArmM
+  #endif
+  #ifndef BARE
+    var missing_platform_define : OExpectedBare
+  #endif
+  #ifndef HARDFLOAT
+    var missing_float_define : OExpectedHardFloat
+  #endif
+  #ifndef HARDFLOAT32
+    var missing_float_define : OExpectedHardFloat32
+  #endif
+  #ifndef HARDFLOAT64
+    var missing_float_define : OExpectedHardFloat64
+  #endif
 #endif
 
 #ifdef EXPECT_RV64G
@@ -73,6 +142,15 @@
   #endif
   #ifndef TARGET_64BIT
     var missing_width_define : OExpected64Bit
+  #endif
+  #ifndef HARDFLOAT
+    var missing_float_define : OExpectedHardFloat
+  #endif
+  #ifndef HARDFLOAT32
+    var missing_float_define : OExpectedHardFloat32
+  #endif
+  #ifndef HARDFLOAT64
+    var missing_float_define : OExpectedHardFloat64
   #endif
 #endif
 
@@ -92,6 +170,15 @@
   #ifndef DYNSTRINGS
     var missing_feature_define : OExpectedDynStrings
   #endif
+  #ifndef HARDFLOAT
+    var missing_float_define : OExpectedHardFloat
+  #endif
+  #ifndef HARDFLOAT32
+    var missing_float_define : OExpectedHardFloat32
+  #endif
+  #ifndef HARDFLOAT64
+    var missing_float_define : OExpectedHardFloat64
+  #endif
 #endif
 
 #ifdef EXPECT_WASM_BARE
@@ -107,6 +194,15 @@
   #ifdef DYNSTRINGS
     var unexpected_feature_define : OUnexpectedDynStrings
   #endif
+  #ifndef HARDFLOAT
+    var missing_float_define : OExpectedHardFloat
+  #endif
+  #ifndef HARDFLOAT32
+    var missing_float_define : OExpectedHardFloat32
+  #endif
+  #ifndef HARDFLOAT64
+    var missing_float_define : OExpectedHardFloat64
+  #endif
 #endif
 
 #ifdef EXPECT_RV32
@@ -121,6 +217,15 @@
   #endif
   #ifndef BARE
     var missing_platform_define : OExpectedBare
+  #endif
+  #ifdef HARDFLOAT
+    var unexpected_float_define : OUnexpectedHardFloat
+  #endif
+  #ifdef HARDFLOAT32
+    var unexpected_float_define : OUnexpectedHardFloat32
+  #endif
+  #ifdef HARDFLOAT64
+    var unexpected_float_define : OUnexpectedHardFloat64
   #endif
 #endif
 

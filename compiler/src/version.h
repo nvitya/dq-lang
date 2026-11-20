@@ -11,10 +11,13 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.98.1"
+#define DQ_COMPILER_VERSION  "0.98.2"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.98.2:
+  - HARDFLOAT32/64 defines
+  - Textformat optimizations for BARE targets
 v0.98.1:
   - Text formatting changed using varargs instead of []anyvalue
 v0.98.0:

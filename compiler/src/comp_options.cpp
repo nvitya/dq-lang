@@ -236,27 +236,29 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
     const char * gcc_multilib;
     ETargetFloatAbi float_abi;
     uint8_t default_float_bits;
+    bool hardfloat32;
+    bool hardfloat64;
   };
 
   static const SArmBarePreset arm_bare_presets[] = {
     {"arm_m0-bare", "arm_m0", "thumbv6m-unknown-none-eabi", "cortex-m0",
-      "-fpregs", "", "thumb/v6-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
+      "-fpregs", "", "thumb/v6-m/nofp", TARGET_FLOAT_ABI_SOFT, 64, false, false},
     {"arm_m3-bare", "arm_m3", "thumbv7m-unknown-none-eabi", "cortex-m3",
-      "-fpregs", "", "thumb/v7-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
+      "-fpregs", "", "thumb/v7-m/nofp", TARGET_FLOAT_ABI_SOFT, 64, false, false},
     {"arm_m4-bare", "arm_m4", "thumbv7em-unknown-none-eabi", "cortex-m4",
-      "-fpregs", "", "thumb/v7e-m/nofp", TARGET_FLOAT_ABI_SOFT, 64},
+      "-fpregs", "", "thumb/v7e-m/nofp", TARGET_FLOAT_ABI_SOFT, 64, false, false},
     {"arm_m4f-bare", "arm_m4f", "thumbv7em-unknown-none-eabihf", "cortex-m4",
       "+vfp4d16sp,-fp64,-d32", "fpv4-sp-d16", "thumb/v7e-m+fp/hard",
-      TARGET_FLOAT_ABI_HARD, 32},
+      TARGET_FLOAT_ABI_HARD, 32, true, false},
     {"arm_m33f-bare", "arm_m33f", "thumbv8m.main-unknown-none-eabihf", "cortex-m33",
       "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "thumb/v8-m.main+fp/hard",
-      TARGET_FLOAT_ABI_HARD, 32},
+      TARGET_FLOAT_ABI_HARD, 32, true, false},
     {"arm_m7f-bare", "arm_m7f", "thumbv7em-unknown-none-eabihf", "cortex-m7",
       "+fp-armv8d16sp,-fp64,-d32", "fpv5-sp-d16", "thumb/v7e-m+fp/hard",
-      TARGET_FLOAT_ABI_HARD, 32},
+      TARGET_FLOAT_ABI_HARD, 32, true, false},
     {"arm_m7fd-bare", "arm_m7fd", "thumbv7em-unknown-none-eabihf", "cortex-m7",
       "+fp-armv8d16,+fp64,-d32", "fpv5-d16", "thumb/v7e-m+dp/hard",
-      TARGET_FLOAT_ABI_HARD, 64},
+      TARGET_FLOAT_ABI_HARD, 64, true, true},
   };
 
   for (const SArmBarePreset & preset : arm_bare_presets)
@@ -268,6 +270,8 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
     target->gcc_multilib = preset.gcc_multilib;
     target->float_abi = preset.float_abi;
     target->default_float_bits = preset.default_float_bits;
+    target->hardfloat32 = preset.hardfloat32;
+    target->hardfloat64 = preset.hardfloat64;
   }
 
   OCompTarget * armhf = add_target("armhf-linux", "arm", "linux",
@@ -311,6 +315,8 @@ vector<OCompTarget> OCompTarget::CanonicalTargets()
   rv32->llvm_abi = "ilp32";
   rv32->gcc_toolchain = "riscv-none-elf";
   rv32->gcc_multilib = "rv32imac_zicsr";
+  rv32->hardfloat32 = false;
+  rv32->hardfloat64 = false;
 #endif
 
   return result;

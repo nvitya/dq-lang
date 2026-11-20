@@ -236,6 +236,20 @@ func OTextFormatter.Reset():
     curpos = 0
 endfunc
 
+// use this union to spare stack space
+union UScalarValues:
+    bv       : bool
+    ch       : char
+    wc       : wchar
+    num_int  : int
+    num_uint : uint
+    num_i64  : int64
+    num_u64  : uint64
+    num_f32  : float32
+    num_f64  : float64
+    ptr      : pointer
+endunion
+
 func OTextFormatter.Format(afmt : strslice, aargs : varargs):
     use ., varargs
     Reset()
@@ -249,68 +263,57 @@ func OTextFormatter.Format(afmt : strslice, aargs : varargs):
     // Keep the reader type out of the formatter's module interface, avoiding circular references
     subfn FormatArgument():
         var spec : char = fmtspec.kind
-        var kind : byte = ar.kind
         var text_format : bool = spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_STRING
 
-        if kind == DQVA_STRVIEW or kind == DQVA_PCHAR:
+        var usv  : UScalarValues  // This union here spares stack space
+        var text : strslice       // this cannot be used in unions
+
+        if ar.TryText(text):
             if text_format:
-                var text : strslice
-                ar.TryText(text)
                 WriteFormattedText(text)
             else:
                 ArgError("<s-f!>")
             endif
 
-        elif kind == DQVA_CHAR:
-            var ch : char
-            ar.TryChar(ch)
+        elif ar.TryChar(usv.ch):
             if text_format:
                 WriteFieldPad(1, false)
-                sink.WriteChar(ch)
+                sink.WriteChar(usv.ch)
                 WriteFieldPad(1, true)
             else:
-                FormatInteger(Ord(ch), false, ar.wordcount)
+                FormatInteger(Ord(usv.ch), false, ar.wordcount)
             endif
 
-        elif kind == DQVA_WCHAR:
-            var wc : wchar
-            ar.TryWchar(wc)
+        elif ar.TryWchar(usv.wc):
             if text_format:
-                FormatWChar(wc)
+                FormatWChar(usv.wc)
             else:
-                FormatInteger(Ord(wc), false, ar.wordcount)
+                FormatInteger(Ord(usv.wc), false, ar.wordcount)
             endif
 
-        elif kind == DQVA_SINT:
-            var number : int64
-            ar.TrySint64(number)
-            FormatInteger(uint64(number), true, ar.wordcount)
+        elif ar.TrySint64(usv.num_i64):
+            FormatInteger(uint64(usv.num_i64), true, ar.wordcount)
 
-        elif kind == DQVA_UINT:
-            var number : uint64
-            ar.TryUint64(number)
-            FormatInteger(number, false, ar.wordcount)
+        elif ar.TryUint64(usv.num_u64):
+            FormatInteger(usv.num_u64, false, ar.wordcount)
 
-        elif kind == DQVA_FLOAT32 or kind == DQVA_FLOAT64:
+        elif ar.TryFloat32(usv.num_f32):
             if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_FLOAT:
-                var number : float64
-                if kind == DQVA_FLOAT32:
-                    var narrow : float32
-                    ar.TryFloat32(narrow)
-                    number = narrow
-                else:
-                    ar.TryFloat64(number)
-                endif
-                FormatFloat(number)
+                FormatFloat(usv.num_f32) // use only 32-bit calculations !
             else:
                 ArgError("<f-f!>")
             endif
 
-        elif kind == DQVA_BOOL:
+        elif ar.TryFloat64(usv.num_f64):
+            if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_FLOAT:
+                FormatFloat(usv.num_f64)
+            else:
+                ArgError("<f-f!>")
+            endif
+
+        elif ar.TryBool(usv.bv):
             if spec == DQFMT_KIND_DEFAULT:
-                var enabled : bool
-                ar.TryBool(enabled)
-                if enabled:
+                if usv.bv:
                     WriteFormattedText('true')
                 else:
                     WriteFormattedText('false')
@@ -319,11 +322,9 @@ func OTextFormatter.Format(afmt : strslice, aargs : varargs):
                 ArgError("<b-f!>")
             endif
 
-        elif kind == DQVA_POINTER:
+        elif ar.TryPointer(usv.ptr):
             if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_POINTER:
-                var address : pointer
-                ar.TryPointer(address)
-                WriteFormattedNumber('^', BuildUIntDigits(uint(address), 16, true), 0, 0, 1)
+                WriteFormattedNumber('^', BuildUIntDigits(uint(usv.ptr), 16, true), 0, 0, 1)
             else:
                 ArgError("<p-f!>")
             endif

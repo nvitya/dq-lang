@@ -2983,6 +2983,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   fn->special_kind = special_kind;
   ApplyDqmIfAttributes(fn, attrs);
   fn->is_external = (attrs.flags & DQMIF_ATTRF_EXTERNAL);
+  fn->is_empty_body = (attrs.flags & DQMIF_ATTRF_EMPTY_BODY);
   fn->external_linkage_name = attrs.external_linkage_name;
   fn->external_module_name = attrs.external_module_name;
   if (is_inline_asm)

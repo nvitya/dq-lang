@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    32 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    32 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    33 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    33 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -165,6 +165,7 @@ enum EDqmIfAttrFlag : uint64_t
   DQMIF_ATTRF_NOWRITE           = (1ull << 18),
   DQMIF_ATTRF_USED              = (1ull << 19),
   DQMIF_ATTRF_ANONYMOUS_UNION   = (1ull << 20),
+  DQMIF_ATTRF_EMPTY_BODY        = (1ull << 21),
 };
 
 TDqmIfRecId  DQMIF_SIZE_SPEC              = 0x8304;  // int32: size specifier (structs / objects)

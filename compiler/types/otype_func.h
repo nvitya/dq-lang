@@ -200,6 +200,7 @@ public:
   vector<string>     asm_clobbers;
 
   bool               has_body = false;
+  bool               is_empty_body = false;
   bool               is_external = false;
   bool               is_asm = false;
   bool               attr_is_weak = false;
@@ -246,6 +247,9 @@ public:
   {
     return is_asm && attr_is_inline;
   }
+
+  void UpdateEmptyBodyFlag();
+  bool CanOmitEmptyCall(bool force_direct = false) const;
 
   inline OTypeFunc * GetTypeFunc() const { return dynamic_cast<OTypeFunc *>(ptype); }
   inline bool IsImplicitReceiver(OFuncParam * aparam, bool afirst_param = true) const

@@ -295,7 +295,7 @@ OStmtObjectCall::~OStmtObjectCall()
 
 void OStmtObjectCall::Generate(OScope * scope)
 {
-  if (!method || !method->ll_func || !target)
+  if (!method || !method->ll_func || !target || method->CanOmitEmptyCall(false))
   {
     return;
   }
@@ -329,6 +329,10 @@ OStmtInheritedCall::~OStmtInheritedCall()
 void OStmtInheritedCall::Generate(OScope * scope)
 {
   if (!caller || !method || !method->ll_func || !caller->receiver_arg)
+  {
+    return;
+  }
+  if (!emit_derived_field_init && !emit_derived_field_destroy && method->CanOmitEmptyCall(true))
   {
     return;
   }

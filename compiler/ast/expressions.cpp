@@ -2750,6 +2750,11 @@ bool OFloatRoundExpr::TryFoldSelf(OExpr ** rreplacement)
 
 LlValue * OCallExpr::Generate(OScope * scope)
 {
+  if (vsfunc && vsfunc->CanOmitEmptyCall(force_direct))
+  {
+    return nullptr;
+  }
+
   OTypeFunc * tfunc = static_cast<OTypeFunc *>(vsfunc->ptype);
   OCallLifetimeCleanup cleanup(scope, args);
   vector<LlValue *>   ll_args;

@@ -8,23 +8,25 @@ use file
 func WriteLeaf(workdir : rostr, leaf_has_init : bool):
     var leaf_code : str
     if leaf_has_init:
-        leaf_code =
-            'use libc/stdio\n' +
-            'func Log(msg : ^char) .. \n' +
-            'implementation\n' +
-            'object OInit:\n' +
-            '    func *Create():\n' +
-            '        @stdio.printf("leaf_init\\n")\n' +
-            '    endfunc\n' +
-            'endobject\n' +
-            'var g_init <- OInit()\n' +
-            'func Log(msg : ^char):\n' +
-            '    @stdio.printf("%s\\n", msg)\n' +
-            'endfunc\n'
+        leaf_code = '''
+            use libc/stdio
+            func Log(msg : ^char) ..
+            implementation
+            object OInit:
+                func *Create():
+                    @stdio.printf("leaf_init\\n")
+                endfunc
+            endobject
+            var g_init <- OInit()
+            func Log(msg : ^char):
+                @stdio.printf("%s\\n", msg)
+            endfunc
+            '''
     else:
-        leaf_code =
-            'func Log(msg : ^char) [[inline]]:\n' +
-            'endfunc\n'
+        leaf_code = '''
+            func Log(msg : ^char) [[inline]]:
+            endfunc
+            '''
     endif
     FileWriteText(Format('{}/leaf.dq', [workdir]), leaf_code)
 endfunc
@@ -32,25 +34,30 @@ endfunc
 func WriteTree(workdir : rostr, leaf_has_init : bool, main_uses_leaf : bool):
     WriteLeaf(workdir, leaf_has_init)
 
-    var mid_code : str =
-        'func RunMid() .. \n' +
-        'implementation\n' +
-        'use ./leaf\n' +
-        'func RunMid():\n' +
-        '    Log("mid_log")\n' +
-        'endfunc\n'
+    var mid_code : str = '''
+        func RunMid() ..
+        implementation
+        use ./leaf
+        func RunMid():
+            Log("mid_log")
+        endfunc
+        '''
 
-    var main_code : str =
-        'use libc/stdio\n' +
-        'use ./mid\n'
+    var main_code : str = '''
+        use libc/stdio
+        use ./mid
+        '''
     if main_uses_leaf:
-        main_code.Append('use ./leaf\n')
+        main_code.Append('\nuse ./leaf\n')
+    else:
+        main_code.Append('\n')
     endif
-    main_code.Append(
-        'func *Main():\n' +
-        '    RunMid()\n' +
-        '    printf("main_done\\n")\n' +
-        'endfunc\n')
+    main_code.Append('''
+        func *Main():
+            RunMid()
+            printf("main_done\\n")
+        endfunc
+        ''')
 
     FileWriteText(Format('{}/mid.dq', [workdir]), mid_code)
     FileWriteText(Format('{}/main.dq', [workdir]), main_code)

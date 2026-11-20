@@ -86,6 +86,20 @@ void OValSymFunc::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
   }
 }
 
+void OValSymFunc::UpdateEmptyBodyFlag()
+{
+  OTypeFunc * tfunc = GetTypeFunc();
+  is_empty_body = has_body && !is_external && !is_asm && !attr_is_weak && !attr_is_noinline
+      && !attr_is_abstract && (SFK_NONE == special_kind) && (OSF_NONE == object_specfunc_kind)
+      && tfunc && !tfunc->rettype && !vsresult && body && body->stlist.empty();
+}
+
+bool OValSymFunc::CanOmitEmptyCall(bool force_direct) const
+{
+  return is_empty_body && !attr_is_noinline && !attr_is_weak && !attr_is_abstract
+      && (!attr_is_virtual || attr_is_final || force_direct);
+}
+
 bool OValSymFunc::WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod)
 {
   OTypeFunc * sigtype = dynamic_cast<OTypeFunc *>(ptype);
@@ -102,6 +116,7 @@ bool OValSymFunc::WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod)
 
   uint64_t flags = 0;
   if (is_external) flags |= DQMIF_ATTRF_EXTERNAL;
+  if (is_empty_body) flags |= DQMIF_ATTRF_EMPTY_BODY;
   if (!WriteDqmIfAttributes(writer, flags)) return false;
   if (!external_linkage_name.empty()
       && !writer.AddRecStr(DQMIF_ATTR_EXT_LINK_NAME, external_linkage_name)) return false;

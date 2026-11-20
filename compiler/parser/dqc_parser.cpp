@@ -1840,6 +1840,7 @@ void ODqCompParser::ReadFunctionBody(OValSymFunc * bodyfunc)
 
   bodyfunc->scpos_endfunc = scf->prevpos;
   bodyfunc->has_body = true;
+  bodyfunc->UpdateEmptyBodyFlag();
 
   if (bodyfunc->vsresult and not bodyfunc->vsresult->initialized)
   {
@@ -2767,6 +2768,7 @@ void ODqCompParser::ParseSubFunction()
   ReadStatementBlock(fn->body, "endsubfn");
   fn->scpos_endfunc = scf->prevpos;
   fn->has_body = true;
+  fn->UpdateEmptyBodyFlag();
   if (fn->vsresult && !fn->vsresult->initialized)
   {
     Error(DQERR_FUNC_RESULT_NOT_SET, name, &fn->scpos_endfunc);

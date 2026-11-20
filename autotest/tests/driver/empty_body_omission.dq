@@ -1,0 +1,102 @@
+//?exitcode(0)
+// Empty-body void functions/methods (except virtual, weak, noinline, asm, external, ctor/dtor)
+// omit both the call and parameter preparation across modules.
+
+use dqautotest
+use file
+
+func *Main():
+    var run <- OTestRun()
+    var workdir : str = TempPath('.emptybody')
+    var buildroot : str = Format('{}/build', [workdir])
+    var mod_src : str = Format('{}/trace_mod.dq', [workdir])
+    var main_src : str = Format('{}/main.dq', [workdir])
+    var main_obj : str = Format('{}/main.o', [workdir])
+    var exe_path : str = Format('{}/app.exe', [workdir])
+
+    run.RunTool(['/bin/mkdir', '-p', buildroot])
+    run.ExpectExitCode(0)
+
+    FileWriteText(mod_src, '''
+        func ExtTrace(msg : rostr, args : varargs) ..
+        func ExtNoInline(x : int) [[noinline]] ..
+        func ExtWeak(x : int) [[weak]] ..
+        object OModBox:
+            value : int = 42
+            func *Create():
+            endfunc
+            func Log(msg : rostr, args : varargs):
+            endfunc
+        endobject
+        implementation
+        func ExtTrace(msg : rostr, args : varargs):
+        endfunc
+        func ExtNoInline(x : int) [[noinline]]:
+        endfunc
+        func ExtWeak(x : int) [[weak]]:
+        endfunc
+        ''')
+
+    FileWriteText(main_src, '''
+        use libc/stdio
+        use ./trace_mod
+        var side_effects : int = 0
+        var derived_runs : int = 0
+        func SideEffect() -> int:
+            side_effects += 1
+            return side_effects
+        endfunc
+        func LocalEmpty(msg : rostr, args : varargs):
+        endfunc
+        object OBase:
+            func Ping(x : int) [[virtual]]:
+            endfunc
+        endobject
+        object ODerived(OBase):
+            func Ping(x : int) [[override]]:
+                @.derived_runs += x
+            endfunc
+        endobject
+        func *Main():
+            var box <- OModBox()
+            ExtTrace("OMIT_EXT_STR", [SideEffect()])
+            LocalEmpty("OMIT_LOCAL_STR", [SideEffect()])
+            box.Log("OMIT_METHOD_STR", [SideEffect()])
+            var se_after_empty : int = side_effects
+            ExtNoInline(SideEffect())
+            ExtWeak(1)
+            var drv <- ODerived()
+            var base_ref : OBase = drv
+            base_ref.Ping(7)
+            printf("check = %d %d %d %d\\n", se_after_empty, side_effects, box.value, derived_runs)
+        endfunc
+        ''')
+
+    // Check unoptimized (-O0) IR directly: omitted calls must not emit strings or varargs.
+    run.RunTool([CompilerPath(), '--build-root', buildroot, '-O0', '-ir', '-c', '-o', main_obj, main_src])
+    run.ExpectExitCode(0)
+    run.ExpectOutputNotContains('OMIT_EXT_STR')
+    run.ExpectOutputNotContains('OMIT_LOCAL_STR')
+    run.ExpectOutputNotContains('OMIT_METHOD_STR')
+    run.ExpectOutputNotContains('.dqva.desc')
+
+    // Check object symbol table: omitted external/method calls must leave no undefined references.
+    run.RunTool(['nm', main_obj])
+    run.ExpectExitCode(0)
+    run.ExpectOutputNotContains('ExtTrace')
+    run.ExpectOutputNotContains('OModBox::Log')
+    run.ExpectOutputContains('ExtNoInline')
+    run.ExpectOutputContains('ExtWeak')
+
+    // Also link and run without LTO.
+    run.RunTool([CompilerPath(), '--build-root', buildroot, '-O0', '-o', exe_path, main_src])
+    run.ExpectExitCode(0)
+    if run.exitcode == 0:
+        run.RunTool([exe_path])
+        run.ExpectExitCode(0)
+        run.ExpectOutputContains('check = 0 1 42 7')
+    endif
+
+    run.RunTool(['/bin/rm', '-rf', '--', workdir])
+    exit_code = TestResult()
+endfunc

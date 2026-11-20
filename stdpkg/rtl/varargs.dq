@@ -42,93 +42,37 @@ private
     m_payload    : ^uint
     m_data       : ^uint // actual data, nil when there is no current element
     m_length     : byte
-    m_index      : byte  
+    m_index      : byte
 
     m_tag        : byte
     m_kind       : byte
     m_wordcount  : byte  // 0 when there is no current element
 
-#if PTRSIZE <= 4
-    // Copy in address order so the payload needs only four-byte alignment.
-    func CopyWide(words : ^uint32) [[inline]]:
+    func SetInvalid() ..
+
+    func CopyWide(words : ^uint32) [[inline]]:  // used only on 32-bit architectures, the payload needs only four-byte alignment
         words[0]^ = m_data[0]^
         words[1]^ = m_data[1]^
     endfunc
-#endif
-
-    func SetInvalid():
-        m_index = 255
-        m_tag = 0
-        m_kind = 0
-        m_wordcount = 0
-        m_data = nil        
-    endfunc
 
 public
-    // A nonempty reader starts on element zero.
-    func *Create(payload : ^uint, descriptor : ^byte):
-        m_descriptor = descriptor
-        m_payload = payload
 
-        m_length = m_descriptor[0]^
-        m_index = 0
-        if m_length > 0:
-            m_tag = m_descriptor[1]^
-            m_kind = m_tag & @.DQVA_KIND_MASK
-            m_wordcount = 1 + m_tag & @.DQVA_TWO_WORDS
-            m_data = m_payload
-        else:
-            m_tag = 0
-            m_kind = 0
-            m_wordcount = 0
-            m_data = nil
-        endif
-    endfunc
+    func *Create(payload : ^uint, descriptor : ^byte) .. // prepares the first element to use, when exists
 
-    // Move past the current element. False means there is no next element.
-    func Next() -> bool:
-        if m_index + 1 >= m_length:
-            SetInvalid()
-            return false
-        endif
-        ++m_index
-        m_data = m_data + m_wordcount
-        m_tag = m_descriptor[m_index + 1]^
-        m_kind = m_tag & @.DQVA_KIND_MASK
-        m_wordcount = 1 + m_tag & @.DQVA_TWO_WORDS
-        return true
-    endfunc
+    func Next() -> bool ..               // Move past the current element. False means there is no next element.
+    func Seek(aindex : uint) -> bool ..  // Seek from the start of the pack. On failure, leave the position intact.
 
-    // Seek from the start of the pack. On failure, leave the position intact.
-    func Seek(aindex : uint) -> bool:
-        if aindex >= m_length:
-            SetInvalid()
-            return false
-        endif
-        m_index = 0
-        m_data = m_payload
-        var pkind : ^byte = m_descriptor[1]
-        while m_index < aindex:
-            m_data += 1 + pkind^ & @.DQVA_TWO_WORDS
-            ++pkind
-            ++m_index
-        endwhile
-        m_tag = pkind^
-        m_kind = m_tag & @.DQVA_KIND_MASK
-        m_wordcount = 1 + m_tag & @.DQVA_TWO_WORDS
-        return true
-    endfunc
-
-    // Each accessor returns defval on a kind mismatch.
-    func AsInt64(defval : int64) -> int64 ..
-    func AsUInt64(defval : uint64) -> uint64 ..
-    func AsFloat32(defval : float32) -> float32 ..
-    func AsFloat64(defval : float64) -> float64 ..
-    func AsBool(defval : bool) -> bool ..
-    func AsChar(defval : char) -> char ..
-    func AsWChar(defval : wchar) -> wchar ..
-    func AsText(defval : strslice) -> strslice ..
-    func AsPointer(defval : pointer) -> pointer ..
+    func TrySint(rvalue : refout int) -> bool ..
+    func TryUint(rvalue : refout uint) -> bool ..
+    func TrySint64(rvalue : refout int64) -> bool ..
+    func TryUint64(rvalue : refout uint64) -> bool ..
+    func TryFloat32(rvalue : refout float32) -> bool ..
+    func TryFloat64(rvalue : refout float64) -> bool ..
+    func TryBool(rvalue : refout bool) -> bool ..
+    func TryChar(rvalue : refout char) -> bool ..
+    func TryWchar(rvalue : refout wchar) -> bool ..
+    func TryText(rvalue : refout strslice) -> bool ..
+    func TryPointer(rvalue : refout pointer) -> bool ..
 
     property length    : byte   read m_length
     property index     : byte   read m_index
@@ -141,89 +85,176 @@ implementation
 
 use rtl/strfunc
 
-func OVarArgReader.AsInt64(defval : int64) -> int64:
+func OVarArgReader.*Create(payload : ^uint, descriptor : ^byte):
+    use .
+    m_descriptor = descriptor
+    m_payload    = payload
+
+    m_length = m_descriptor[0]^
+    if m_length > 0:
+        m_index = 0
+        m_tag = m_descriptor[1]^
+        m_kind = m_tag & DQVA_KIND_MASK
+        m_wordcount = 1 + m_tag & DQVA_TWO_WORDS
+        m_data = m_payload
+    else:
+        SetInvalid()
+    endif
+endfunc
+
+// Move past the current element. False means there is no next element.
+func OVarArgReader.Next() -> bool:
+    use .
+    if m_index + 1 >= m_length:
+        SetInvalid()
+        return false
+    endif
+    ++m_index
+    m_data = m_data + m_wordcount
+    m_tag = m_descriptor[m_index + 1]^
+    m_kind = m_tag & DQVA_KIND_MASK
+    m_wordcount = 1 + m_tag & DQVA_TWO_WORDS
+    return true
+endfunc
+
+// Seek from the start of the pack. On failure, leave the position intact.
+func OVarArgReader.Seek(aindex : uint) -> bool:
+    use .
+    if aindex >= m_length:
+        SetInvalid()
+        return false
+    endif
+    m_index = 0
+    m_data = m_payload
+    var pkind : ^byte = m_descriptor[1]
+    while m_index < aindex:
+        m_data += 1 + pkind^ & DQVA_TWO_WORDS
+        ++pkind
+        ++m_index
+    endwhile
+    m_tag = pkind^
+    m_kind = m_tag & DQVA_KIND_MASK
+    m_wordcount = 1 + m_tag & DQVA_TWO_WORDS
+    return true
+endfunc
+
+func OVarArgReader.SetInvalid():
+    m_index = 255
+    m_tag = 0
+    m_kind = 0
+    m_wordcount = 0
+    m_data = nil
+endfunc
+
+func OVarArgReader.TrySint(rvalue : refout int) -> bool:
+    if m_kind <> @.DQVA_SINT  or m_wordcount <> 1:
+        return false
+    endif
+    rvalue = ^int(m_data)^
+    return true
+endfunc
+
+func OVarArgReader.TryUint(rvalue : refout uint) -> bool:
+    if m_kind <> @.DQVA_UINT  or m_wordcount <> 1:
+        return false
+    endif
+    rvalue = ^uint(m_data)^
+    return true
+endfunc
+
+func OVarArgReader.TrySint64(rvalue : refout int64) -> bool:
     if m_kind <> @.DQVA_SINT:
-        return defval
+        return false
     endif
-#if @def.PTRSIZE > 4
-    return ^int64(m_data)^
-#else
+  #if @def.PTRSIZE > 4
+    rvalue = ^int64(m_data)^
+  #else
     if m_wordcount == 1:
-        return ^int(m_data)^
+        rvalue = ^int(m_data)^
+    else:
+        CopyWide(^uint32(%rvalue))
     endif
-    result = 0
-    CopyWide(^uint32(%result))
-#endif
+  #endif
+    return true
 endfunc
 
-func OVarArgReader.AsUInt64(defval : uint64) -> uint64:
+func OVarArgReader.TryUint64(rvalue : refout uint64) -> bool:
     if m_kind <> @.DQVA_UINT:
-        return defval
+        return false
     endif
-#if @def.PTRSIZE > 4
-    return ^uint64(m_data)^
-#else
+  #if @def.PTRSIZE > 4
+    rvalue = ^uint64(m_data)^
+  #else
     if m_wordcount == 1:
-        return m_data^
+        rvalue = ^uint(m_data)^
+    else:
+        CopyWide(%rvalue)
     endif
-    result = 0
-    CopyWide(^uint32(%result))
-#endif
+  #endif
+    return true
 endfunc
 
-func OVarArgReader.AsFloat32(defval : float32) -> float32:
+func OVarArgReader.TryFloat32(rvalue : refout float32) -> bool:
     if m_kind <> @.DQVA_FLOAT32:
-        return defval
+        return false
     endif
-    return ^float32(m_data)^
+    rvalue = ^float32(m_data)^
+    return true
 endfunc
 
-func OVarArgReader.AsFloat64(defval : float64) -> float64:
+func OVarArgReader.TryFloat64(rvalue : refout float64) -> bool:
     if m_kind <> @.DQVA_FLOAT64:
-        return defval
+        return false
     endif
-#if @def.PTRSIZE > 4
-    return ^float64(m_data)^
-#else
-    result = 0
-    CopyWide(^uint32(%result))  // for wide platform LLVM compatibility
-#endif
+  #if @def.PTRSIZE > 4
+    rvalue = ^float64(m_data)^
+  #else
+    CopyWide(^uint32(%rvalue))  // for wide platform LLVM compatibility
+  #endif
+    return true
 endfunc
 
-func OVarArgReader.AsBool(defval : bool) -> bool:
+func OVarArgReader.TryBool(rvalue : refout bool) -> bool:
     if m_kind <> @.DQVA_BOOL:
-        return defval
+        return false
     endif
-    return m_data^ <> 0
+    rvalue = m_data^ <> 0
+    return true
 endfunc
 
-func OVarArgReader.AsChar(defval : char) -> char:
+func OVarArgReader.TryChar(rvalue : refout char) -> bool:
     if m_kind <> @.DQVA_CHAR:
-        return defval
+        return false
     endif
-    return char(m_data^)
+    rvalue = char(m_data^)
+    return true
 endfunc
 
-func OVarArgReader.AsWChar(defval : wchar) -> wchar:
+func OVarArgReader.TryWchar(rvalue : refout wchar) -> bool:
     if m_kind <> @.DQVA_WCHAR:
-        return defval
+        return false
     endif
-    return wchar(m_data^)
+    rvalue = wchar(m_data^)
+    return true
 endfunc
 
-func OVarArgReader.AsText(defval : strslice) -> strslice:
-    if m_kind == @.DQVA_STRVIEW:
-        return @strfunc.StrSlice(^^char(m_data)^, m_data[1]^)
-    elif m_kind == @.DQVA_PCHAR:
+func OVarArgReader.TryText(rvalue : refout strslice) -> bool:
+    use *
+    if m_kind == DQVA_STRVIEW:
+        rvalue = StrSlice(^^char(m_data)^, m_data[1]^)
+        return true
+    elif m_kind == DQVA_PCHAR:
         // Conversion to strslice resolves the zero-terminated length here.
-        return ^^char(m_data)^
+        rvalue = ^^char(m_data)^
+        return true
     endif
-    return defval
+    return false
 endfunc
 
-func OVarArgReader.AsPointer(defval : pointer) -> pointer:
+func OVarArgReader.TryPointer(rvalue : refout pointer) -> bool:
     if m_kind <> @.DQVA_POINTER:
-        return defval
+        return false
     endif
-    return ^pointer(m_data)^
+    rvalue = ^pointer(m_data)^
+    return false
 endfunc

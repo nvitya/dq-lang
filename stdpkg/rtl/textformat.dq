@@ -33,6 +33,20 @@
     #endif
 #endif
 
+#if Defined(TEXTFORMAT_INT64) or Defined(TEXTFORMAT_FLOAT64)
+    type TFmtInt  = int64
+    type TFmtUInt = uint64
+#else
+    type TFmtInt  = int
+    type TFmtUInt = uint
+#endif
+
+#if Defined(TEXTFORMAT_FLOAT64)
+    type TFmtFloat = float64
+#elif Defined(TEXTFORMAT_FLOAT32)
+    type TFmtFloat = float32
+#endif
+
 // Design goals:
 //   * one heap-free formatter core
 //   * stack-allocated formatter object
@@ -154,13 +168,15 @@ protected
     func WriteFieldPad(alength : int, aafter : bool) ..
     func WriteFormattedText(atext : strslice) ..
     func UIntDigitChar(adigit : uint, aupper : bool) -> char ..
-    func BuildUIntDigits(v : uint64, abase : uint, aupper : bool) -> int ..
+    func BuildUIntDigits(v : TFmtUInt, abase : uint, aupper : bool) -> int ..
     func WriteReversedDigits(acount : int) ..
-    func WriteFormattedNumber(asign : char, aint_digit_count : int, afrac : uint64, aprecision : int, ascale : uint64) ..
+    func WriteFormattedNumber(asign : char, aint_digit_count : int, afrac : TFmtUInt, aprecision : int, ascale : TFmtUInt) ..
 
-    func FormatInteger(value : uint64, signed_value : bool, wordcount : byte) ..
-    func FormatFloat(v : float64) ..
-    func TruncateMagnitude(v : float64) -> uint64 ..
+    func FormatInteger(value : TFmtUInt, signed_value : bool, wordcount : byte) ..
+  #if Defined(TEXTFORMAT_FLOAT32) or Defined(TEXTFORMAT_FLOAT64)
+    func FormatFloat(v : TFmtFloat) ..
+    func TruncateMagnitude(v : TFmtFloat) -> TFmtUInt ..
+  #endif
 
 endobject
 
@@ -263,10 +279,16 @@ union UScalarValues:
     wc       : wchar
     num_int  : int
     num_uint : uint
+  #if @def.PTRSIZE <= 4 and Defined(@def.TEXTFORMAT_INT64)
     num_i64  : int64
     num_u64  : uint64
+  #endif
+  #if Defined(@def.TEXTFORMAT_FLOAT32)
     num_f32  : float32
+  #endif
+  #if Defined(@def.TEXTFORMAT_FLOAT64)
     num_f64  : float64
+  #endif
     ptr      : pointer
 endunion
 
@@ -296,7 +318,7 @@ func OTextFormatter.Format(afmt : strslice, aargs : varargs):
             endif
 
         elif ar.TrySint(usv.num_int):
-            FormatInteger(uint64(usv.num_int), true, ar.wordcount)
+            FormatInteger(TFmtUInt(usv.num_int), true, ar.wordcount)
 
         elif ar.TryUint(usv.num_uint):
             FormatInteger(usv.num_uint, false, ar.wordcount)
@@ -312,7 +334,7 @@ func OTextFormatter.Format(afmt : strslice, aargs : varargs):
       #if Defined(@def.TEXTFORMAT_FLOAT32)
         elif ar.TryFloat32(usv.num_f32):
             if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_FLOAT:
-                FormatFloat(usv.num_f32) // use only 32-bit calculations !
+                FormatFloat(usv.num_f32)
             else:
                 ArgError("<f-f!>")
             endif
@@ -561,7 +583,7 @@ func OTextFormatter.UIntDigitChar(adigit : uint, aupper : bool) -> char:
     endif
 endfunc
 
-func OTextFormatter.BuildUIntDigits(v : uint64, abase : uint, aupper : bool) -> int:
+func OTextFormatter.BuildUIntDigits(v : TFmtUInt, abase : uint, aupper : bool) -> int:
     lcsbuf.Clear()
 
     if v == 0:
@@ -585,7 +607,7 @@ func OTextFormatter.WriteReversedDigits(acount : int):
     endwhile
 endfunc
 
-func OTextFormatter.WriteFormattedNumber(asign : char, aint_digit_count : int, afrac : uint64, aprecision : int, ascale : uint64):
+func OTextFormatter.WriteFormattedNumber(asign : char, aint_digit_count : int, afrac : TFmtUInt, aprecision : int, ascale : TFmtUInt):
     var total_len : int = aint_digit_count
     if asign <> char(0):
         ++total_len
@@ -611,7 +633,7 @@ func OTextFormatter.WriteFormattedNumber(asign : char, aint_digit_count : int, a
 
     if aprecision > 0:
         sink.WriteChar('.')
-        var place : uint64 = ascale div 10
+        var place : TFmtUInt = ascale div 10
         while place > 0:
             var digit : uint = afrac div place
             sink.WriteChar(UIntDigitChar(digit, false))
@@ -623,7 +645,7 @@ func OTextFormatter.WriteFormattedNumber(asign : char, aint_digit_count : int, a
     WriteFieldPad(total_len, true)
 endfunc
 
-func OTextFormatter.FormatInteger(value : uint64, signed_value : bool, wordcount : byte):
+func OTextFormatter.FormatInteger(value : TFmtUInt, signed_value : bool, wordcount : byte):
     use .
     var spec : char = fmtspec.kind
     var signch : char = char(0)
@@ -632,20 +654,20 @@ func OTextFormatter.FormatInteger(value : uint64, signed_value : bool, wordcount
     if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_SIGNED:
         signch = PositiveSign()
         if signed_value or spec == DQFMT_KIND_SIGNED:
-            var signed_number : int64 = int64(value)
-          #if @def.PTRSIZE == 4
+            var signed_number : TFmtInt = TFmtInt(value)
+          #if @def.PTRSIZE == 4 and Defined(@def.TEXTFORMAT_INT64)
             if wordcount == 1:
                 signed_number = int(value)
             endif
           #endif
             if signed_number < 0:
                 signch = '-'
-                value = uint64(-(signed_number + 1)) + 1
+                value = TFmtUInt(-(signed_number + 1)) + 1
             endif
         endif
     elif spec == DQFMT_KIND_UNSIGNED or spec == DQFMT_KIND_HEXLOW or spec == DQFMT_KIND_HEXUP:
         // A negative one-word integer uses its native-width bits for u/x.
-      #if @def.PTRSIZE == 4
+      #if @def.PTRSIZE == 4 and Defined(@def.TEXTFORMAT_INT64)
         if wordcount == 1:
             value = uint(value)
         endif
@@ -660,8 +682,9 @@ func OTextFormatter.FormatInteger(value : uint64, signed_value : bool, wordcount
     WriteFormattedNumber(signch, BuildUIntDigits(value, base, fmtspec.upper), 0, 0, 1)
 endfunc
 
-func OTextFormatter.TruncateMagnitude(v : float64) -> uint64:
-  #if @def.PTRSIZE == 4
+#if Defined(TEXTFORMAT_FLOAT32) or Defined(TEXTFORMAT_FLOAT64)
+func OTextFormatter.TruncateMagnitude(v : TFmtFloat) -> TFmtUInt:
+  #if @def.PTRSIZE == 4 and Defined(@def.TEXTFORMAT_FLOAT64)
     // Trunc returns a native int. Split a nonnegative magnitude into words
     // before converting so the fractional scale is usable on 32-bit targets.
     const WORD_BASE : uint64 = 0x100000000
@@ -677,30 +700,31 @@ func OTextFormatter.TruncateMagnitude(v : float64) -> uint64:
   #endif
 endfunc
 
-func OTextFormatter.FormatFloat(v : float64):
+func OTextFormatter.FormatFloat(v : TFmtFloat):
     var signch : char = PositiveSign()
-    var work : float64 = v
+    var work : TFmtFloat = v
 
     if work < 0:
         signch = '-'
         work = -work
     endif
 
+  #if Defined(TEXTFORMAT_FLOAT64)
+    const DEFAULT_PRECISION : int = 15
+    const MAX_PRECISION     : int = 18
+    const LIMIT             : uint64 = 0x8000000000000000
+  #else
+    const DEFAULT_PRECISION : int = 6
+    const MAX_PRECISION     : int = 9
+    const LIMIT             : uint32 = 0x80000000
+  #endif
+
     var precision : int = fmtspec.precision
     if precision < 0:
-        precision = 15
-    elif precision > 18:
-        precision = 18
+        precision = DEFAULT_PRECISION
+    elif precision > MAX_PRECISION:
+        precision = MAX_PRECISION
     endif
-
-    var scale : uint64 = 1
-    for i : int = 0 count precision:
-        scale *= 10
-    endfor
-
-    var intpart : uint64
-    var frac    : uint64
-    const LIMIT : uint64 = 0x8000000000000000
 
     // A conversion outside the signed range of Trunc is undefined.
     if not (work < LIMIT):
@@ -708,7 +732,19 @@ func OTextFormatter.FormatFloat(v : float64):
         return
     endif
 
-    if fmtspec.precision < 0:
+    var scale : TFmtUInt = 1
+    for i : int = 0 count precision:
+        scale *= 10
+    endfor
+
+    var intpart : TFmtUInt
+    var frac    : TFmtUInt
+
+    if fmtspec.precision >= 0 and (work * scale + 0.5) < LIMIT:
+        var scaled : TFmtUInt = TruncateMagnitude(work * scale + 0.5)
+        intpart = scaled div scale
+        frac = scaled mod scale
+    else:
         intpart = TruncateMagnitude(work)
         frac = TruncateMagnitude((work - intpart) * scale + 0.5)
 
@@ -717,24 +753,18 @@ func OTextFormatter.FormatFloat(v : float64):
             frac -= scale
         endif
 
-        while precision > 0 and (frac mod 10) == 0:
-            frac = frac div 10
-            scale = scale div 10
-            --precision
-        endwhile
-    else:
-        var rounded : float64 = work * scale + 0.5
-        if not (rounded < LIMIT):
-            ArgError("<f-f!>")
-            return
+        if fmtspec.precision < 0:
+            while precision > 0 and (frac mod 10) == 0:
+                frac = frac div 10
+                scale = scale div 10
+                --precision
+            endwhile
         endif
-        var scaled : uint64 = TruncateMagnitude(rounded)
-        intpart = scaled div scale
-        frac = scaled mod scale
     endif
 
     WriteFormattedNumber(signch, BuildUIntDigits(intpart, 10, false), frac, precision, scale)
 endfunc
+#endif
 
 //----------------------------------------------------------------------------------------
 

@@ -248,7 +248,7 @@ until reuse or destruction to avoid racing termination against handle cleanup.
 Both derive from `Exception` and expose its `message` field. `EShellResult` also
 has `code : int`, matching the runner's exit result. Its constructors accept
 either `(acode : int, amsg : rostr)` or
-`(acode : int, afmt : strslice, avalues : []anyvalue)`.
+`(acode : int, afmt : strslice, avalues : varargs)`.
 
 On Linux, failure to execute a program after the fork is reported by the child:
 it writes a diagnostic to captured stderr and exits with `127`, producing

@@ -3,7 +3,7 @@
 func Print(text : strslice) ..
 func PrintLn() [[overload]] ..
 func PrintLn(text : strslice) [[overload]] ..
-func PrintLn(text : rostr, args : []anyvalue) [[overload]] ..
+func PrintLn(text : rostr, args : varargs) [[overload]] ..
 
 implementation
 
@@ -22,7 +22,7 @@ func PrintLn(text : strslice) [[overload]]:
     Print("\n")
 endfunc
 
-func PrintLn(text : rostr, args : []anyvalue) [[overload]]:
+func PrintLn(text : rostr, args : varargs) [[overload]]:
     var fmtstr : embstr(256) = ''
     fmtstr.AddFmt(text, args)
     Print(fmtstr)

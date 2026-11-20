@@ -92,8 +92,6 @@ var b : bool = true
 var c : char = 'A'
 var w : wchar = '€'
 var p : ^int = %i
-var v : anyvalue
-v.SetNull()
 ```
 
 ```dq
@@ -108,25 +106,21 @@ after the result. Multiple placeholders consume values from left to right:
 PrintLn("{} has {} messages.", [s, i]) // = "Amy has 42 messages."
 ```
 
-## Formatting Arguments: `[]anyvalue`
+## Formatting Arguments: `varargs`
 
 To print formatted text to the standard output use these functions from the `print` package:
 
 ```text
-Print(fmt : strslice, args : []anyvalue)
-PrintLn(fmt : strslice, args : []anyvalue)
+Print(fmt : strslice, args : varargs)
+PrintLn(fmt : strslice, args : varargs)
 ```
 
-`fmt` is the format string. `args` is an **array slice of `anyvalue`**.
-An `anyvalue` holds one supported value together with its type, so the formatter can tell
-whether to print text, a number, a Boolean, or a character.
+`fmt` is the format string. `args` is a borrowed list of values and their types.
 
 ### Writing the Argument List
 
-The usual syntax is `[s, i, b]`. Separate the elements with commas.
-The compiler knows that the formatting call expects `[]anyvalue`, so it
-converts each element to `anyvalue` automatically. The elements can have
-different types; no explicit conversions to `anyvalue` are needed.
+Group multiple values in brackets and separate them with commas. The values
+can have different types, and the caller evaluates them from left to right.
 
 ```dq
 PrintLn("name={}, count={}, active={}", [s, i, b]) // = "name=Amy, count=42, active=true"
@@ -138,26 +132,21 @@ Each element can also be an expression:
 PrintLn("next={}, doubled={}", [i + 1, i * 2]) // = "next=43, doubled=84"
 ```
 
-Even a single value needs brackets, because the second parameter must be an array,
-not one value:
+Pass one value directly or in a one-element list. Use `[]` for an empty list.
+The entire list occupies one argument position.
 
 ```dq
+PrintLn("count={}", i)   // = "count=42"
 PrintLn("count={}", [i]) // = "count=42"
-```
-
-These calls have the wrong argument syntax and do not compile:
-
-```text
-PrintLn("count={}", i) // ERROR: second parameter must be []anyvalue
-PrintLn("{} {}", s, i) // ERROR: values belong together in [s, i]
+PrintLn("{} {}", s, i)  // ERROR: too many arguments
 ```
 
 ### Which Values Can Be Passed?
 
 | Value type | Example argument | Default output with `{}` |
 | --- | --- | --- |
-| Signed integers | `42`, `-7`, an `int32` variable | Decimal number |
-| Unsigned integers | A `uint` or `uint32` variable | Decimal number; use `{:u}` for unsigned decimal formatting |
+| Signed integers | `-7`, an `int32` or `int64` variable | Signed decimal number |
+| Unsigned integers | A `uint` or `uint64` variable | Unsigned decimal number |
 | Floating-point numbers | `3.5`, a `float32`, `float64`, or `float` variable | Decimal number |
 | Boolean values | `true`, `false`, a comparison | `true` or `false` |
 | `char` | A `char` variable | One byte written as a character |
@@ -166,8 +155,7 @@ PrintLn("{} {}", s, i) // ERROR: values belong together in [s, i]
 | Text | A literal, `str`, `rostr`, `strslice`, `embstr(N)`, or unsized `embstr` | The text bytes |
 | `^char` | A pointer to zero-terminated text | The pointed-to text |
 | Other typed or generic pointers | A `^int` or `pointer` variable | Address in hexadecimal with a leading `^` |
-| Null stored in `anyvalue` | A value initialized with `.SetNull()` | `null` |
-| An existing `anyvalue` | A previously stored supported value | The representation of its stored value |
+| Nil pointer | `nil` | `^0` |
 
 The formatter preserves the value's type. A text value containing `"42"` is
 still text, and an integer containing `42` is still a number. The placeholder
@@ -187,22 +175,21 @@ var a : [3]int = [10, 20, 30]
 PrintLn("first={}, count={}", [a[0], a.length]) // = "first=10, count=3"
 ```
 
-See [anyvalue](150-anyvalue.md) for its accessors and lifetime rules.
+For a stored [`anyvalue`](150-anyvalue.md), pass a value read with an accessor
+such as `AsInt` or `AsText`.
 
-### Reusing an Argument Array
+### Forwarding Arguments
 
-An existing argument slice can be passed on to further functions. Pass the
-slice directly:
+A function can pass its `varargs` parameter directly to another formatter.
+The list is valid throughout the original call.
 
 ```dq
-var m : rostr = "{} has {} messages."
-var a : []anyvalue = [s, i]
+func Log(fmt : strslice, args : varargs):
+    PrintLn(fmt, args)
+endfunc
 
-PrintLn(m, a) // = "Amy has 42 messages."
+Log("{} has {} messages.", [s, i]) // = "Amy has 42 messages."
 ```
-
-There is no need to rebuild the list. `PrintLn(m, [a])` would be a compile
-error: `[a]` is `[1][]anyvalue`, which is not compatible with `[]anyvalue`.
 
 ### Matching Values to Format String Placeholders
 
@@ -388,16 +375,12 @@ PrintLn("{}", [pc])            // = "abc": ^char is treated as text
 PrintLn("{:p}", [pointer(pc)]) // = "^401234": convert to pointer to print the address
 ```
 
-### Null Values: `{}`
+### Missing Arguments and Nil Pointers
 
-A null `anyvalue` prints `null`, which differs from the `^0` output of a nil
-pointer. Initialize a null value with `.SetNull()`.
+A missing argument prints `null`. A supplied nil pointer prints `^0`.
 
 ```dq
-var v : anyvalue
-v.SetNull()
-
-PrintLn("{}", [v]) // = "null"
+PrintLn("{} / {}", nil) // = "^0 / null"
 ```
 
 ### Literal Braces and Escaping
@@ -478,7 +461,7 @@ The former zero-before-sign spelling `{:0+8d}` is no longer supported.
 
 ## Formatting APIs and Destinations
 
-The same placeholders and `[]anyvalue` argument syntax work with each API:
+The same placeholders and `varargs` argument syntax work with each API:
 
 | API | Destination | Availability |
 | --- | --- | --- |
@@ -502,10 +485,10 @@ PrintLn(s[0:2], [i]) // = "42": only the "{}" slice is parsed
 
 ```text
 Print(text : strslice)
-Print(fmt : strslice, args : []anyvalue)
+Print(fmt : strslice, args : varargs)
 PrintLn()
 PrintLn(text : strslice)
-PrintLn(fmt : strslice, args : []anyvalue)
+PrintLn(fmt : strslice, args : varargs)
 ```
 
 `Print` writes without adding a newline. `PrintLn` adds a newline, and
@@ -530,7 +513,7 @@ PrintLn("{{}}", []) // = "{}"
 ### Format
 
 ```text
-Format(fmt : strslice, args : []anyvalue) -> str
+Format(fmt : strslice, args : varargs) -> str
 ```
 
 Use `Format()` when the result should be stored or returned rather than
@@ -554,7 +537,7 @@ dbconn.Execute(Format("INSERT INTO items VALUES ({:d})", [i]))
 ### .AddFmt
 
 ```text
-.AddFmt(fmt : strslice, args : []anyvalue)
+.AddFmt(fmt : strslice, args : varargs)
 ```
 
 `.AddFmt()` appends to the existing contents of the `str` or `embstr`.

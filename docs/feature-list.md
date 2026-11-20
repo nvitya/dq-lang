@@ -41,7 +41,8 @@ Inferred array length from array literal: `var a : [?]int = [1, 2, 3]`
 * Array literal notation: `[1, 2, 3]`
 * Built-in `cchar` and `cstring(n)` type to ease the zero-terminated C-style string handling.
 * Dynamic (heap-allocated) string handling with the `str` type
-* `anyvalue` and `[]anyvalue` types for handling variable arguments (e.g. `Print('{}: {}, {}', [1, 'abc', 3.14])`)
+* `varargs` for borrowed heterogeneous arguments, as in `Print('{}: {}, {}', [1, 'abc', 3.14])`
+* `anyvalue` for storing a value together with its type
 * Objects support single inheritance only
 * At the object functions no `self` argument definition required and no `self.` prefix required to access the object members.
 * Virtual functions must be defined with `[[virtual]]` and `[[override]]` attributes

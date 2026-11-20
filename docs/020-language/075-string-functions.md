@@ -82,7 +82,7 @@ dynamic-string support.
 
 | Function | Result | Purpose |
 | --- | --- | --- |
-| [`Format(fmt : strslice, args : []anyvalue)`](#format) | `str` | Create formatted text |
+| [`Format(fmt : strslice, args : varargs)`](#format) | `str` | Create formatted text |
 | [`StrFromUtf16(chars : []char16)`](#strfromutf16-and-strfromutf16ptr) | `str` | Convert a UTF-16 array to UTF-8 |
 | [`StrFromUtf16Fallback(chars : []char16, fallback_wchar : wchar)`](#utf16-fallback-conversion) | `str` | Convert UTF-16, replacing malformed sequences |
 | [`StrFromUtf16Ptr(chars : ^char16, count : int)`](#strfromutf16-and-strfromutf16ptr) | `str` | Convert an explicit number of UTF-16 code units |
@@ -162,7 +162,7 @@ use `StrSliceCmp` to compare their text contents explicitly.
 ### Format
 
 ```text
-Format(fmt : strslice, args : []anyvalue) -> str
+Format(fmt : strslice, args : varargs) -> str
 ```
 
 `Format(fmt, args)` creates a new string using the same placeholders as
@@ -466,7 +466,7 @@ text.AppendChar('?')      // "abcdef!?"
 ### .AddFmt
 
 ```text
-.AddFmt(fmt : strslice, args : []anyvalue)
+.AddFmt(fmt : strslice, args : varargs)
 ```
 
 `.AddFmt(fmt, args)` appends text containing formatted

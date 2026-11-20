@@ -36,8 +36,6 @@
 //   {:>30}   right align within a minimum width
 //   {:^30}   center within a minimum width
 
-use rtl/rtlint
-
 // -----------------------------------------------------------------------------
 // Result flags
 // -----------------------------------------------------------------------------
@@ -100,9 +98,9 @@ endobject
 #endif
 
 struct STextFmtSpec:
-    kind       : char  // d/u/x/X/s/p/f/?
     width      : int   // minimum Unicode scalar count; -1 means unspecified
     precision  : int   // -1 means unspecified
+    kind       : char  // d/u/x/X/s/p/f/?
     fill       : char  // normally ' ' or '0'
     align      : char  // <, >, or ^
     sign       : char  // +, -, space, or zero when unspecified
@@ -119,7 +117,7 @@ public
 
     func *Create(asink : OTextSink) ..
     func Reset() ..
-    func Format(afmt : strslice, aargs : []anyvalue) ..
+    func Format(afmt : strslice, aargs : varargs) ..
 
 protected
     curpos : int32 = 0
@@ -128,33 +126,33 @@ protected
     lcsbuf : embstr(48)
 
     func ParseSpec(afmt : strslice) ..
-    func FormatAny(av : anyvalue) ..
+    func ArgError(message : strslice) ..
+    func PositiveSign() -> char ..
     func FormatWChar(wc : wchar) ..
 
     func WritePad(acount : int, ch : char) ..
     func WriteFieldPad(alength : int, aafter : bool) ..
     func WriteFormattedText(atext : strslice) ..
     func UIntDigitChar(adigit : uint, aupper : bool) -> char ..
-    func BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int ..
+    func BuildUIntDigits(v : uint64, abase : uint, aupper : bool) -> int ..
     func WriteReversedDigits(acount : int) ..
-    func WriteFormattedNumber(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint) ..
+    func WriteFormattedNumber(asign : char, aint_digit_count : int, afrac : uint64, aprecision : int, ascale : uint64) ..
 
-    func FormatSInt(v : int) ..
-    func FormatUInt(v : uint) ..
-    func FormatHex(v : uint, aupper : bool) ..
-
-    func FormatFloat(v : float) ..
+    func FormatInteger(value : uint64, signed_value : bool, wordcount : byte) ..
+    func FormatFloat(v : float64) ..
+    func TruncateMagnitude(v : float64) -> uint64 ..
 
 endobject
 
-func EmbStrAddFmt(adest : embstr, afmt : strslice, aargs : []anyvalue) ..
+func EmbStrAddFmt(adest : embstr, afmt : strslice, aargs : varargs) ..
 #ifdef DYNSTRINGS
-func DynStrAddFmt(astr : ^str, afmt : strslice, aargs : []anyvalue) ..
+func DynStrAddFmt(astr : ^str, afmt : strslice, aargs : varargs) ..
 #endif
 
 implementation
 
 use rtl/strfunc
+use rtl/varargs
 
 #ifndef BARE
   use libc/stdio
@@ -238,14 +236,101 @@ func OTextFormatter.Reset():
     curpos = 0
 endfunc
 
-func OTextFormatter.Format(afmt : strslice, aargs : []anyvalue):
-    use .
+func OTextFormatter.Format(afmt : strslice, aargs : varargs):
+    use ., varargs
     Reset()
 
     curpos = 0
     endpos = afmt.length
 
+    var ar <- OVarArgReader(aargs)
     var lit_start : uint = 0
+
+    // Keep the reader type out of the formatter's module interface, avoiding circular references
+    subfn FormatArgument():
+        var spec : char = fmtspec.kind
+        var kind : byte = ar.kind
+        var text_format : bool = spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_STRING
+
+        if kind == DQVA_STRVIEW or kind == DQVA_PCHAR:
+            if text_format:
+                var text : strslice
+                ar.TryText(text)
+                WriteFormattedText(text)
+            else:
+                ArgError("<s-f!>")
+            endif
+
+        elif kind == DQVA_CHAR:
+            var ch : char
+            ar.TryChar(ch)
+            if text_format:
+                WriteFieldPad(1, false)
+                sink.WriteChar(ch)
+                WriteFieldPad(1, true)
+            else:
+                FormatInteger(Ord(ch), false, ar.wordcount)
+            endif
+
+        elif kind == DQVA_WCHAR:
+            var wc : wchar
+            ar.TryWchar(wc)
+            if text_format:
+                FormatWChar(wc)
+            else:
+                FormatInteger(Ord(wc), false, ar.wordcount)
+            endif
+
+        elif kind == DQVA_SINT:
+            var number : int64
+            ar.TrySint64(number)
+            FormatInteger(uint64(number), true, ar.wordcount)
+
+        elif kind == DQVA_UINT:
+            var number : uint64
+            ar.TryUint64(number)
+            FormatInteger(number, false, ar.wordcount)
+
+        elif kind == DQVA_FLOAT32 or kind == DQVA_FLOAT64:
+            if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_FLOAT:
+                var number : float64
+                if kind == DQVA_FLOAT32:
+                    var narrow : float32
+                    ar.TryFloat32(narrow)
+                    number = narrow
+                else:
+                    ar.TryFloat64(number)
+                endif
+                FormatFloat(number)
+            else:
+                ArgError("<f-f!>")
+            endif
+
+        elif kind == DQVA_BOOL:
+            if spec == DQFMT_KIND_DEFAULT:
+                var enabled : bool
+                ar.TryBool(enabled)
+                if enabled:
+                    WriteFormattedText('true')
+                else:
+                    WriteFormattedText('false')
+                endif
+            else:
+                ArgError("<b-f!>")
+            endif
+
+        elif kind == DQVA_POINTER:
+            if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_POINTER:
+                var address : pointer
+                ar.TryPointer(address)
+                WriteFormattedNumber('^', BuildUIntDigits(uint(address), 16, true), 0, 0, 1)
+            else:
+                ArgError("<p-f!>")
+            endif
+        else:
+            ArgError("<ar-error>")
+        endif
+    endsubfn
 
     while curpos < endpos:
         var ch : char = afmt[curpos]
@@ -263,12 +348,11 @@ func OTextFormatter.Format(afmt : strslice, aargs : []anyvalue):
             else:
                 ParseSpec(afmt) // updates the curpos
 
-                if arg_index < aargs.length:
-                    FormatAny(aargs[arg_index])
+                if arg_index < ar.length:
+                    FormatArgument()
+                    ar.Next()
                 else:
-                    var nv : anyvalue
-                    nv.SetNull()
-                    FormatAny(nv)
+                    WriteFormattedText("null")
                 endif
                 ++arg_index
 
@@ -377,87 +461,16 @@ func OTextFormatter.ParseSpec(afmt : strslice):
     curpos = p
 endfunc
 
-func OTextFormatter.FormatAny(av : anyvalue):
-    if av.IsNull():
-        WriteFormattedText("null")
-        return
-    endif
-
-    if av.IsText():
-        if fmtspec.kind == @.DQFMT_KIND_DEFAULT  or  fmtspec.kind == @.DQFMT_KIND_STRING:
-            WriteFormattedText(av.AsText(''))
-        else:
-            flags |= @.DQFMT_ARG_ERROR
-            sink.Write("<s-f!>")
-        endif
-        return
-    endif
-
-    var is_character : bool = av.IsChar() or av.IsWChar()
-    if is_character and (fmtspec.kind == @.DQFMT_KIND_DEFAULT or fmtspec.kind == @.DQFMT_KIND_STRING):
-        if av.IsChar():
-            WriteFieldPad(1, false)
-            sink.WriteChar(av.AsChar(char(0)))
-            WriteFieldPad(1, true)
-        else:
-            FormatWChar(av.AsWChar(wchar(0)))
-        endif
-        return
-    endif
-
-    if av.IsInt() or is_character:
-        if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_SIGNED == fmtspec.kind:
-            FormatSInt(av.AsInt(0))
-        elif @.DQFMT_KIND_UNSIGNED == fmtspec.kind:
-            FormatUInt(av.AsUint(0))
-        elif @.DQFMT_KIND_HEXUP  == fmtspec.kind:
-            FormatHex(av.AsUint(0), true)
-        elif @.DQFMT_KIND_HEXLOW == fmtspec.kind:
-            FormatHex(av.AsUint(0), false)
-        else:
-            flags |= @.DQFMT_ARG_ERROR
-            sink.Write("<i-f!>")
-        endif
-        return
-    endif
-
-    if av.IsFloat():
-        if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_FLOAT == fmtspec.kind:
-            FormatFloat(av.AsFloat(0))
-        else:
-            flags |= @.DQFMT_ARG_ERROR
-            sink.Write("<f-f!>")
-        endif
-        return
-    endif
-
-    if av.IsBool():
-        if   @.DQFMT_KIND_DEFAULT == fmtspec.kind:
-            if av.AsBool(false):
-                WriteFormattedText('true')
-            else:
-                WriteFormattedText('false')
-            endif
-        else:
-            flags |= @.DQFMT_ARG_ERROR
-            sink.Write("<b-f!>")
-        endif
-        return
-    endif
-
-    if av.IsPointer():
-        if   @.DQFMT_KIND_DEFAULT == fmtspec.kind  or  @.DQFMT_KIND_POINTER == fmtspec.kind:
-            WriteFormattedNumber('^', BuildUIntDigits(uint(av.AsPointer(nil)), 16, true), 0, 0, 1)
-        else:
-            flags |= @.DQFMT_ARG_ERROR
-            sink.Write("<p-f!>")
-        endif
-        return
-    endif
-
-
+func OTextFormatter.ArgError(message : strslice):
     flags |= @.DQFMT_ARG_ERROR
-    sink.Write("<arg-error>")
+    sink.Write(message)
+endfunc
+
+func OTextFormatter.PositiveSign() -> char:
+    if fmtspec.sign == '+' or fmtspec.sign == ' ':
+        return fmtspec.sign
+    endif
+    return char(0)
 endfunc
 
 func OTextFormatter.FormatWChar(wc : wchar):
@@ -515,7 +528,7 @@ func OTextFormatter.UIntDigitChar(adigit : uint, aupper : bool) -> char:
     endif
 endfunc
 
-func OTextFormatter.BuildUIntDigits(v : uint, abase : uint, aupper : bool) -> int:
+func OTextFormatter.BuildUIntDigits(v : uint64, abase : uint, aupper : bool) -> int:
     lcsbuf.Clear()
 
     if v == 0:
@@ -539,7 +552,7 @@ func OTextFormatter.WriteReversedDigits(acount : int):
     endwhile
 endfunc
 
-func OTextFormatter.WriteFormattedNumber(asign : char, aint_digit_count : int, afrac : uint, aprecision : int, ascale : uint):
+func OTextFormatter.WriteFormattedNumber(asign : char, aint_digit_count : int, afrac : uint64, aprecision : int, ascale : uint64):
     var total_len : int = aint_digit_count
     if asign <> char(0):
         ++total_len
@@ -565,7 +578,7 @@ func OTextFormatter.WriteFormattedNumber(asign : char, aint_digit_count : int, a
 
     if aprecision > 0:
         sink.WriteChar('.')
-        var place : uint = ascale div 10
+        var place : uint64 = ascale div 10
         while place > 0:
             var digit : uint = afrac div place
             sink.WriteChar(UIntDigitChar(digit, false))
@@ -577,37 +590,67 @@ func OTextFormatter.WriteFormattedNumber(asign : char, aint_digit_count : int, a
     WriteFieldPad(total_len, true)
 endfunc
 
-func OTextFormatter.FormatSInt(v : int):
+func OTextFormatter.FormatInteger(value : uint64, signed_value : bool, wordcount : byte):
+    use .
+    var spec : char = fmtspec.kind
     var signch : char = char(0)
-    var mag    : uint = uint(v)
+    var base : uint = 10
 
-    if v < 0:
-        signch = '-'
-        mag = uint(-(v + 1)) + 1
-    elif fmtspec.sign == '+' or fmtspec.sign == ' ':
-        signch = fmtspec.sign
+    if spec == DQFMT_KIND_DEFAULT or spec == DQFMT_KIND_SIGNED:
+        signch = PositiveSign()
+        if signed_value or spec == DQFMT_KIND_SIGNED:
+            var signed_number : int64 = int64(value)
+          #if @def.PTRSIZE == 4
+            if wordcount == 1:
+                signed_number = int(value)
+            endif
+          #endif
+            if signed_number < 0:
+                signch = '-'
+                value = uint64(-(signed_number + 1)) + 1
+            endif
+        endif
+    elif spec == DQFMT_KIND_UNSIGNED or spec == DQFMT_KIND_HEXLOW or spec == DQFMT_KIND_HEXUP:
+        // A negative one-word integer uses its native-width bits for u/x.
+      #if @def.PTRSIZE == 4
+        if wordcount == 1:
+            value = uint(value)
+        endif
+      #endif
+        if spec <> DQFMT_KIND_UNSIGNED:
+            base = 16
+        endif
+    else:
+        ArgError("<i-f!>")
+        return
     endif
-
-    WriteFormattedNumber(signch, BuildUIntDigits(mag, 10, false), 0, 0, 1)
+    WriteFormattedNumber(signch, BuildUIntDigits(value, base, fmtspec.upper), 0, 0, 1)
 endfunc
 
-func OTextFormatter.FormatUInt(v : uint):
-    WriteFormattedNumber(char(0), BuildUIntDigits(v, 10, false), 0, 0, 1)
+func OTextFormatter.TruncateMagnitude(v : float64) -> uint64:
+  #if @def.PTRSIZE == 4
+    // Trunc returns a native int. Split a nonnegative magnitude into words
+    // before converting so the fractional scale is usable on 32-bit targets.
+    const WORD_BASE : uint64 = 0x100000000
+    const HALF_WORD : uint64 = 0x80000000
+    var high : uint64 = Trunc(v / WORD_BASE)
+    var low : float64 = v - high * WORD_BASE
+    if low >= HALF_WORD:
+        return high * WORD_BASE + HALF_WORD + Trunc(low - HALF_WORD)
+    endif
+    return high * WORD_BASE + Trunc(low)
+  #else
+    return Trunc(v)
+  #endif
 endfunc
 
-func OTextFormatter.FormatHex(v : uint, aupper : bool):
-    WriteFormattedNumber(char(0), BuildUIntDigits(v, 16, aupper), 0, 0, 1)
-endfunc
-
-func OTextFormatter.FormatFloat(v : float):
-    var signch : char = char(0)
-    var work : float = v
+func OTextFormatter.FormatFloat(v : float64):
+    var signch : char = PositiveSign()
+    var work : float64 = v
 
     if work < 0:
         signch = '-'
         work = -work
-    elif fmtspec.sign == '+' or fmtspec.sign == ' ':
-        signch = fmtspec.sign
     endif
 
     var precision : int = fmtspec.precision
@@ -617,18 +660,24 @@ func OTextFormatter.FormatFloat(v : float):
         precision = 18
     endif
 
-    var scale : uint = 1
+    var scale : uint64 = 1
     for i : int = 0 count precision:
         scale *= 10
     endfor
 
-    var intpart : uint = 0
-    var frac    : uint = 0
+    var intpart : uint64
+    var frac    : uint64
+    const LIMIT : uint64 = 0x8000000000000000
+
+    // A conversion outside the signed range of Trunc is undefined.
+    if not (work < LIMIT):
+        ArgError("<f-f!>")
+        return
+    endif
 
     if fmtspec.precision < 0:
-        var intpart_int : int = Floor(work)
-        intpart = uint(intpart_int)
-        frac = uint(Floor((work - intpart_int) * scale + 0.5))
+        intpart = TruncateMagnitude(work)
+        frac = TruncateMagnitude((work - intpart) * scale + 0.5)
 
         if frac >= scale:
             ++intpart
@@ -641,7 +690,12 @@ func OTextFormatter.FormatFloat(v : float):
             --precision
         endwhile
     else:
-        var scaled : uint = uint(Floor(work * scale + 0.5))
+        var rounded : float64 = work * scale + 0.5
+        if not (rounded < LIMIT):
+            ArgError("<f-f!>")
+            return
+        endif
+        var scaled : uint64 = TruncateMagnitude(rounded)
         intpart = scaled div scale
         frac = scaled mod scale
     endif
@@ -651,14 +705,14 @@ endfunc
 
 //----------------------------------------------------------------------------------------
 
-func EmbStrAddFmt(adest : embstr, afmt : strslice, aargs : []anyvalue):
+func EmbStrAddFmt(adest : embstr, afmt : strslice, aargs : varargs):
     var osink <- OTextSinkEmbStr(adest)
     var ofmt  <- OTextFormatter(osink)
     ofmt.Format(afmt, aargs)
 endfunc
 
 #ifdef DYNSTRINGS
-func DynStrAddFmt(astr : ^str, afmt : strslice, aargs : []anyvalue):
+func DynStrAddFmt(astr : ^str, afmt : strslice, aargs : varargs):
     var osink <- OTextSinkStr(astr)
     var ofmt  <- OTextFormatter(osink)
     ofmt.Format(afmt, aargs)

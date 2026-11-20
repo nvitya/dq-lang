@@ -1,8 +1,25 @@
 func OFieldPair.GetFieldValueText(qfunc : FSqlQuoteStr) -> str:
-    if value.IsText() and not direct:
-        result = qfunc(value.AsText(''))
+    if value.IsText():
+        var text : strslice = value.AsText('')
+        if direct:
+            result = text
+        else:
+            result = qfunc(text)
+        endif
+    elif value.IsInt():
+        result = @.Format("{}", value.AsInt(0))
+    elif value.IsFloat():
+        result = @.Format("{}", value.AsFloat(0))
+    elif value.IsBool():
+        result = iif(value.AsBool(false), 'true', 'false')
+    elif value.IsChar():
+        result = @.Format("{}", value.AsChar('?'))
+    elif value.IsWChar():
+        result = @.Format("{}", value.AsWChar('?'))
+    elif value.IsPointer():
+        result = @.Format("{}", value.AsPointer(nil))
     else:
-        result = @.Format("{}", [value])
+        result = "null"
     endif
 endfunc
 

@@ -156,16 +156,14 @@ cannot simply pass its unnamed arguments on to another variadic function.
 In C, this requires a separate `va_list` interface, such as
 [`vprintf` instead of `printf`](https://sourceware.org/glibc/manual/latest/html_node/Variable-Arguments-Output.html).
 
-To make forwarding straightforward, DQ borrows Delphi's
-[`array of const` pattern](https://docwiki.embarcadero.com/RADStudio/Florence/en/Open_Arrays#array_of_const)
-as `[]anyvalue`: a slice whose elements can hold values of different types.
-Each `anyvalue` stores both the value and its type information. The entire
-argument list is an ordinary parameter that can be forwarded to other functions:
+A DQ function can declare a `varargs` parameter to accept a borrowed list of
+values of different types. The list occupies one argument position and can be
+forwarded as a whole.
 
 ```dq
 use print
 
-func Log(format : strslice, values : []anyvalue):
+func Log(format : strslice, values : varargs):
     PrintLn(format, values)
 endfunc
 
@@ -174,12 +172,12 @@ func *Main():
 endfunc
 ```
 
-This also prints `answer: 42`. The caller groups the arguments in brackets;
-`["answer", 42]` creates a temporary array of `anyvalue` elements. `Log` passes
-the slice directly to `PrintLn`, without unpacking or rebuilding the arguments.
-The temporary array remains valid throughout the call, including calls made
-by `Log`; do not retain its slice after the call returns. See
-[`anyvalue`](150-anyvalue.md) for supported values and lifetime rules.
+This prints `answer: 42`. The caller groups several values in brackets. A
+single value can be supplied directly, and `[]` supplies an empty list. `Log`
+forwards the list to `PrintLn`. The values remain available throughout the
+call, including calls made by `Log`. Use `OVarArgReader(values)` to inspect
+elements in a consumer. See [Text Formatting](077-text-formatting.md) for
+supported values.
 
 ## Function References
 

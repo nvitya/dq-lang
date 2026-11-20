@@ -33,7 +33,7 @@ func *Main():
 
     av = 42
     PrintLn('char.defaults = {} {} {} {}', [av.IsChar(), av.IsWChar(), Ord(av.AsChar('!')), Ord(av.AsWChar('€'))]) //?check('char.defaults', 'false false 33 8364')
-    PrintLn('wchar.copy = {}', [copy]) //?check('wchar.copy', '€')
+    PrintLn('wchar.copy = {}', copy.AsWChar('?')) //?check('wchar.copy', '€')
     var returned : anyvalue = BoxWChar(wchar(0x1F600))
-    PrintLn('wchar.returned = {}', [returned]) //?check('wchar.returned', '😀')
+    PrintLn('wchar.returned = {}', returned.AsWChar('?')) //?check('wchar.returned', '😀')
 endfunc

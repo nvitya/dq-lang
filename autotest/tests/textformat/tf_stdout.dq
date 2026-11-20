@@ -14,8 +14,22 @@ func *Main():
     fmt.Format('tf-hex = {:x}|{:X}|{:08X}|[{:<6x}]\n',
                [0xC0DE, 0xC0DE, 0x2A, 0x2A]) //?check('tf-hex', 'c0de|C0DE|0000002A|[2a    ]')
 
+    const min_signed : int64 = -9223372036854775807 - 1
+    const max_unsigned : uint64 = 0xFFFFFFFFFFFFFFFF
+    fmt.Format('tf-wide = {}|{:d}|{}|{:u}|{:X}\n',
+               [min_signed, min_signed, max_unsigned, max_unsigned, max_unsigned]) //?check('tf-wide', '-9223372036854775808|-9223372036854775808|18446744073709551615|18446744073709551615|FFFFFFFFFFFFFFFF')
+    fmt.Format('tf-missing = {}|{}\n', nil) //?check('tf-missing', '^0|null')
+    fmt.Format('tf-extra = {}\n', [true, "ignored"]) //?check('tf-extra', 'true')
+    PrintLn('tf-extra-count = {}', fmt.arg_index) //?check('tf-extra-count', 1)
+    fmt.Format('tf-kind-errors = {:d}|{:s}|{:u}|{:s}|{:d}\n',
+               ["text", 7, 1.5, false, nil]) //?check('tf-kind-errors', '<s-f!>|<i-f!>|<f-f!>|<b-f!>|<p-f!>')
+    PrintLn('tf-kind-flags = {}', fmt.flags == DQFMT_ARG_ERROR) //?check('tf-kind-flags', 'true')
+
     fmt.Format('tf-float = {}|{:.2f}|{:+08.2f}|[{:<8.0f}]\n',
                [3.14, 1.995, 3.5, 3.5]) //?check('tf-float', '3.14|2.00|+0003.50|[4       ]')
+
+    fmt.Format('tf-float-widths = {:f}|{:.12f}\n',
+               [float32(1.25), float64(1.234567890625)]) //?check('tf-float-widths', '1.25|1.234567890625')
 
     var fa : [4]float = [1, 2, 3, 42]
     fmt.Format('tf-float-default = |{}|{}|{}|{}|\n',

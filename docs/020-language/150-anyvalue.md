@@ -2,7 +2,7 @@
 
 `anyvalue` holds one value that can be a number, text, a boolean, or another
 supported basic type. It remembers which kind of value it holds. Use it when a
-function needs to accept different kinds of input, as formatting functions do.
+variable or collection needs to store values of different kinds.
 
 ```dq
 use print
@@ -50,24 +50,21 @@ conversions such as parsing text into numbers.
 ## Array Parameters
 
 A `[]anyvalue` parameter accepts a list containing different kinds of values.
-This is how `PrintLn` and `Format` receive their formatting arguments:
+Read each element with an accessor before passing it to a formatter, which accepts `varargs`.
 
 ```dq
 use print
 
-func Log(format : rostr, values : []anyvalue):
-    PrintLn(format, values)
+func LogItems(values : []anyvalue):
+    PrintLn("{}: {} items, ready={}", [values[0].AsText(""), values[1].AsInt(0), values[2].AsBool(false)])
 endfunc
 
 func *Main():
-    Log("{}: {} items, ready={}", ["Shopping", 3, true])
+    LogItems(["Shopping", 3, true])
 endfunc
 ```
 
-This prints `Shopping: 3 items, ready=true`. The bracketed list supplies a
-temporary array whose elements are converted to `anyvalue`. `Log` can pass that
-list to another function directly. Do not keep its slice for use after the
-call returns, because the temporary array will no longer exist.
+This prints `Shopping: 3 items, ready=true`. The caller passes a temporary array whose elements are converted to `anyvalue`. Its slice is valid for the duration of the call.
 
 ## Null
 

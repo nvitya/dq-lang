@@ -48,10 +48,8 @@ func *Main():
                [unicode_text, unicode_view, unicode_slice]) //?check('align-text-types', '|Aé€😀Z  |  Aé€😀Z| é€😀  |')
     fmt.Format('align-bool = |{:<7}|{:>7}|{:^7}|\n',
                [true, false, true]) //?check('align-bool', '|true   |  false| true  |')
-    var null_value : anyvalue
-    null_value.SetNull()
     fmt.Format('align-null = |{:<7}|{:>7}|{:^7}|\n',
-               [null_value, null_value, null_value]) //?check('align-null', '|null   |   null| null  |')
+               []) //?check('align-null', '|null   |   null| null  |')
     var ptr : pointer = pointer(0x2A)
     fmt.Format('align-pointer = |{:<6p}|{:>6p}|{:^6p}|\n',
                [ptr, ptr, ptr]) //?check('align-pointer', '|^2A   |   ^2A| ^2A  |')

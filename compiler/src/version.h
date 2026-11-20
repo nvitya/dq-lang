@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.98.0"
+#define DQ_COMPILER_VERSION  "0.98.1"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.98.1:
+  - Text formatting changed using varargs instead of []anyvalue
 v0.98.0:
   - Implemented `varargs` support
 v0.97.2:

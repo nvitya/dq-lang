@@ -18,10 +18,10 @@ This writes `Items: 3`, followed by an empty line.
 
 ```dq
 func Print(fmt : strslice)
-func Print(fmt : rostr, args : []anyvalue)
+func Print(fmt : strslice, args : varargs)
 func PrintLn()
 func PrintLn(fmt : strslice)
-func PrintLn(fmt : rostr, args : []anyvalue)
+func PrintLn(fmt : strslice, args : varargs)
 func PrintFlush()
 func PrintSetUnbuffered()
 ```
@@ -30,14 +30,14 @@ func PrintSetUnbuffered()
 form writes only that newline.
 
 The one-argument forms write text literally. Braces have a formatting meaning
-only when you supply the `[]anyvalue` argument list:
+only in the forms that take a `varargs` argument.
 
 ```dq
 PrintLn("{name}")              // prints {name}
 PrintLn("{} = {:04X}", ["id", 255]) // prints id = 00FF
 ```
 
-Use a bracketed list even when there is only one formatted argument. See
+Pass one value directly or group multiple values in a bracketed list. See
 [Text Formatting](../020-language/077-text-formatting.md) for widths, precision,
 number formats, escaping braces, and formatting error behavior.
 

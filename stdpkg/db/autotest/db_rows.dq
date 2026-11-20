@@ -7,6 +7,26 @@ func PrintRow(label : strslice, rows : ODbRows):
             [label, rows.RowIndex(), rows.GetInt("id", -1), name, rows.GetBool("active", false)])
 endfunc
 
+func QuoteField(text : strslice) -> str:
+    return Format("'{}'", text)
+endfunc
+
+func CheckSqlFields():
+    var field <- OFieldPair("value")
+    var missing : str = field.GetFieldValueText(QuoteField)
+    field.value = -42
+    var integer : str = field.GetFieldValueText(QuoteField)
+    field.value = 3.5
+    var real : str = field.GetFieldValueText(QuoteField)
+    field.value = true
+    var flag : str = field.GetFieldValueText(QuoteField)
+    field.value = "CURRENT_DATE"
+    var quoted : str = field.GetFieldValueText(QuoteField)
+    field.direct = true
+    var direct : str = field.GetFieldValueText(QuoteField)
+    PrintLn("db_rows.sql-fields = {} {} {} {} {} {}", [missing, integer, real, flag, quoted, direct]) //?check("db_rows.sql-fields", "null -42 3.5 true 'CURRENT_DATE' CURRENT_DATE")
+endfunc
+
 func *Main():
     var rows <- ODbRows()
 
@@ -78,4 +98,5 @@ func *Main():
     PrintLn('db_rows.clear = rows:{} fields:{}',
             [rows.RowCount(), rows.FieldCount()]) //?check("db_rows.clear", "rows:0 fields:0")
 
+    CheckSqlFields()
 endfunc

@@ -214,7 +214,7 @@ func OJson.GetAsStr() -> str:
     elif m_kind == nkBool:
         return iif(m_value.AsBool(false), 'true', 'false')
     elif m_kind == nkNumber:
-        return @.Format('{}', [m_value.AsFloat(0)])
+        return @.Format('{}', m_value.AsFloat(0))
     endif
 
     //return compact JSON for arrays and objects
@@ -248,8 +248,10 @@ func OJson.AppendToJsonStr(rstr : ref str):  // faster version avoiding string r
         rstr.Add('null')
     elif m_kind == nkString:
         AppendJsonString(rstr, m_value.AsStr(''))
-    elif m_kind == nkNumber  or m_kind == nkBool:
-        rstr.AddFmt('{}', [m_value])
+    elif m_kind == nkNumber:
+        rstr.AddFmt('{}', m_value.AsFloat(0))
+    elif m_kind == nkBool:
+        rstr.Add(iif(m_value.AsBool(false), 'true', 'false'))
     elif m_kind == nkArray:
         rstr.Add('[')
         for i : int = 0  count m_children.length:
@@ -279,8 +281,10 @@ func OJson.AppendToPrettyJsonStr(rstr : ref str, indent : str):  // faster versi
         rstr.Add('null')
     elif m_kind == nkString:
         AppendJsonString(rstr, m_value.AsStr(''))
-    elif m_kind == nkNumber  or m_kind == nkBool:
-        rstr.AddFmt('{}', [m_value])
+    elif m_kind == nkNumber:
+        rstr.AddFmt('{}', m_value.AsFloat(0))
+    elif m_kind == nkBool:
+        rstr.Add(iif(m_value.AsBool(false), 'true', 'false'))
     elif m_kind == nkArray:
         if m_children == []:
             rstr.Add('[]')

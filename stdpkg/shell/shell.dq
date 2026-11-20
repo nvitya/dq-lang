@@ -9,7 +9,7 @@ endobject
 object EShellResult(Exception):
     code : int
     func *Create(acode : int, amsg : rostr)                        [[overload]] ..
-    func *Create(acode : int, afmt : strslice, avalues : []anyvalue)  [[overload]] ..
+    func *Create(acode : int, afmt : strslice, avalues : varargs)  [[overload]] ..
 endobject
 
 #ifdef WINDOWS
@@ -91,7 +91,7 @@ func EShellResult.*Create(acode : int, amsg : rostr) [[overload]]:
 endfunc
 
 func EShellResult.*Create(acode : int, afmt : strslice,
-                              avalues : []anyvalue) [[overload]]:
+                              avalues : varargs) [[overload]]:
     inherited Create(afmt, avalues)
     code = acode
 endfunc

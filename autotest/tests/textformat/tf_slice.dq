@@ -76,5 +76,11 @@ func *Main():
     text.Clear()
     text.AddFmt(ReturnedFormat(), [3])
     PrintLn('slice-temporary = {} {} {}', [dynamic_text, text, shared_format.refcount == refs]) //?check('slice-temporary', '|1||2| |3| true')
+
+    dynamic_text.Clear()
+    dynamic_text.AddFmt('{}', ReturnedFormat())
+    text.Clear()
+    text.AddFmt('{}', ReturnedFormat())
+    PrintLn('slice-temporary-pack = {} {} {}', [dynamic_text, text, shared_format.refcount == refs]) //?check('slice-temporary-pack', '|{}| |{}| true')
 #endif
 endfunc

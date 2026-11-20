@@ -6,11 +6,15 @@ func ReturnedText() -> str:
     result = "call-lifetime"
 endfunc
 
+func AppendFirst(dest : ref str, values : []anyvalue):
+    dest.Append(values[0].AsText(""))
+endfunc
+
 func *Main():
     var formatted : str
     var i : int = 0
     while i < 10000:
-        formatted.AddFmt("{}", [ReturnedText()])
+        AppendFirst(formatted, [ReturnedText()])
         formatted.Clear()
         i += 1
     endwhile

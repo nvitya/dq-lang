@@ -17,7 +17,7 @@ object OTest:
         m_str = astr
     endfunc
 
-    func *Create(aname : str, afmt : str, avalues : []anyvalue) [[overload]]:
+    func *Create(aname : str, afmt : str, avalues : varargs) [[overload]]:
         name  = aname
         m_str.AddFmt(afmt, avalues)
     endfunc

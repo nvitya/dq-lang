@@ -2202,7 +2202,7 @@ OExpr * ODqCompParserExpr::ParseEmbStrMethod(OExpr * receiver_expr, OLValueExpr 
     if (!check_count(2, 2)) return free_and_fail();
     method = ESM_ADDFMT;
     argtypes.push_back(g_builtins->type_strslice);
-    argtypes.push_back(g_builtins->type_anyvalue->GetSliceType());
+    argtypes.push_back(g_builtins->type_varargs);
     if (!EnsureTextFormatRtlUse()) return free_and_fail();
   }
   else if ("Prepend" == membername)
@@ -2245,7 +2245,9 @@ OExpr * ODqCompParserExpr::ParseEmbStrMethod(OExpr * receiver_expr, OLValueExpr 
     OExpr * argexpr = rawargs[i].TakeExpr();
     if (i < argtypes.size())
     {
-      if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS))
+      uint32_t flags = EXPCF_GENERATE_ERRORS;
+      if (ESM_ADDFMT == method) flags |= EXPCF_ALLOW_VARARGS;
+      if (!ConvertExprToType(argtypes[i], &argexpr, flags))
       {
         delete argexpr;
         delete callexpr;
@@ -2376,7 +2378,7 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     if (!check_count(2, 2)) return free_and_fail();
     method = STRM_ADDFMT;
     argtypes.push_back(g_builtins->type_strslice);
-    argtypes.push_back(g_builtins->type_anyvalue->GetSliceType());
+    argtypes.push_back(g_builtins->type_varargs);
     if (!EnsureTextFormatRtlUse()) return free_and_fail();
   }
   else if ("Prepend" == membername)
@@ -2585,7 +2587,9 @@ OExpr * ODqCompParserExpr::ParseStringMethod(OExpr * receiver_expr, OLValueExpr 
     OExpr * argexpr = rawargs[i].TakeExpr();
     if (i < argtypes.size())
     {
-      if (!ConvertExprToType(argtypes[i], &argexpr, EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR))
+      uint32_t flags = EXPCF_GENERATE_ERRORS | EXPCF_ALLOW_LAZY_EMBSTR;
+      if (STRM_ADDFMT == method) flags |= EXPCF_ALLOW_VARARGS;
+      if (!ConvertExprToType(argtypes[i], &argexpr, flags))
       {
         delete argexpr;
         delete callexpr;

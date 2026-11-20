@@ -30,6 +30,11 @@ endconst
 const DQVA_TWO_WORDS : byte = 0x01
 const DQVA_KIND_MASK : byte = 0xFE
 
+struct SVarArgs:
+    data : ^uint
+    desc : ^byte
+endstruct
+
 // Each reader borrows the original two ABI components and has its own position.
 object OVarArgReader:
 private
@@ -61,7 +66,7 @@ private
 
 public
     // A nonempty reader starts on element zero.
-    func *Create(descriptor : ^byte, payload : ^uint):
+    func *Create(payload : ^uint, descriptor : ^byte):
         m_descriptor = descriptor
         m_payload = payload
 

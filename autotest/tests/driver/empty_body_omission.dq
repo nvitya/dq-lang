@@ -11,8 +11,10 @@ func *Main():
     var buildroot : str = Format('{}/build', [workdir])
     var mod_src : str = Format('{}/trace_mod.dq', [workdir])
     var main_src : str = Format('{}/main.dq', [workdir])
+    var ref_src : str = Format('{}/ref_main.dq', [workdir])
     var main_obj : str = Format('{}/main.o', [workdir])
     var exe_path : str = Format('{}/app.exe', [workdir])
+    var ref_exe_path : str = Format('{}/ref_app.exe', [workdir])
 
     run.RunTool(['/bin/mkdir', '-p', buildroot])
     run.ExpectExitCode(0)
@@ -95,6 +97,34 @@ func *Main():
         run.RunTool([exe_path])
         run.ExpectExitCode(0)
         run.ExpectOutputContains('check = 0 1 42 7')
+    endif
+
+    // Verify taking and invoking function/method references to empty-body targets still links and runs.
+    FileWriteText(ref_src, '''
+        use libc/stdio
+        use ./trace_mod
+        type TLogRef = func(msg : rostr, args : varargs)
+        type TObjLogRef = func(msg : rostr, args : varargs) of object
+        var se : int = 0
+        func Bump() -> int:
+            se += 1
+            return se
+        endfunc
+        func *Main():
+            var box <- OModBox()
+            var fref : TLogRef = ExtTrace
+            var mref : TObjLogRef = box.Log
+            fref("via_fref", [Bump()])
+            mref("via_mref", [Bump()])
+            printf("ref_check = %d %d\\n", se, box.value)
+        endfunc
+        ''')
+    run.RunTool([CompilerPath(), '--build-root', buildroot, '-O0', '-o', ref_exe_path, ref_src])
+    run.ExpectExitCode(0)
+    if run.exitcode == 0:
+        run.RunTool([ref_exe_path])
+        run.ExpectExitCode(0)
+        run.ExpectOutputContains('ref_check = 2 42')
     endif
 
     run.RunTool(['/bin/rm', '-rf', '--', workdir])

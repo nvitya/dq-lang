@@ -201,6 +201,7 @@ public:
 
   bool               has_body = false;
   bool               is_empty_body = false;
+  OValue *           const_result = nullptr;
   bool               is_external = false;
   bool               is_asm = false;
   bool               attr_is_weak = false;
@@ -229,6 +230,7 @@ public:
       delete a;
     }
     if (vsresult)  delete vsresult;
+    delete const_result;
     delete body;
     delete ptype;  // OTypeFunc owned by this function symbol
   }
@@ -248,8 +250,10 @@ public:
     return is_asm && attr_is_inline;
   }
 
-  void UpdateEmptyBodyFlag();
+  void UpdateTrivialBodyFlags();
+  bool CanOmitCallBase(bool force_direct = false) const;
   bool CanOmitEmptyCall(bool force_direct = false) const;
+  bool CanOmitConstantCall(bool force_direct = false) const;
 
   inline OTypeFunc * GetTypeFunc() const { return dynamic_cast<OTypeFunc *>(ptype); }
   inline bool IsImplicitReceiver(OFuncParam * aparam, bool afirst_param = true) const

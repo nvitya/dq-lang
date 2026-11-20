@@ -86,18 +86,115 @@ void OValSymFunc::ApplyAttributes(OAttr * attr, EAttrTarget atarget)
   }
 }
 
-void OValSymFunc::UpdateEmptyBodyFlag()
+static bool SupportsInlineConstResultType(OType * type)
 {
+  OType * resolved = type ? type->ResolveAlias() : nullptr;
+  if (!resolved) return false;
+  switch (resolved->kind)
+  {
+    case TK_INT:
+    case TK_CHAR:
+    case TK_WCHAR:
+    case TK_ENUM:
+    case TK_BOOL:
+    case TK_FLOAT:
+    case TK_POINTER:
+    case TK_ROSTR:
+    case TK_STRSLICE:
+    case TK_FUNCREF:
+      return true;
+    default:
+      return false;
+  }
+}
+
+void OValSymFunc::UpdateTrivialBodyFlags()
+{
+  is_empty_body = false;
+  delete const_result;
+  const_result = nullptr;
+
   OTypeFunc * tfunc = GetTypeFunc();
-  is_empty_body = has_body && !is_external && !is_asm && !attr_is_weak && !attr_is_noinline
-      && !attr_is_abstract && (SFK_NONE == special_kind) && (OSF_NONE == object_specfunc_kind)
-      && tfunc && !tfunc->rettype && !vsresult && body && body->stlist.empty();
+  if (!has_body || is_external || is_asm || attr_is_weak || attr_is_noinline
+      || attr_is_abstract || (SFK_NONE != special_kind) || (OSF_NONE != object_specfunc_kind)
+      || !tfunc || !body)
+  {
+    return;
+  }
+
+  if (!tfunc->rettype && !vsresult)
+  {
+    is_empty_body = body->stlist.empty();
+    return;
+  }
+
+  if (!tfunc->rettype || !vsresult || !SupportsInlineConstResultType(tfunc->rettype))
+  {
+    return;
+  }
+
+  auto extract_result_assign = [&](OStmt * stmt) -> OExpr *
+  {
+    auto * assign = dynamic_cast<OStmtAssign *>(stmt);
+    auto * lval = assign ? dynamic_cast<OLValueVar *>(assign->target) : nullptr;
+    return (lval && lval->pvalsym == vsresult) ? assign->value : nullptr;
+  };
+
+  OExpr * ret_expr = nullptr;
+  if (1 == body->stlist.size())
+  {
+    if (auto * ret = dynamic_cast<OStmtReturn *>(body->stlist[0]))
+    {
+      ret_expr = ret->value;
+    }
+    else
+    {
+      ret_expr = extract_result_assign(body->stlist[0]);
+    }
+  }
+  else if (2 == body->stlist.size())
+  {
+    auto * ret = dynamic_cast<OStmtReturn *>(body->stlist[1]);
+    if (ret && !ret->value)
+    {
+      ret_expr = extract_result_assign(body->stlist[0]);
+    }
+  }
+
+  if (!ret_expr)
+  {
+    return;
+  }
+
+  OValue * val = tfunc->rettype->CreateValue();
+  if (!val || !val->CalculateConstant(ret_expr, false))
+  {
+    delete val;
+    return;
+  }
+  if (auto * fref = dynamic_cast<OValueFuncRef *>(val); fref && !fref->is_null)
+  {
+    delete val;
+    return;
+  }
+
+  const_result = val;
+}
+
+bool OValSymFunc::CanOmitCallBase(bool force_direct) const
+{
+  return !attr_is_noinline && !attr_is_weak && !attr_is_abstract
+      && (!attr_is_virtual || attr_is_final || force_direct);
 }
 
 bool OValSymFunc::CanOmitEmptyCall(bool force_direct) const
 {
-  return is_empty_body && !attr_is_noinline && !attr_is_weak && !attr_is_abstract
-      && (!attr_is_virtual || attr_is_final || force_direct);
+  return is_empty_body && CanOmitCallBase(force_direct);
+}
+
+bool OValSymFunc::CanOmitConstantCall(bool force_direct) const
+{
+  return (nullptr != const_result) && CanOmitCallBase(force_direct);
 }
 
 bool OValSymFunc::WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod)
@@ -127,6 +224,10 @@ bool OValSymFunc::WriteDqmIfFunction(ODqmIfWriter & writer, bool amethod)
   bool skip_receiver = amethod && owner_compound_type && !sigtype->params.empty()
       && ("__this" == sigtype->params[0]->name);
   if (!sigtype->WriteDqmIfSignatureRecords(writer, skip_receiver)) return false;
+  if (const_result && (!writer.AddRecEmpty(DQMIF_FUNC_CONST_RESULT) || !const_result->WriteDqmIfValue(writer)))
+  {
+    return false;
+  }
 
   if (IsInlineAsm())
   {

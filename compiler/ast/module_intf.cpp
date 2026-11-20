@@ -2879,6 +2879,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
 
   OTypeFunc * sigtype = new OTypeFunc("function_" + declname);
   ESpecialFuncKind special_kind = SFK_NONE;
+  OValue * const_result = nullptr;
   bool is_inline_asm = false;
   bool has_inline_asm_kinds = false;
   string inline_asm_body;
@@ -2891,6 +2892,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
     {
       if (!reader.ExpectEmpty(amethod ? DQMIF_METHOD_END : DQMIF_FUNC_END))
       {
+        delete const_result;
         delete sigtype;
         return false;
       }
@@ -2901,6 +2903,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
       if (!reader.ExpectEmpty(DQMIF_FUNC_RETVAL) || !reader.NextRec()
           || !ReadTypeSpec(reader, sigtype->rettype) || !reader.NextRec())
       {
+        delete const_result;
         delete sigtype;
         return false;
       }
@@ -2909,6 +2912,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
     {
       if (!ReadFunctionParam(reader, sigtype) || !reader.NextRec())
       {
+        delete const_result;
         delete sigtype;
         return false;
       }
@@ -2917,6 +2921,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
     {
       if (!reader.ExpectEmpty(DQMIF_FUNC_PARAM_VARARGS) || !reader.NextRec())
       {
+        delete const_result;
         delete sigtype;
         return false;
       }
@@ -2927,20 +2932,33 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
       uint8_t kind = 0;
       if (!reader.ReadU8(kind) || !reader.NextRec())
       {
+        delete const_result;
         delete sigtype;
         return false;
       }
       special_kind = ESpecialFuncKind(kind);
       if ((special_kind < SFK_NONE) || (special_kind > SFK_MODULE_INIT))
       {
+        delete const_result;
         delete sigtype;
         return reader.Fail(format("Invalid special function kind {}", kind));
+      }
+    }
+    else if (DQMIF_FUNC_CONST_RESULT == reader.recid)
+    {
+      if (!reader.ExpectEmpty(DQMIF_FUNC_CONST_RESULT) || !sigtype->rettype || const_result
+          || !reader.NextRec() || !ReadInlineValue(reader, sigtype->rettype, const_result) || !reader.NextRec())
+      {
+        delete const_result;
+        delete sigtype;
+        return false;
       }
     }
     else if (DQMIF_FUNC_INLINE_ASM_BODY == reader.recid)
     {
       if (is_inline_asm || !reader.ReadString(inline_asm_body) || !reader.NextRec())
       {
+        delete const_result;
         delete sigtype;
         return false;
       }
@@ -2950,6 +2968,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
     {
       if (has_inline_asm_kinds || !reader.ReadBlob(inline_asm_kinds) || !reader.NextRec())
       {
+        delete const_result;
         delete sigtype;
         return false;
       }
@@ -2960,6 +2979,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
       string clobber;
       if (!reader.ReadString(clobber) || !reader.NextRec())
       {
+        delete const_result;
         delete sigtype;
         return false;
       }
@@ -2967,6 +2987,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
     }
     else
     {
+      delete const_result;
       delete sigtype;
       return reader.Fail(format("Unexpected DQM interface function record 0x{:04X}", reader.recid));
     }
@@ -2984,6 +3005,7 @@ bool OModuleIntf::ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner
   ApplyDqmIfAttributes(fn, attrs);
   fn->is_external = (attrs.flags & DQMIF_ATTRF_EXTERNAL);
   fn->is_empty_body = (attrs.flags & DQMIF_ATTRF_EMPTY_BODY);
+  fn->const_result = const_result;
   fn->external_linkage_name = attrs.external_linkage_name;
   fn->external_module_name = attrs.external_module_name;
   if (is_inline_asm)

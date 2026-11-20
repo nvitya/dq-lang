@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.98.5"
+#define DQ_COMPILER_VERSION  "0.98.6"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.98.6:
+  - Empty body + constant result functions detection and call elimination
 v0.98.5:
   - Empty function body checking, eliminating the function calls and argument preparations
 v0.98.4:

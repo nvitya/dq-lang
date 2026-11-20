@@ -295,7 +295,8 @@ OStmtObjectCall::~OStmtObjectCall()
 
 void OStmtObjectCall::Generate(OScope * scope)
 {
-  if (!method || !method->ll_func || !target || method->CanOmitEmptyCall(false))
+  if (!method || !method->ll_func || !target
+      || method->CanOmitEmptyCall(false) || method->CanOmitConstantCall(false))
   {
     return;
   }
@@ -332,7 +333,8 @@ void OStmtInheritedCall::Generate(OScope * scope)
   {
     return;
   }
-  if (!emit_derived_field_init && !emit_derived_field_destroy && method->CanOmitEmptyCall(true))
+  if (!emit_derived_field_init && !emit_derived_field_destroy
+      && (method->CanOmitEmptyCall(true) || method->CanOmitConstantCall(true)))
   {
     return;
   }
@@ -526,6 +528,14 @@ void OStmtPropertyAssign::Generate(OScope * scope)
 
 void OStmtVoidCall::Generate(OScope * scope)
 {
+  if (auto * call = dynamic_cast<OCallExpr *>(callexpr);
+      call && call->vsfunc
+      && (call->vsfunc->CanOmitEmptyCall(call->force_direct)
+          || call->vsfunc->CanOmitConstantCall(call->force_direct)))
+  {
+    return;
+  }
+
   LlValue * ll_value = callexpr->Generate(scope);
   if (callexpr->ResolvedType() && TK_DYNSTR == callexpr->ResolvedType()->ResolveAlias()->kind)
   {

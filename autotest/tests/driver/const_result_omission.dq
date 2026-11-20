@@ -1,0 +1,230 @@
+//?exitcode(0)
+// Functions/methods returning a compile-time constant (without side-effecting statements,
+// and excluding virtual, weak, noinline, asm, external) fold to their constant result
+// at call sites and omit argument preparation across modules.
+
+use dqautotest
+use file
+
+func *Main():
+    var run <- OTestRun()
+    var workdir : str = TempPath('.constret')
+    var buildroot : str = Format('{}/build', [workdir])
+    var mod_src : str = Format('{}/const_mod.dq', [workdir])
+    var main_src : str = Format('{}/main.dq', [workdir])
+    var ref_src : str = Format('{}/ref_main.dq', [workdir])
+    var main_obj : str = Format('{}/main.o', [workdir])
+    var exe_path : str = Format('{}/app.exe', [workdir])
+    var ref_exe_path : str = Format('{}/ref_app.exe', [workdir])
+
+    run.RunTool(['/bin/mkdir', '-p', buildroot])
+    run.ExpectExitCode(0)
+
+    FileWriteText(mod_src, '''
+        enum EMode : uint16 = (Idle = 10, Active = 20)
+        type TCb = func()
+
+        func ExtConstInt(msg : rostr, args : varargs) -> int ..
+        func ExtConstResult(x : int) -> int ..
+        func ExtConstResultRet(x : int) -> bool ..
+        func ExtConstFloat(x : int) -> float ..
+        func ExtConstEnum(x : int) -> EMode ..
+        func ExtConstRoStr(msg : rostr) -> rostr ..
+        func ExtConstVoidStr(msg : rostr) -> rostr ..
+        func ExtConstCStr(x : int) -> ^char ..
+        func ExtConstNilCb(x : int) -> TCb ..
+        func ExtNonConst(x : int) -> int ..
+        func ExtNoInlineConst(x : int) -> int [[noinline]] ..
+        func ExtWeakConst(x : int) -> int [[weak]] ..
+        func ExtGetNonNilCb() -> TCb ..
+
+        object OConstBox:
+            func ConstMethod(msg : rostr, args : varargs) -> int:
+                return 77
+            endfunc
+        endobject
+
+        implementation
+
+        func ExtConstInt(msg : rostr, args : varargs) -> int:
+            return 100 + 23
+        endfunc
+
+        func ExtConstResult(x : int) -> int:
+            result = 456
+        endfunc
+
+        func ExtConstResultRet(x : int) -> bool:
+            result = false
+            return
+        endfunc
+
+        func ExtConstFloat(x : int) -> float:
+            return 2.5
+        endfunc
+
+        func ExtConstEnum(x : int) -> EMode:
+            return EMode.Active
+        endfunc
+
+        func ExtConstRoStr(msg : rostr) -> rostr:
+            return "const_rostr"
+        endfunc
+
+        func ExtConstVoidStr(msg : rostr) -> rostr:
+            return "OMIT_VOID_ROSTR"
+        endfunc
+
+        func ExtConstCStr(x : int) -> ^char:
+            return "const_cstr"
+        endfunc
+
+        func ExtConstNilCb(x : int) -> TCb:
+            return nil
+        endfunc
+
+        func ExtNonConst(x : int) -> int:
+            return x + 1
+        endfunc
+
+        func ExtNoInlineConst(x : int) -> int [[noinline]]:
+            return 9
+        endfunc
+
+        func ExtWeakConst(x : int) -> int [[weak]]:
+            return 5
+        endfunc
+
+        var cb_hits : int = 0
+        func SampleCb():
+            cb_hits += 1
+        endfunc
+
+        func ExtGetNonNilCb() -> TCb:
+            return SampleCb
+        endfunc
+        ''')
+
+    FileWriteText(main_src, '''
+        use libc/stdio
+        use ./const_mod
+
+        var side_effects : int = 0
+
+        func SideEffect() -> int:
+            side_effects += 1
+            return side_effects
+        endfunc
+
+        func LocalFwdConst(msg : rostr, args : varargs) -> int ..
+
+        object OBase:
+            func GetVal(x : int) -> int [[virtual]]:
+                return 1
+            endfunc
+        endobject
+
+        object ODerived(OBase):
+            func GetVal(x : int) -> int [[override]]:
+                return x + 10
+            endfunc
+        endobject
+
+        func *Main():
+            var box <- OConstBox()
+            var a : int = ExtConstInt("OMIT_ARG_1", [SideEffect()])
+            var b : int = ExtConstResult(SideEffect())
+            var c : bool = ExtConstResultRet(SideEffect())
+            var d : float = ExtConstFloat(SideEffect())
+            var e : EMode = ExtConstEnum(SideEffect())
+            var f : rostr = ExtConstRoStr("OMIT_ARG_2")
+            ExtConstVoidStr("OMIT_ARG_3")
+            var g : ^char = ExtConstCStr(SideEffect())
+            var h : TCb = ExtConstNilCb(SideEffect())
+            var m : int = box.ConstMethod("OMIT_ARG_4", [SideEffect()])
+            var lf : int = LocalFwdConst("OMIT_ARG_5", [SideEffect()])
+            var se_after_const : int = side_effects
+
+            var nc : int = ExtNonConst(SideEffect())
+            var ni : int = ExtNoInlineConst(SideEffect())
+            var wk : int = ExtWeakConst(1)
+            var drv <- ODerived()
+            var base_ref : OBase = drv
+            var vr : int = base_ref.GetVal(7)
+
+            printf("check = %d %d %d %d %.1f %d %s %s %d %d %d %d %d %d %d %d\\n",
+                   se_after_const, a, b, iif(c, 1, 0), d, int(e.ord), f.pchar, g,
+                   iif(h == nil, 1, 0), m, lf, nc, ni, wk, vr, side_effects)
+        endfunc
+
+        func LocalFwdConst(msg : rostr, args : varargs) -> int:
+            return 88
+        endfunc
+        ''')
+
+    run.RunTool([CompilerPath(), '--build-root', buildroot, '-O0', '-ir', '-c', '-o', main_obj, main_src])
+    run.ExpectExitCode(0)
+    run.ExpectOutputNotContains('OMIT_ARG_1')
+    run.ExpectOutputNotContains('OMIT_ARG_2')
+    run.ExpectOutputNotContains('OMIT_ARG_3')
+    run.ExpectOutputNotContains('OMIT_ARG_4')
+    run.ExpectOutputNotContains('OMIT_ARG_5')
+    run.ExpectOutputNotContains('OMIT_VOID_ROSTR')
+    run.ExpectOutputNotContains('.dqva.desc')
+
+    run.RunTool(['nm', main_obj])
+    run.ExpectExitCode(0)
+    run.ExpectOutputNotContains('ExtConstInt')
+    run.ExpectOutputNotContains('ExtConstResult')
+    run.ExpectOutputNotContains('ExtConstFloat')
+    run.ExpectOutputNotContains('ExtConstEnum')
+    run.ExpectOutputNotContains('ExtConstRoStr')
+    run.ExpectOutputNotContains('ExtConstVoidStr')
+    run.ExpectOutputNotContains('ExtConstCStr')
+    run.ExpectOutputNotContains('ExtConstNilCb')
+    run.ExpectOutputNotContains('ConstMethod')
+    run.ExpectOutputContains('ExtNonConst')
+    run.ExpectOutputContains('ExtNoInlineConst')
+    run.ExpectOutputContains('ExtWeakConst')
+
+    run.RunTool([CompilerPath(), '--build-root', buildroot, '-O0', '-o', exe_path, main_src])
+    run.ExpectExitCode(0)
+    if run.exitcode == 0:
+        run.RunTool([exe_path])
+        run.ExpectExitCode(0)
+        run.ExpectOutputContains('check = 0 123 456 0 2.5 20 const_rostr const_cstr 1 77 88 2 9 5 17 2')
+    endif
+
+    // Verify function/method references to constant-result functions and non-nil funcref returns work.
+    FileWriteText(ref_src, '''
+        use libc/stdio
+        use ./const_mod
+        type TIntRef = func(x : int) -> int
+        type TObjMethodRef = func(msg : rostr, args : varargs) -> int of object
+        var se : int = 0
+        func Bump() -> int:
+            se += 1
+            return se
+        endfunc
+        func *Main():
+            var box <- OConstBox()
+            var fref : TIntRef = ExtConstResult
+            var mref : TObjMethodRef = box.ConstMethod
+            var r1 : int = fref(Bump())
+            var r2 : int = mref("via_mref", [Bump()])
+            var cb : TCb = ExtGetNonNilCb()
+            cb()
+            printf("ref_check = %d %d %d\\n", r1, r2, se)
+        endfunc
+        ''')
+    run.RunTool([CompilerPath(), '--build-root', buildroot, '-O0', '-o', ref_exe_path, ref_src])
+    run.ExpectExitCode(0)
+    if run.exitcode == 0:
+        run.RunTool([ref_exe_path])
+        run.ExpectExitCode(0)
+        run.ExpectOutputContains('ref_check = 456 77 2')
+    endif
+
+    run.RunTool(['/bin/rm', '-rf', '--', workdir])
+    exit_code = TestResult()
+endfunc

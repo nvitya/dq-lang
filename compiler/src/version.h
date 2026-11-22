@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.98.6"
+#define DQ_COMPILER_VERSION  "0.98.7"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.98.7:
+  - SizeOf() argument handling fix
 v0.98.6:
   - Empty body + constant result functions detection and call elimination
 v0.98.5:

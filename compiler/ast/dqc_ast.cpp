@@ -181,7 +181,7 @@ bool ODqCompAst::ResolveCompoundMemberBase(OLValueExpr * lval, OType * srctype, 
 
 OLValueVar * ODqCompAst::CreateVarExpr(OValSym * vs)
 {
-  if (curvsfunc)
+  if (curvsfunc && !unevaluated_operand)
   {
     curvsfunc->AddCapture(vs);
   }
@@ -1578,7 +1578,7 @@ bool ODqCompAst::BindCallArguments(const string & callname, OTypeFunc * tfunc, v
           rargs.push_back(new OAddrOfExpr(arglval));
         }
 
-        if ((FPM_REFOUT == fparam->mode) && curblock && rootvalsym
+        if (!unevaluated_operand && (FPM_REFOUT == fparam->mode) && curblock && rootvalsym
             && (VSK_VARIABLE == rootvalsym->kind || VSK_PARAMETER == rootvalsym->kind))
         {
           curblock->scope->SetVarInitialized(rootvalsym);
@@ -1746,7 +1746,7 @@ void ODqCompAst::EmitFilteredAssignLeftExprDiags(OLValueExpr * leftexpr, EBinOp 
 
 void ODqCompAst::CheckNoReadAccess(OLValueExpr * lvalue, OValSym * valsym, OScPosition & scpos)
 {
-  if (!lvalue || !valsym || !valsym->attr_no_read)
+  if (unevaluated_operand || !lvalue || !valsym || !valsym->attr_no_read)
   {
     return;
   }

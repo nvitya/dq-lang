@@ -9,8 +9,9 @@ endfunc
 func takes_ref(a : ref int):
 endfunc
 
-func takes_refout(a : refout int):
+func takes_refout(a : refout int) -> int:
     a = 1
+    return a
 endfunc
 
 func takes_refnil(a : refnil int):
@@ -35,6 +36,9 @@ func *Main():
     takes_ref(nil)  //?error(FuncArgRefNil)
     takes_refout(1)  //?error(FuncArgRefBind)
     takes_refnil(nil)
+
+    var size : int = SizeOf(takes_refout(y))
+    x = y  //?error(VarNotInit)
 
     ref bad : int  //?error(RefLocalInit)
     ref infer = 1  //?error(RefLocalBind)

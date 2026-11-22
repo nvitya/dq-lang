@@ -3520,7 +3520,7 @@ bool ODqCompParserExpr::ParsePropertyIndices(OPropertyExpr * property_expr)
 void ODqCompParserExpr::CheckPropertyReadable(OPropertyExpr * property_expr)
 {
   if (property_expr && property_expr->property && !property_expr->property->read_accessor
-      && !supress_varinit_check)
+      && !supress_varinit_check && !unevaluated_operand)
   {
     Error(DQERR_PROPERTY_WRITE_ONLY, property_expr->property->name);
   }
@@ -3723,7 +3723,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
 
     result = CreateVarExpr(vs);
     CheckNoReadAccess(static_cast<OLValueVar *>(result), vs, scpos_statement_start);
-    if (vs->kind != VSK_FUNCTION and not vs->initialized)
+    if (!unevaluated_operand && vs->kind != VSK_FUNCTION && !vs->initialized)
     {
       if (vs->IsRefLike() && (FPM_REFOUT == vs->param_mode))
       {
@@ -3916,7 +3916,7 @@ OExpr * ODqCompParserExpr::ParseExprPrimary()
   {
     CheckPropertyReadable(property_expr);
   }
-  if (vs->kind != VSK_FUNCTION and not vs->initialized)
+  if (!unevaluated_operand && vs->kind != VSK_FUNCTION && !vs->initialized)
   {
     if (vs->IsRefLike() && (FPM_REFOUT == vs->param_mode))
     {
@@ -5668,60 +5668,42 @@ OExpr * ODqCompParserExpr::ParseBuiltinSizeof()
   OScPosition argpos;
   scf->SaveCurPos(argpos);
 
-  if (scf->CheckSymbol("^", false) || scf->CheckSymbol("[", false))
+  // A type must fill the whole operand. Casts and array literals can start like types.
+  string name;
+  bool type_prefix = scf->CheckSymbol("^", false) || scf->CheckSymbol("[", false);
+  bool named_type = !type_prefix && scf->ReadIdentifier(name)
+      && cur_mod_scope->FindType(name) && !FindVisibleValSym(name);
+  scf->SkipWhite();
+  bool is_type = named_type && scf->CheckSymbol(")", false);
+  scf->SetCurPos(argpos);
+
+  bool saved_unevaluated = unevaluated_operand;
+  unevaluated_operand = true;
+  if (!is_type && (type_prefix || named_type))
+  {
+    if (ParseTypeSpec(false))
+    {
+      scf->SkipWhite();
+      is_type = scf->CheckSymbol(")", false);
+    }
+    scf->SetCurPos(argpos);
+  }
+
+  unique_ptr<OExpr> operand;
+  if (is_type)
   {
     sizetype = ParseTypeSpec();
   }
   else
   {
-    string sarg;
-    if (not scf->ReadIdentifier(sarg))
-    {
-      ErrorTxt(DQERR_VARNAME_EXP_AFTER, "Variable or type name is expected after \"SizeOf\"");
-      return nullptr;
-    }
-
-    OValSym * vs = curscope->FindValSym(sarg);
-    if (vs)
-    {
-      sizetype = vs->ptype;
-    }
-    else
-    {
-      if (curvsfunc && curvsfunc->owner_compound_type && curvsfunc->receiver_arg)
-      {
-        OCompoundType * decl_type = nullptr;
-        OValSym * member = curvsfunc->owner_compound_type->FindMemberSymbol(sarg, &decl_type);
-        if (member && ObjectMemberAccessAllowed(decl_type, member))
-        {
-          sizetype = member->ptype;
-        }
-        else if (member)
-        {
-          Error(DQERR_MEMBER_UNKNOWN, sarg, curvsfunc->owner_compound_type->name);
-          return nullptr;
-        }
-      }
-      if (!sizetype)
-      {
-        OType * foundtype = cur_mod_scope->FindType(sarg);
-        if (!foundtype)
-        {
-          ErrorTxt(DQERR_EXPR_EXPECTED, "SizeOf() expects a variable or type name");
-          return nullptr;
-        }
-
-        scf->SetCurPos(argpos);
-        sizetype = ParseTypeSpec();
-      }
-    }
+    operand.reset(ParseExpression());
+    sizetype = operand ? operand->ResolvedType() : nullptr;
   }
-
-  if (!sizetype)
+  unevaluated_operand = saved_unevaluated;
+  if (is_type ? !sizetype : !operand)
   {
     return nullptr;
   }
-  sizetype->EnsureLayout();
 
   scf->SkipWhite();
   if (not scf->CheckSymbol(")"))
@@ -5730,7 +5712,11 @@ OExpr * ODqCompParserExpr::ParseBuiltinSizeof()
     return nullptr;
   }
 
-  if (0 == sizetype->bytesize)
+  if (sizetype)
+  {
+    sizetype->EnsureLayout();
+  }
+  if (!sizetype || 0 == sizetype->bytesize)
   {
     ErrorTxt(DQERR_NOT_SUPPORTED, "SizeOf() requires a statically sized type or value");
     return nullptr;

@@ -140,9 +140,9 @@ another module. Union constants are not supported.
 
 ## Storage Size with `SizeOf()`
 
-`SizeOf(Type)` returns a type's storage size in bytes. You can also pass a
-variable name as `SizeOf(variable)`. Both forms produce a compile-time integer
-constant:
+`SizeOf(Type)` returns a type's storage size in bytes. `SizeOf(expression)`
+uses the expression's static type and leaves the expression unevaluated.
+Both forms produce a compile-time integer constant.
 
 ```dq
 const POINT_SIZE : int = SizeOf(SPoint)

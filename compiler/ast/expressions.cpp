@@ -2739,7 +2739,8 @@ bool OFloatRoundExpr::TryFoldSelf(OExpr ** rreplacement)
 /* ctor */ OCallExpr::OCallExpr(OValSymFunc * avsfunc)
 {
   auto * caller = g_compiler->curvsfunc;
-  if (caller && caller->parent_function && avsfunc->parent_function == caller->parent_function
+  if (!g_compiler->unevaluated_operand && caller && caller->parent_function
+      && avsfunc->parent_function == caller->parent_function
       && find(caller->sibling_calls.begin(), caller->sibling_calls.end(), avsfunc) == caller->sibling_calls.end())
   {
     caller->sibling_calls.push_back(avsfunc);

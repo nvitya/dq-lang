@@ -86,6 +86,7 @@ public: // Moved from ODqCompParser
   int64_t       array_index_context_len = -1;
   OLValueExpr * array_index_context_lval = nullptr;
   bool          array_index_context_wchar = false;
+  bool          unevaluated_operand = false;
   bool          supress_varinit_check = false;  // do not emit unititalized variable errors (for left value expression parsing)
   bool          suppress_access_read_check = false;
   enum ESuppressedLeftExprDiagKind

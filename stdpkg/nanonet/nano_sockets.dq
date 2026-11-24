@@ -221,6 +221,8 @@ object ONanoDatagram:
 
     func RecvRawData() -> int ..
     func SendRawData() -> int ..
+    func SendResponse(rspdata : ^byte, rsplen : int) -> int ..
+
     func ProcessInData() [[virtual]] ..
 
     func SetRemoteAddr(aaddr : rostr, aport : uint16) ..
@@ -833,6 +835,11 @@ endfunc
 func ONanoDatagram.SendRawData() -> int:
     return @socket.libc_sendto(server.sock_listen.socket, %rawdata[0], rawdata_len, 0, %remote_addr, remote_addr_len)
 endfunc
+
+func ONanoDatagram.SendResponse(rspdata : ^byte, rsplen : int) -> int:
+    return @socket.libc_sendto(server.sock_listen.socket, rspdata, rsplen, 0, %remote_addr, remote_addr_len)
+endfunc
+
 
 func ONanoDatagram.ProcessInData() [[virtual]]:
     // Override to process the received datagram.

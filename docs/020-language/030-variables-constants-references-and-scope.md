@@ -112,6 +112,67 @@ constant-expression requirement; a grouped `const(Type)` header cannot use `?`.
 `FirstInt`, `FirstUint`, `FirstFloat`, and `FirstBool` provide optional constant
 fallbacks; see [Compiler Directives](190-compiler-directives.md#optional-constants).
 
+## Parameterized Expressions with `constexpr`
+
+A `constexpr` names a single expression with typed parameters and an explicit
+result type. Call it with parentheses, even when it takes no arguments.
+Only value parameters are supported. Trailing parameters may have constant
+defaults. Reference parameter modes and variable argument lists are invalid.
+
+```dq
+constexpr EntryCount(channels : int, entriesPerChannel : int = 2) : int =
+    channels * entriesPerChannel
+
+const SCOPE_ENTRIES : int = EntryCount(4)
+```
+
+You can also write `-> ResultType` in place of `: ResultType`.
+
+The compiler checks the body against the result type and substitutes each
+argument into the body when compiling a call. In a constant context, the
+expanded expression must evaluate to a constant. Calls can also use runtime
+arguments in executable code. Because a parameter may appear more than once
+or be omitted from the body, pass side-effecting expressions through a local
+variable first when you need them to run exactly once.
+
+The body can use supported operators, casts, aggregate literals, built-ins such
+as `iif` and `Round`, and calls to previously declared `constexpr` expressions.
+Calls to ordinary functions and captures of enclosing runtime locals are
+rejected in the body. Pass a local value as an argument instead.
+
+The result type supplies the context for a structure initializer, so the same
+expression can build table entries that carry immediate values or addresses.
+
+```dq
+struct SParamDef:
+    flags : uint32
+    var_ptr : pointer
+    reserved : pointer
+endstruct
+
+const PAR_INT32_CONST : uint32 = 0x300
+const PAR_INT32_RO : uint32 = 0x100
+var g_counter : int32 = 0
+
+constexpr PTENTRY_VAR(flags : uint32, v : pointer) : SParamDef = { flags, v, ? }
+constexpr PTENTRY_CONST(n : int32) : SParamDef =
+    PTENTRY_VAR(PAR_INT32_CONST, pointer(int(n)))
+
+const PARAMS : [?]SParamDef = [
+    PTENTRY_CONST(7),
+    PTENTRY_VAR(PAR_INT32_RO, %g_counter),
+    {}
+]
+```
+
+Here the first entry carries the integer in the pointer field. The second
+entry carries the address of global storage, which the linker resolves.
+
+Declare a `constexpr` at module scope or inside a function. Module declarations
+follow the usual visibility rules. Public declarations can be imported, aliased,
+selected with `only`, or reexported. Names in the body resolve where the
+expression is declared. See [Modules and Packages](170-modules-and-packages.md).
+
 ## Lexical Scope and Declaration Order
 
 Lookup starts in the innermost active scope and proceeds outward. A declaration

@@ -119,6 +119,11 @@ An importing module can use `PUBLIC_VALUE` and `PublicValue`, but cannot access
 `PRIVATE_VALUE`. A public function can also have its body directly in the
 public section; `implementation` is optional.
 
+Public [`constexpr` declarations](030-variables-constants-references-and-scope.md#parameterized-expressions-with-constexpr)
+are available in importing modules. The compiler expands their expressions
+using the arguments supplied by the importer and the names resolved in the
+defining module.
+
 ## Basic Imports
 
 Use a package name to import an installed module, or a relative path for a

@@ -25,8 +25,13 @@ code generation. `--ifgen` emits the standalone interface. A normal compile
 emits both artifacts.
 
 Public bodies are serialized only when importer-side compilation requires them,
-such as implemented inline assembly templates. Ordinary function bodies remain
-in source/code generation and are not general interface payloads.
+such as inline assembly templates and `constexpr` expressions. A `constexpr`
+record stores the signature and a checked expression tree. Parameter references
+use their indexes in the signature, and symbol references carry the defining
+module's identity. The compiler also records the types and symbols it needs to
+expand imported expressions, including through selective imports and reexports.
+Ordinary function bodies remain in source/code generation and are not general
+interface payloads.
 
 Source `#define` values are serialized separately from ordinary public constants.
 A `DQMIF_DEFINE` marker precedes the existing constant record format; loading it
@@ -36,7 +41,8 @@ reexports carry imported definitions into subsequent interfaces; source
 definitions in the implementation section are not exported.
 Typed definitions reuse constant/type serialization, with separate linker names
 and exported storage for aggregates. Built-in and command-line definitions are
-not included. Format version 1.29 requires older interfaces to be regenerated.
+not included. Format version 1.36 adds `constexpr` records and requires older
+interfaces to be regenerated.
 
 ## Identity and Dependencies
 

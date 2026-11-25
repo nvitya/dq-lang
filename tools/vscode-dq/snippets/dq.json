@@ -8,6 +8,11 @@
     ],
     "description": "DQ function definition"
   },
+  "Parameterized Expression": {
+    "prefix": "constexpr",
+    "body": "constexpr ${1:Name}(${2:value : int}) : ${3:int} = ${0:value}",
+    "description": "DQ parameterized expression"
+  },
   "If": {
     "prefix": "if",
     "body": [

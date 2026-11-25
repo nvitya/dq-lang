@@ -29,6 +29,9 @@ Implement it later with the matching name, ordered parameter types and modes,
 result type, and relevant attributes. The public part of a module can declare
 functions whose definitions follow `implementation`.
 
+For a reusable expression that can be used in a constant initializer, see
+[`constexpr`](030-variables-constants-references-and-scope.md#parameterized-expressions-with-constexpr).
+
 ## Result Values
 
 A function with a result type has its own built-in `result` variable. Either

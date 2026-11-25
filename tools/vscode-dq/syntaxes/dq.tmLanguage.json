@@ -24,6 +24,9 @@
       "include": "#function-declaration"
     },
     {
+      "include": "#constexpr-declaration"
+    },
+    {
       "include": "#namespaces"
     },
     {
@@ -313,6 +316,18 @@
         }
       ]
     },
+    "constexpr-declaration": {
+      "name": "meta.constexpr.dq",
+      "match": "\\b(constexpr)\\s+([A-Za-z_][A-Za-z0-9_]*)\\b(?=\\s*\\()",
+      "captures": {
+        "1": {
+          "name": "keyword.control.dq"
+        },
+        "2": {
+          "name": "entity.name.function.dq"
+        }
+      }
+    },
     "compound-declaration": {
       "patterns": [
         {
@@ -355,7 +370,7 @@
         },
         {
           "name": "keyword.control.dq",
-          "match": "\\b(?:use|implementation|var|const|endconst|type|struct|endstruct|union|endunion|object|endobject|private|public|protected|ref|refin|refout|refnil|autofree)\\b"
+          "match": "\\b(?:use|implementation|var|const|constexpr|endconst|type|struct|endstruct|union|endunion|object|endobject|private|public|protected|ref|refin|refout|refnil|autofree)\\b"
         },
         {
           "name": "keyword.operator.word.dq",

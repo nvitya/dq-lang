@@ -152,6 +152,28 @@ LlValue * OEnumValueExpr::Generate(OScope * scope)
   return llvm::ConstantInt::get(ptype->GetLlType(), value);
 }
 
+OExpr * OEnumValueExpr::CloneSubstitute(SConstExprSubstCtx & ctx) const
+{
+  (void)ctx;
+  return new OEnumValueExpr(static_cast<OTypeEnum *>(ptype->ResolveAlias()), value);
+}
+
+bool OEnumValueExpr::WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const
+{
+  (void)cexpr;
+  if (!writer.AddRecU64(DQMIF_EXPR_ENUM_LIT, value)) return false;
+  return ptype->WriteDqmIfTypeSpec(writer);
+}
+
+void OEnumValueExpr::CollectDqmIfDeps(const OValSymConstExpr * cexpr,
+                                      const function<void(OType *)> & on_type,
+                                      const function<void(OValSym *)> & on_sym) const
+{
+  (void)cexpr;
+  (void)on_sym;
+  on_type(ptype);
+}
+
 OUnresolvedEnumItemExpr::OUnresolvedEnumItemExpr(const string & aname) : item_name(aname)
 {
   ptype = nullptr;

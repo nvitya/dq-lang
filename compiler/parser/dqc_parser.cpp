@@ -485,6 +485,10 @@ void ODqCompParser::ParseModule()
     {
       ParseStmtConst(true);
     }
+    else if ("constexpr" == sid) // global constexpr template definition
+    {
+      ParseStmtConstExpr(true);
+    }
     else if ("type" == sid)
     {
       ParseRootTypeDecl();

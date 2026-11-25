@@ -3444,6 +3444,24 @@ OExpr * ODqCompParserExpr::ParsePostfix(OExpr * base)
     ETypeKind      tk   = result->ptype->kind;
     OLValueExpr *  lval = dynamic_cast<OLValueExpr *>(result);
 
+    if (auto * varref = dynamic_cast<OLValueVar *>(lval))
+    {
+      if (auto * vscexpr = dynamic_cast<OValSymConstExpr *>(varref->pvalsym))
+      {
+        if (!scf->CheckSymbol("("))
+        {
+          Error(DQERR_MISSING_OPEN_PAREN_AFTER, vscexpr->name);
+          delete result;
+          return nullptr;
+        }
+        OExpr * expanded = ParseExprConstExprCall(vscexpr);
+        delete result;
+        result = expanded;
+        if (!result) return nullptr;
+        continue;
+      }
+    }
+
     EPostfixResult status = ParsePostfixIndexOrSlice(result, lval, tk);
     if (EPostfixResult::Continue == status) continue;
     if (EPostfixResult::Stop == status) return result;
@@ -4424,6 +4442,34 @@ OExpr * ODqCompParserExpr::ParseExprFuncCall(OValSymFunc * vsfunc)
   }
 
   return result;
+}
+
+OExpr * ODqCompParserExpr::ParseExprConstExprCall(OValSymConstExpr * vscexpr)
+{
+  OScPosition callpos;
+  scf->SaveCurPos(callpos);
+
+  vector<OExpr *> args;
+  if (!ParseCallArguments(vscexpr->name, vscexpr->GetTypeFunc(), args))
+  {
+    for (OExpr * a : args) OExpr::DeleteTree(a);
+    return nullptr;
+  }
+
+  for (OExpr *& a : args)
+  {
+    OExpr::FoldTree(&a);
+  }
+
+  OExpr * expanded = vscexpr->Expand(args, callpos);
+  for (OExpr * a : args) OExpr::DeleteTree(a);
+  if (!expanded)
+  {
+    Error(DQERR_CONSTEXPR_INVALID_FOR, vscexpr->name, "", &callpos);
+    return nullptr;
+  }
+
+  return expanded;
 }
 
 OLValueExpr * ODqCompParserExpr::CreateImplicitMethodReceiver(OCompoundType * method_owner_type)

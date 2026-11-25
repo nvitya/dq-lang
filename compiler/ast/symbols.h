@@ -16,6 +16,7 @@
 #include "stdint.h"
 
 #include <format>
+#include <functional>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -263,6 +264,16 @@ public:
 
 class OExpr;
 class OValSymFunc;
+class OValSymConstExpr;
+
+struct SConstExprSubstCtx
+{
+  const OValSymConstExpr * cexpr = nullptr;
+  vector<OExpr *> *        args = nullptr;
+  vector<uint32_t>         remaining_uses;
+  bool                     error = false;
+  OScPosition              callpos;
+};
 
 bool WriteDqmIfTypeRef(ODqmIfWriter & writer, uint16_t arecid, OType * atype);
 
@@ -720,6 +731,40 @@ public:
     return false;
   }
 
+  virtual void CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const
+  {
+    (void)cexpr;
+    (void)counts;
+  }
+
+  virtual OExpr * CloneSubstitute(SConstExprSubstCtx & ctx) const
+  {
+    (void)ctx;
+    return nullptr;
+  }
+
+  virtual bool CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const
+  {
+    (void)cexpr;
+    return false;
+  }
+
+  virtual bool WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const
+  {
+    (void)writer;
+    (void)cexpr;
+    return false;
+  }
+
+  virtual void CollectDqmIfDeps(const OValSymConstExpr * cexpr,
+                                const function<void(OType *)> & on_type,
+                                const function<void(OValSym *)> & on_sym) const
+  {
+    (void)cexpr;
+    (void)on_type;
+    (void)on_sym;
+  }
+
   inline OType * ResolvedType() const
   {
     return (ptype ? ptype->ResolveAlias() : nullptr);
@@ -736,7 +781,8 @@ enum EValSymKind
   VSK_VARIABLE,
   VSK_PARAMETER,
   VSK_FUNCTION,
-  VSK_PROPERTY
+  VSK_PROPERTY,
+  VSK_CONSTEXPR
 };
 
 enum EParamMode

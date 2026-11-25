@@ -38,6 +38,7 @@ public: // statement blocks
 
   void ParseStmtVar(bool arootstmt);  // used for statement blocks too
   void ParseStmtConst(bool arootstmt);  // used for statement blocks too
+  void ParseStmtConstExpr(bool arootstmt);  // used for statement blocks too
   void ParseStmtRef();
 
   EBinOp ParseAssignOp();

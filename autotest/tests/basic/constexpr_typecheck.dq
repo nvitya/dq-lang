@@ -1,0 +1,24 @@
+// diagnostics for invalid constexpr declarations and invocations
+
+func RuntimeFn(x : int32) -> int32:
+    return x + 1
+endfunc
+
+constexpr ADD1(x : int32) : int32 = x + 1
+constexpr SQUARE(x : int32) : int32 = x * x
+
+constexpr BAD_CALL(x : int32) : int32 = RuntimeFn(x) //?error(ConstExprInvalid)
+constexpr BAD_REF(x : ref int32) : int32 = x //?error(NotSupported)
+constexpr BAD_VARARGS(x : int32, ...) : int32 = x //?error(NotSupported)
+
+func TestErrors():
+    var local_v : int32 = 5
+    constexpr BAD_LOCAL_CAPTURE(x : int32) : int32 = x + local_v //?error(ConstExprInvalid)
+
+    var a : int32 = ADD1 //?error(OpenParen)
+    var b : int32 = ADD1(1, 2) //?error(FuncArgsTooMany)
+    var c : int32 = SQUARE(RuntimeFn(3)) //?error(ConstExprInvalid)
+endfunc
+
+func *Main():
+endfunc

@@ -1,0 +1,60 @@
+//?notest
+
+#define BASE_FLAG = 0x100
+
+const INTERNAL_FLAG : uint32 = 0x200
+
+type FParamHandler = func(x : int32) -> int32 of object
+
+struct SParamDef:
+    flags   : uint32
+    var_ptr : pointer
+    handler : FParamHandler
+endstruct
+
+struct SParamRangeDef:
+    firstindex : uint16
+    lastindex  : uint16
+    partable   : ^SParamDef
+    handler    : FParamHandler
+endstruct
+
+object ODevice:
+public
+    bias : int32 = 200
+
+    func Handle(x : int32) -> int32:
+        return bias + x
+    endfunc
+
+    func HandleVirt(x : int32) -> int32 [[virtual]]:
+        return bias * 2 + x
+    endfunc
+endobject
+
+var g_counter : int32 = 55
+var g_dev <- ODevice()
+
+const EMPTY_ENTRY : SParamDef = {}
+
+constexpr PTENTRY_CONST(n : int) : SParamDef = { BASE_FLAG, pointer(n), nil }
+constexpr PTENTRY_CONST8(n : byte) : SParamDef = { INTERNAL_FLAG, pointer(uint(n)), nil }
+constexpr PTENTRY_DEV_CB() : SParamDef = { BASE_FLAG | INTERNAL_FLAG, %g_counter, g_dev.Handle }
+constexpr PTENTRY_DEV_VIRT() : SParamDef = { BASE_FLAG, nil, g_dev.HandleVirt }
+constexpr PTENTRY_ZERO() : SParamDef = EMPTY_ENTRY
+
+constexpr PAR_TABLE(astart : uint16, atab : []SParamDef, cb : FParamHandler = nil) : SParamRangeDef =
+    { astart, astart + atab.length - 1, %atab[0], cb }
+
+constexpr CALC_WITH_IIF(x : int32) : int32 = iif(x < 0, -x, x * 2)
+constexpr CALC_ROUND(x : float64) : int32 = Round(x)
+
+func GetPrivDouble(x : int32) -> int32 ..
+
+implementation
+
+constexpr PRIV_DOUBLE(x : int32) : int32 = x * 2
+
+func GetPrivDouble(x : int32) -> int32:
+    return PRIV_DOUBLE(x)
+endfunc

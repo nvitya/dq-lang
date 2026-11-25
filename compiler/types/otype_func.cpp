@@ -808,7 +808,7 @@ void OValSymFunc::ApplyTargetImportAttributes()
 bool OValSymFunc::AddCapture(OValSym * symbol)
 {
   if (!parent_function || !symbol || symbol->owner_function != parent_function
-      || symbol->kind == VSK_CONST || symbol->kind == VSK_FUNCTION
+      || symbol->kind == VSK_CONST || symbol->kind == VSK_FUNCTION || symbol->kind == VSK_CONSTEXPR
       || symbol == parent_function->vsresult)
   {
     return false;
@@ -2239,4 +2239,85 @@ int OTypeFuncRef::AnalyzeConversion(OExpr ** rexpr, uint32_t aflags, bool conver
   }
 
   return (this == resolved_src) ? 0 : WrapTypeConv(rexpr, convert);
+}
+
+OValSymConstExpr::OValSymConstExpr(OScPosition & apos, const string & aname, OTypeFunc * asigtype)
+:
+  super(apos, aname, asigtype, VSK_CONSTEXPR)
+{
+  initialized = true;
+}
+
+OValSymConstExpr::~OValSymConstExpr()
+{
+  OExpr::DeleteTree(body_expr);
+  body_expr = nullptr;
+  for (OValSym * ps : param_syms) delete ps;
+  param_syms.clear();
+  delete ptype;
+  ptype = nullptr;
+}
+
+void OValSymConstExpr::BuildParamSyms()
+{
+  for (OValSym * ps : param_syms) delete ps;
+  param_syms.clear();
+  OTypeFunc * sig = GetTypeFunc();
+  if (!sig) return;
+  for (OFuncParam * fp : sig->params)
+  {
+    OValSym * ps = fp->ptype->CreateValSym(scpos, fp->name);
+    ps->kind = VSK_PARAMETER;
+    ps->param_mode = fp->mode;
+    ps->initialized = true;
+    param_syms.push_back(ps);
+  }
+}
+
+int OValSymConstExpr::FindParamIndex(const OValSym * avsym) const
+{
+  for (size_t i = 0; i < param_syms.size(); ++i)
+  {
+    if (param_syms[i] == avsym) return int(i);
+  }
+  return -1;
+}
+
+OExpr * OValSymConstExpr::Expand(vector<OExpr *> & args, const OScPosition & callpos) const
+{
+  if (!body_expr) return nullptr;
+
+  SConstExprSubstCtx ctx;
+  ctx.cexpr = this;
+  ctx.args = &args;
+  ctx.remaining_uses.assign(param_syms.size(), 0);
+  ctx.callpos = callpos;
+  body_expr->CountParamUses(this, ctx.remaining_uses);
+
+  OExpr * expanded = body_expr->CloneSubstitute(ctx);
+  if (!expanded || ctx.error)
+  {
+    OExpr::DeleteTree(expanded);
+    return nullptr;
+  }
+
+  OExpr::FoldTree(&expanded);
+  return expanded;
+}
+
+bool OValSymConstExpr::WriteDqmIfDecl(ODqmIfWriter & writer)
+{
+  OTypeFunc * sig = GetTypeFunc();
+  if (!sig || !sig->rettype || !body_expr)
+  {
+    return writer.Fail(format("Constexpr {} is incomplete", name));
+  }
+  if (!writer.AddRecStr(DQMIF_CONSTEXPR_BEGIN, name)) return false;
+  string declaration_pos = scpos.Format();
+  if (declaration_pos.empty()) declaration_pos = declaration_position;
+  if (!declaration_pos.empty() && !writer.AddRecStr(DQMIF_DECL_SOURCE_POS, declaration_pos)) return false;
+  if (!WriteDqmIfAttributes(writer)) return false;
+  if (!sig->WriteDqmIfSignatureRecords(writer)) return false;
+  if (!body_expr->WriteDqmIfExpr(writer, this)) return false;
+  return writer.AddRecEmpty(DQMIF_CONSTEXPR_END);
 }

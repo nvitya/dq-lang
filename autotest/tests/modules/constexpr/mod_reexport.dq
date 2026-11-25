@@ -1,0 +1,6 @@
+//?notest
+
+use ./mod_defs reexport
+
+constexpr PTENTRY_WRAPPED(n : int) : SParamDef = PTENTRY_CONST(n + 100)
+constexpr PAR_TABLE_DEFAULT(astart : uint16, atab : []SParamDef) : SParamRangeDef = PAR_TABLE(astart, atab, g_dev.Handle)

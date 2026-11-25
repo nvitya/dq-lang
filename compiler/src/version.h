@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.98.7"
+#define DQ_COMPILER_VERSION  "0.99.0"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.99.0:
+  - added `constexpr` support
 v0.98.8:
   - Supporting constant tables with linker-time resolved address references
 v0.98.7:

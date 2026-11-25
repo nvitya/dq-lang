@@ -1,0 +1,6 @@
+//?notest
+
+use ./mod_defs
+
+constexpr PTENTRY_HIDDEN_DEV() : SParamDef = PTENTRY_DEV_CB()
+constexpr PTENTRY_HIDDEN_CONST(n : int) : SParamDef = PTENTRY_CONST(n + 5)

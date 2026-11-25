@@ -39,6 +39,11 @@ public:
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   bool       TryFoldSelf(OExpr ** rreplacement) override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OIntLit : public OExpr
@@ -49,6 +54,10 @@ public:
 
   /* ctor */ OIntLit(int64_t v, OType * atype = nullptr);
   LlValue *  Generate(OScope * scope) override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override { (void)cexpr; return true; }
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OFloatLit : public OExpr
@@ -57,6 +66,10 @@ public:
   double     value;
   /* ctor */ OFloatLit(double v, OType * atype = nullptr);
   LlValue *  Generate(OScope * scope) override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override { (void)cexpr; return true; }
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OBoolLit : public OExpr
@@ -65,6 +78,9 @@ public:
   bool       value;
   /* ctor */ OBoolLit(bool v, OType * atype = nullptr);
   LlValue *  Generate(OScope * scope) override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override { (void)cexpr; return true; }
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
 };
 
 // --- LValue expression hierarchy ---
@@ -106,6 +122,11 @@ public:
   OValSym *  NoWriteSymbol() const override;
   LlValue *  GenerateObjectAddress(OScope * scope) override;
   OLValueExpr * Clone() const override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OLValueDeref : public OLValueExpr
@@ -121,6 +142,11 @@ public:
   bool       RequiresVolatileMemoryAccess() const override { return true; }
   LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OLValueMember : public OLValueExpr
@@ -144,6 +170,11 @@ public:
   LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
   OLValueExpr * Clone() const override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OLValueIndex : public OLValueExpr
@@ -168,6 +199,11 @@ public:
   OValSym *  NoWriteSymbol() const override;
   LlValue *  GenerateObjectAddress(OScope * scope) override;
   void       FoldChildren() override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 // A property can be an assignment target, but it is never addressable storage.
@@ -297,6 +333,11 @@ public:
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   bool       TryFoldSelf(OExpr ** rreplacement) override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 enum ECompareOp
@@ -323,6 +364,11 @@ public:
   LlValue *    Generate(OScope * scope) override;
   void         FoldChildren() override;
   bool         TryFoldSelf(OExpr ** rreplacement) override;
+  void         CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *      CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool         CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool         WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void         CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 // Capture one evaluated value in a slot, retaining managed string storage.
@@ -362,6 +408,11 @@ public:
   LlValue *    Generate(OScope * scope) override;
   void         FoldChildren() override;
   bool         TryFoldSelf(OExpr ** rreplacement) override;
+  void         CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *      CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool         CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool         WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void         CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 enum ELogicalOp
@@ -386,6 +437,11 @@ public:
   LlValue *    Generate(OScope * scope) override;
   void         FoldChildren() override;
   bool         TryFoldSelf(OExpr ** rreplacement) override;
+  void         CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *      CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool         CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool         WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void         CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class ORangeCompareExpr : public OLogicalExpr
@@ -405,6 +461,11 @@ public:
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   bool       TryFoldSelf(OExpr ** rreplacement) override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OBinNotExpr : public OExpr
@@ -416,6 +477,11 @@ public:
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   bool       TryFoldSelf(OExpr ** rreplacement) override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class ONegExpr : public OExpr
@@ -427,6 +493,11 @@ public:
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
   bool       TryFoldSelf(OExpr ** rreplacement) override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OAddrOfExpr : public OExpr
@@ -437,6 +508,11 @@ public:
   ~OAddrOfExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OObjectAddrExpr : public OExpr
@@ -465,6 +541,9 @@ class ONullLit : public OExpr
 public:
   /* ctor */ ONullLit();
   LlValue *  Generate(OScope * scope) override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override { (void)cexpr; return true; }
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
 };
 
 class OObjectTypeLiteralExpr : public OExpr
@@ -487,6 +566,11 @@ public:
   ~OPointerIndexExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OValSymFunc;
@@ -534,6 +618,8 @@ public:
   ~OArrayToSliceExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
 };
 
 // Borrow a temporary fixed or dynamic array for the lifetime of a call.
@@ -592,6 +678,8 @@ public:
   ~ODynArrayToSliceExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
 };
 
 enum EArrayMetaField
@@ -612,6 +700,12 @@ public:
   ~OArrayMetaFieldExpr() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
+  bool       TryFoldSelf(OExpr ** rreplacement) override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 enum ERoundMode
@@ -634,6 +728,11 @@ public:
   LlValue *   Generate(OScope * scope) override;
   void        FoldChildren() override;
   bool        TryFoldSelf(OExpr ** rreplacement) override;
+  void        CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *     CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool        CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool        WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void        CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OTypeFuncRef;
@@ -707,6 +806,11 @@ public:
                  ~OBoundMethodExpr() override;
   LlValue *       Generate(OScope * scope) override;
   void            FoldChildren() override;
+  void            CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *         CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool            CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool            WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void            CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OBoundMethodOverloadExpr : public OExpr
@@ -762,6 +866,11 @@ public:
   ~OArrayLit() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 struct OStructLitEntry
@@ -784,6 +893,11 @@ public:
   ~OStructLit() override;
   LlValue *  Generate(OScope * scope) override;
   void       FoldChildren() override;
+  void       CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void       CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 // --- anyvalue expressions ---
@@ -830,6 +944,9 @@ public:
 
   /* ctor */ OEmbStrLit(const string & avalue);
   LlValue *  Generate(OScope * scope) override;
+  OExpr *    CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool       CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override { (void)cexpr; return true; }
+  bool       WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
 };
 
 // Convert a char/char literal to a temporary zero-terminated C string pointer.
@@ -905,6 +1022,11 @@ public:
   bool      NeedsCallCleanup() const override;
   void      GenerateCallCleanup(OScope * scope) override;
   void      FoldChildren() override;
+  void      CountParamUses(const OValSymConstExpr * cexpr, vector<uint32_t> & counts) const override;
+  OExpr *   CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool      CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override;
+  bool      WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void      CollectDqmIfDeps(const OValSymConstExpr * cexpr, const function<void(OType *)> & on_type, const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OTextSourceToStringExpr : public OExpr

@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    35 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    35 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    36 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    36 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -175,6 +175,37 @@ enum EDqmIfAttrFlag : uint64_t
 TDqmIfRecId  DQMIF_SIZE_SPEC              = 0x8304;  // int32: size specifier (structs / objects)
 TDqmIfRecId  DQMIF_ALIGN_SPEC             = 0x8305;  // int32: storage alignment (structs / objects)
 
+// 8400: Reduced constant expression AST records (for constexpr)
+
+TDqmIfRecId  DQMIF_EXPR_INT_LIT           = 0x8401;  // int64: followed by type spec
+TDqmIfRecId  DQMIF_EXPR_FLOAT_LIT         = 0x8402;  // uint64 (IEEE bits): followed by type spec
+TDqmIfRecId  DQMIF_EXPR_BOOL_LIT          = 0x8403;  // uint8 (0/1)
+TDqmIfRecId  DQMIF_EXPR_NULL_LIT          = 0x8404;  // 0
+TDqmIfRecId  DQMIF_EXPR_STR_LIT           = 0x8405;  // str: embedded string literal
+TDqmIfRecId  DQMIF_EXPR_ENUM_LIT          = 0x8406;  // uint64: followed by enum type spec
+TDqmIfRecId  DQMIF_EXPR_PARAM             = 0x8408;  // uint32: constexpr parameter index
+TDqmIfRecId  DQMIF_EXPR_SYMBOL            = 0x8409;  // str pair: canonical module id, symbol name
+TDqmIfRecId  DQMIF_EXPR_TYPE_CONV         = 0x8410;  // 0: followed by dst type spec + src expr
+TDqmIfRecId  DQMIF_EXPR_BIN               = 0x8411;  // uint32 (EBinOp): followed by result type spec + left + right
+TDqmIfRecId  DQMIF_EXPR_COMPARE           = 0x8412;  // uint32 (ECompareOp): followed by left + right
+TDqmIfRecId  DQMIF_EXPR_LOGICAL           = 0x8413;  // uint8 (ELogicalOp): followed by left + right
+TDqmIfRecId  DQMIF_EXPR_UNARY             = 0x8414;  // uint8 (0=neg, 1=binnot, 2=not): followed by result type spec + operand
+TDqmIfRecId  DQMIF_EXPR_ROUND             = 0x8415;  // uint8 (ERoundMode): followed by result type spec + operand
+TDqmIfRecId  DQMIF_EXPR_IIF               = 0x8416;  // 0: followed by result type spec + cond + then + else
+TDqmIfRecId  DQMIF_EXPR_TEXT_BORROW       = 0x8417;  // 0: followed by dst type spec + source expr
+TDqmIfRecId  DQMIF_EXPR_STRUCT_LIT_BEGIN  = 0x8420;  // uint8 (fill_missing): followed by struct type spec + entries + END
+TDqmIfRecId  DQMIF_EXPR_STRUCT_ENTRY      = 0x8421;  // uint32 (CollectInitFields index): followed by value expr
+TDqmIfRecId  DQMIF_EXPR_STRUCT_LIT_END    = 0x842F;  // 0
+TDqmIfRecId  DQMIF_EXPR_ARRAY_LIT_BEGIN   = 0x8430;  // 0: followed by array type spec + element exprs + END
+TDqmIfRecId  DQMIF_EXPR_ARRAY_LIT_END     = 0x843F;  // 0
+TDqmIfRecId  DQMIF_EXPR_ADDROF            = 0x8440;  // 0: followed by target lvalue expr
+TDqmIfRecId  DQMIF_EXPR_MEMBER            = 0x8441;  // uint32 (memberindex): followed by struct type spec + base lvalue expr
+TDqmIfRecId  DQMIF_EXPR_INDEX             = 0x8442;  // 0: followed by container type spec + base lvalue expr + index expr
+TDqmIfRecId  DQMIF_EXPR_DEREF             = 0x8443;  // 0: followed by ptr expr
+TDqmIfRecId  DQMIF_EXPR_PTR_INDEX         = 0x8444;  // 0: followed by ptr expr + index expr
+TDqmIfRecId  DQMIF_EXPR_ARRAY_META        = 0x8445;  // uint8 (EArrayMetaField): followed by container type spec + target lvalue expr
+TDqmIfRecId  DQMIF_EXPR_BOUND_METHOD      = 0x8446;  // str (method name): followed by funcref type spec + receiver lvalue expr
+
 // 0100: Header records
 
 TDqmIfRecId  DQMIF_H_BEGIN                = 0x0100;  // 0
@@ -215,6 +246,11 @@ TDqmIfRecId  DQMIF_CONST_BEGIN            = 0x0300;  // str: constant name
 // exp.:     type spec
 // exp.:     DQMIF_VALUE_INLINE / DQMIF_VALUE_LINKED
 TDqmIfRecId  DQMIF_CONST_END              = 0x03FF;  // 0
+
+TDqmIfRecId  DQMIF_CONSTEXPR_BEGIN        = 0x0310;  // str: constexpr name
+// opt.:     DQMIF_DECL_SOURCE_POS, attributes
+// exp.:     DQMIF_FUNC_PARAM_* (0..N), DQMIF_FUNC_RETVAL, DQMIF_EXPR_*
+TDqmIfRecId  DQMIF_CONSTEXPR_END          = 0x031F;  // 0
 
 // 0400: Global Variables
 

@@ -1,0 +1,14 @@
+use ./mod_hidden_wrap only(PTENTRY_HIDDEN_DEV, PTENTRY_HIDDEN_CONST)
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+const C_DEV : ? = PTENTRY_HIDDEN_DEV()
+const C_CON : ? = PTENTRY_HIDDEN_CONST(20)
+
+func *Main():
+    printf("c_sel=%u,%d,%d,%d\n", C_DEV.flags, ^int32(C_DEV.var_ptr)^, C_DEV.handler(8), int(C_CON.var_ptr)) //?check("c_sel", "768,55,208,25")
+
+    var d : ? = PTENTRY_HIDDEN_DEV()
+    var c : ? = PTENTRY_HIDDEN_CONST(20)
+    printf("sel=%u,%d,%d,%d\n", d.flags, ^int32(d.var_ptr)^, d.handler(8), int(c.var_ptr)) //?check("sel", "768,55,208,25")
+endfunc

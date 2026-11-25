@@ -63,6 +63,7 @@ public: // expressions
   bool ParseRawCallArguments(const string & callname, vector<TRawCallArg> & rargs);
   bool ParseEmbeddedObjectBinding(const string & name, SEmbeddedObjectBinding & binding);
   OExpr * ParseExprFuncCall(OValSymFunc * vsfunc);
+  OExpr * ParseExprConstExprCall(OValSymConstExpr * vscexpr);
   OExpr * ParseExprMethodCall(OValSymFunc * vsfunc, OLValueExpr * receiver);
   OExpr * ParseExprOverloadCall(OValSymOverloadSet * ovset);
   OExpr * ParseExprMethodOverloadCall(OValSymOverloadSet * ovset, OLValueExpr * receiver);

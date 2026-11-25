@@ -598,9 +598,14 @@ void ODqCompParserStmt::ParseStmtConst(bool arootstmt)
       return;
     }
 
+    const char * before_p = scf->curp;
     scpos_statement_start = itempos;
     *attr = group_attr;
     ParseConstDecl(arootstmt, sharedtype, true);
+    if (scf->curp == before_p && !scf->Eof())
+    {
+      scf->ReadTo("\r\n");
+    }
   }
 
   *attr = group_attr;
@@ -806,6 +811,168 @@ void ODqCompParserStmt::ParseConstDecl(bool arootstmt, OType * asharedtype, bool
   if (not CheckStatementClose())
   {
     // error message already generated.
+    return;
+  }
+}
+
+void ODqCompParserStmt::ParseStmtConstExpr(bool arootstmt)
+{
+  // syntax: constexpr identifier(params) : type = expr
+  // note: "constexpr" is already consumed
+
+  string    sid;
+  OValSym * pvalsym = nullptr;
+
+  auto emit_error = [&](const TDiagDefErr & adiag, string_view par1 = "", string_view par2 = "",
+                        OScPosition * scpos = nullptr, bool atryrecover = true)
+  {
+    if (arootstmt) RootStatementError(adiag, par1, par2, scpos, atryrecover);
+    else           StatementError(adiag, par1, par2, scpos, atryrecover);
+  };
+
+  auto skip_tail = [&]()
+  {
+    if (arootstmt) SkipToModuleStatementStart();
+    else           SkipToStatementEnd();
+  };
+
+  scf->SkipWhite();
+  if (!scf->ReadIdentifier(sid))
+  {
+    emit_error(DQERR_ID_EXP_AFTER, "constexpr");
+    return;
+  }
+  if (arootstmt && !CheckSpecialReservedRootName(sid))
+  {
+    return;
+  }
+
+  if (arootstmt) g_module->ValSymDeclared(sid, &pvalsym);
+  else           pvalsym = curscope->FindValSym(sid, nullptr, false);
+  if (pvalsym)
+  {
+    emit_error(DQERR_VS_ALREADY_DECL_TYPE, sid, pvalsym->ptype->name, &scf->prevpos);
+    return;
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("(", false))
+  {
+    emit_error(DQERR_MISSING_OPEN_PAREN_AFTER, sid);
+    return;
+  }
+
+  OTypeFunc * sigtype = new OTypeFunc(sid);
+  if (!ParseFunctionSignature(sigtype, true, sid, true))
+  {
+    delete sigtype;
+    skip_tail();
+    return;
+  }
+
+  if (sigtype->has_varargs || sigtype->HasVarArgsParameter())
+  {
+    emit_error(DQERR_NOT_SUPPORTED, "varargs in constexpr");
+    delete sigtype;
+    return;
+  }
+  for (OFuncParam * fp : sigtype->params)
+  {
+    if (fp && FPM_VALUE != fp->mode)
+    {
+      emit_error(DQERR_NOT_SUPPORTED, "reference parameter in constexpr");
+      delete sigtype;
+      return;
+    }
+  }
+
+  if (!sigtype->rettype)
+  {
+    scf->SkipWhite();
+    if (!scf->CheckSymbol(":"))
+    {
+      emit_error(DQERR_TYPE_SPECIFIER_EXP_AFTER, sid);
+      delete sigtype;
+      return;
+    }
+    sigtype->rettype = ParseTypeSpec();
+    if (!sigtype->rettype)
+    {
+      delete sigtype;
+      skip_tail();
+      return;
+    }
+  }
+
+  scf->SkipWhite();
+  if (!scf->CheckSymbol("="))
+  {
+    emit_error(DQERR_MISSING_ASSIGN_FOR, sid);
+    delete sigtype;
+    return;
+  }
+
+  auto * vscexpr = new OValSymConstExpr(scpos_statement_start, sid, sigtype);
+  vscexpr->BuildParamSyms();
+
+  OScope param_scope(curscope, "constexpr");
+  for (OValSym * ps : vscexpr->param_syms)
+  {
+    param_scope.valsyms[ps->name] = ps;
+  }
+
+  scf->SkipWhite();
+  OScPosition expos;
+  scf->SaveCurPos(expos);
+
+  OScope * saved_scope = curscope;
+  curscope = &param_scope;
+  vscexpr->body_expr = ParseExpression();
+  curscope = saved_scope;
+
+  if (!vscexpr->body_expr)
+  {
+    delete vscexpr;
+    skip_tail();
+    return;
+  }
+
+  if (!CheckAssignType(sigtype->rettype, &vscexpr->body_expr, "constexpr"))
+  {
+    delete vscexpr;
+    skip_tail();
+    return;
+  }
+
+  OExpr::FoldTree(&vscexpr->body_expr);
+  if (!vscexpr->body_expr || !vscexpr->body_expr->CanSerializeDqmIfExpr(vscexpr))
+  {
+    delete vscexpr;
+    emit_error(DQERR_CONSTEXPR_INVALID_FOR, sid, "", &expos);
+    return;
+  }
+
+  if (arootstmt)
+  {
+    if (!ParseAttributes(false))
+    {
+      SkipToModuleStatementStart();
+      delete vscexpr;
+      return;
+    }
+    if (attr->flags)
+    {
+      attr->CheckInvalidAttributes(ATGT_STATEMENT);
+    }
+    g_module->DeclareValSym(section_public, vscexpr);
+  }
+  else
+  {
+    curscope->DefineValSym(vscexpr);
+  }
+
+  if (!CheckStatementClose())
+  {
     return;
   }
 }
@@ -1086,6 +1253,11 @@ bool ODqCompParserStmt::ParseStatement(const string & block_closer)
     else if ("const" == sid)
     {
       ParseStmtConst(false);
+      return true;
+    }
+    else if ("constexpr" == sid)
+    {
+      ParseStmtConstExpr(false);
       return true;
     }
     else if ("return" == sid)

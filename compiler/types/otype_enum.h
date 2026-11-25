@@ -75,6 +75,12 @@ public:
 
   OEnumValueExpr(OTypeEnum * atype, uint64_t avalue);
   LlValue * Generate(OScope * scope) override;
+  OExpr * CloneSubstitute(SConstExprSubstCtx & ctx) const override;
+  bool CanSerializeDqmIfExpr(const OValSymConstExpr * cexpr) const override { (void)cexpr; return true; }
+  bool WriteDqmIfExpr(ODqmIfWriter & writer, const OValSymConstExpr * cexpr) const override;
+  void CollectDqmIfDeps(const OValSymConstExpr * cexpr,
+                        const function<void(OType *)> & on_type,
+                        const function<void(OValSym *)> & on_sym) const override;
 };
 
 class OUnresolvedEnumItemExpr : public OExpr

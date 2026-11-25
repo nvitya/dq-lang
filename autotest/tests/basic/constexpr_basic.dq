@@ -1,0 +1,153 @@
+// constexpr templates: defaults, nested, scalar compile-time,
+// const param tables, runtime calls, single-use side-effects, and local/subfn usage
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+#define PAR_INT32_CONST = 0x100
+#define PAR_UINT8_CONST = 0x200
+#define PAR_INT32_RW    = 0x300
+#define PAR_CB_ONLY     = 0x400
+
+type FParamHandler = func(x : int32) -> int32 of object
+
+struct SParamDef:
+    flags   : uint32
+    var_ptr : pointer
+    handler : FParamHandler
+endstruct
+
+struct SParamRangeDef:
+    firstindex : uint16
+    lastindex  : uint16
+    partable   : ^SParamDef
+    handler    : FParamHandler
+endstruct
+
+object ODevice:
+public
+    bias : int32 = 100
+
+    func Handle(x : int32) -> int32:
+        return bias + x
+    endfunc
+endobject
+
+var g_val : int32 = 42
+var g_dev <- ODevice()
+var g_side_effects : int32 = 0
+
+func NextVal() -> int32:
+    g_side_effects += 1
+    return 100 + g_side_effects
+endfunc
+
+// Standalone constexpr (with default value, 0-arg, slice param)
+constexpr PTENTRY_CONST(n : int) : SParamDef = { PAR_INT32_CONST, pointer(n), nil }
+constexpr PTENTRY_CONST8(n : byte) : SParamDef = { PAR_UINT8_CONST, pointer(uint(n)), nil }
+constexpr PTENTRY_EMPTY_CE() : SParamDef = {}
+constexpr PTENTRY_WITH_CB(n : int, cb : FParamHandler = nil) : SParamDef = { PAR_INT32_CONST, pointer(n), cb }
+
+constexpr PTENTRY_VAR(p : pointer, cb : FParamHandler = nil) : SParamDef = { PAR_INT32_RW, p, cb }
+constexpr PTENTRY_CB(cb : FParamHandler) : SParamDef = { PAR_CB_ONLY, nil, cb }
+constexpr PTENTRY_CONST_PLUS(n : int) : SParamDef = PTENTRY_CONST(n + 10)
+
+constexpr PAR_TABLE(astart : uint16, atab : []SParamDef) : SParamRangeDef =
+    { astart, astart + atab.length - 1, %atab[0], nil }
+
+constexpr PAR_TABLE_CB(astart : uint16, atab : []SParamDef, cb : FParamHandler = nil) : SParamRangeDef =
+    { astart, astart + atab.length - 1, %atab[0], cb }
+
+// Scalar constexprs used in const, #if, array lengths, enum values, iif, arithmetic
+constexpr CALC_SIZE(n : int32) : int32 = n * 2 + 1
+constexpr SQUARE(x : int32) : int32 = x * x
+constexpr CLAMP_POS(x : int32) : int32 = iif(x > 0, x, 0)
+constexpr MAKE_MASK(bit : int32) : uint32 = 1 << bit
+
+const C_SIZE : int32 = CALC_SIZE(3)
+const C_SQ   : int32 = SQUARE(6)
+const C_POS  : int32 = CLAMP_POS(-5) + CLAMP_POS(9)
+const C_MASK : uint32 = MAKE_MASK(4) | MAKE_MASK(1)
+
+#if CALC_SIZE(3) == 7
+const IF_CHECK : int32 = 1
+#else
+const IF_CHECK : int32 = 0
+#endif
+
+enum EFlags : int32 = (
+    EF_A = MAKE_MASK(2),
+    EF_B = CALC_SIZE(4)
+)
+
+var g_sized_arr : [CALC_SIZE(2)]int32 = [1, 2, 3, 4, 5]
+
+const pt_2000 : [?]SParamDef = [
+    PTENTRY_EMPTY_CE(),
+    PTENTRY_CONST(1234),
+    PTENTRY_CONST8(255),
+    PTENTRY_WITH_CB(55),
+    PTENTRY_WITH_CB(66, g_dev.Handle),
+    PTENTRY_VAR(%g_val, g_dev.Handle),
+    PTENTRY_CB(g_dev.Handle),
+    PTENTRY_CONST_PLUS(30)
+]
+
+const pt_3000 : [?]SParamDef = [
+    PTENTRY_CONST(-7),
+    PTENTRY_CONST8(9)
+]
+
+const param_ranges : [?]SParamRangeDef = [
+    PAR_TABLE(0x2000, pt_2000),
+    PAR_TABLE_CB(0x3000, pt_3000, g_dev.Handle),
+    {}
+]
+
+func TestLocalAndSubfn(v : int32) -> int32:
+    constexpr DOUBLE_PLUS(a : int32, b : int32 = 1) : int32 = a * 2 + b
+    constexpr TRIPLE(x : int32) : int32 = x * 3
+
+    subfn Inner(k : int32) -> int32:
+        return DOUBLE_PLUS(k) + TRIPLE(k)
+    endsubfn
+
+    return Inner(v) + DOUBLE_PLUS(v, 5)
+endfunc
+
+func *Main():
+    printf("scalar=%d,%d,%d,%u,%d\n", C_SIZE, C_SQ, C_POS, C_MASK, IF_CHECK) //?check("scalar", "7,36,9,18,1")
+    printf("enum=%d,%d\n", Ord(EFlags.EF_A), Ord(EFlags.EF_B)) //?check("enum", "4,9")
+    printf("arrlen=%d\n", g_sized_arr.length) //?check("arrlen", 5)
+
+    // Verify const param tables built via constexpr
+    printf("p0=%u\n", pt_2000[0].flags) //?check("p0", 0)
+    printf("p1=%u,%d\n", pt_2000[1].flags, int(pt_2000[1].var_ptr)) //?check("p1", "256,1234")
+    printf("p2=%u,%u\n", pt_2000[2].flags, uint(pt_2000[2].var_ptr)) //?check("p2", "512,255")
+    printf("p3=%d\n", int(pt_2000[3].var_ptr)) //?check("p3", 55)
+    printf("p4=%d,%d\n", int(pt_2000[4].var_ptr), pt_2000[4].handler(4)) //?check("p4", "66,104")
+    printf("p5=%d,%d\n", ^int32(pt_2000[5].var_ptr)^, pt_2000[5].handler(7)) //?check("p5", "42,107")
+    printf("p6=%u,%d\n", pt_2000[6].flags, pt_2000[6].handler(9)) //?check("p6", "1024,109")
+    printf("p7=%d\n", int(pt_2000[7].var_ptr)) //?check("p7", 40)
+
+    // Verify range table built via PAR_TABLE
+    printf("r0=%u,%u,%d\n", uint(param_ranges[0].firstindex), uint(param_ranges[0].lastindex),
+           int(param_ranges[0].partable[1]^.var_ptr)) //?check("r0", "8192,8199,1234")
+    printf("r1=%u,%u,%d,%d\n", uint(param_ranges[1].firstindex), uint(param_ranges[1].lastindex),
+           int(param_ranges[1].partable[0]^.var_ptr),
+           param_ranges[1].handler(20)) //?check("r1", "12288,12289,-7,120")
+
+    // Runtime calls: single-use side effect executes once
+    var rt_entry : SParamDef = PTENTRY_CONST(NextVal())
+    printf("rt_se=%d,%d\n", int(rt_entry.var_ptr), g_side_effects) //?check("rt_se", "101,1")
+
+    // Runtime call with local variable & runtime array slice
+    var local_n : int = 77
+    var rt_sq : int32 = SQUARE(int32(local_n) - 70)
+    var local_tab : [2]SParamDef = [ PTENTRY_CONST(local_n), PTENTRY_CONST8(5) ]
+    var local_range : SParamRangeDef = PAR_TABLE(0x4000, local_tab)
+    printf("rt_tab=%d,%u,%u,%d\n", rt_sq, uint(local_range.firstindex), uint(local_range.lastindex),
+           int(local_range.partable[0]^.var_ptr)) //?check("rt_tab", "49,16384,16385,77")
+
+    // Local constexpr and subfn usage
+    printf("local_subfn=%d\n", TestLocalAndSubfn(4)) //?check("local_subfn", 34)
+endfunc

@@ -889,7 +889,8 @@ bool ODqCompAst::SupportsFuncParamDefaultType(OType * ptype)
 
   if ((TK_INT == resolved->kind) || (TK_CHAR == resolved->kind) || (TK_WCHAR == resolved->kind) || (TK_FLOAT == resolved->kind)
       || (TK_BOOL == resolved->kind) || (TK_ARRAY == resolved->kind)
-      || (TK_POINTER == resolved->kind) || (TK_ENUM == resolved->kind) || (TK_ROSTR == resolved->kind) || (TK_STRSLICE == resolved->kind))
+      || (TK_POINTER == resolved->kind) || (TK_FUNCREF == resolved->kind) || (TK_ENUM == resolved->kind)
+      || (TK_ROSTR == resolved->kind) || (TK_STRSLICE == resolved->kind))
   {
     return true;
   }

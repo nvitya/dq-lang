@@ -69,6 +69,7 @@ bool ODqCompBase::ReservedWord(string_view aname)
     "nil", "DQ",
     "func", "subfn", "endsubfn", "use", "implementation",
     "struct", "endstruct", "union", "endunion", "object", "endobject",
+    "constexpr",
   };
   return words.contains(aname);
 }
@@ -76,7 +77,7 @@ bool ODqCompBase::ReservedWord(string_view aname)
 bool ODqCompBase::RootStatementWord(string_view aname)
 {
   static const unordered_set<string_view> words = {
-    "var", "const", "type", "enum",
+    "var", "const", "constexpr", "type", "enum",
     "func", "subfn", "use", "implementation",
     "struct", "union", "object",
   };

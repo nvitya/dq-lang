@@ -75,6 +75,8 @@ private:
   bool ReadTypeDecl(ODqmIfReader & reader);
   bool ReadEnumDecl(ODqmIfReader & reader);
   bool ReadConstDecl(ODqmIfReader & reader, bool adefine = false);
+  bool ReadConstExprDecl(ODqmIfReader & reader);
+  bool ReadDqmIfExpr(ODqmIfReader & reader, const OValSymConstExpr * cexpr, OExpr *& rexpr);
   bool ReadVarDecl(ODqmIfReader & reader);
   bool ReadFunctionDecl(ODqmIfReader & reader, OCompoundType * aowner_type, bool amethod);
   bool ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype);
@@ -87,6 +89,7 @@ private:
   bool AddLoadedFunction(OValSymFunc * afunc, bool aoverload, OCompoundType * aowner_type);
   OType * ResolveDqmIfTypeName(const string & atype_name);
   OType * ResolveDqmIfQualifiedType(const string & amodule_name, const string & atype_name);
+  OValSym * ResolveDqmIfQualifiedValSym(const string & amodule_name, const string & avalsym_name);
   string FormatUnresolvedDqmIfTypeError(const string & atype_name) const;
   void ClearDqmIfMetadata();
   bool ReadDqmIfHeaderMetadata(ODqmIfReader & reader, bool abegin_current = false);

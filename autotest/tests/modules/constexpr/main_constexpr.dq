@@ -1,0 +1,47 @@
+use ./mod_reexport
+use ./mod_defs as defs
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+const pt_mod : [?]SParamDef = [
+    PTENTRY_ZERO(),
+    PTENTRY_CONST(12),
+    PTENTRY_CONST8(250),
+    PTENTRY_DEV_CB(),
+    PTENTRY_DEV_VIRT(),
+    PTENTRY_WRAPPED(23),
+    @defs.PTENTRY_CONST(77)
+]
+
+const range_mod : [?]SParamRangeDef = [
+    PAR_TABLE(0x2000, pt_mod),
+    PAR_TABLE_DEFAULT(0x3000, pt_mod),
+    {}
+]
+
+const C_IIF_NEG : int32 = CALC_WITH_IIF(-9)
+const C_IIF_POS : int32 = CALC_WITH_IIF(7)
+const C_ROUND   : int32 = CALC_ROUND(3.6)
+
+func *Main():
+    printf("c_math=%d,%d,%d,%d\n", C_IIF_NEG, C_IIF_POS, C_ROUND, GetPrivDouble(11)) //?check("c_math", "9,14,4,22")
+
+    printf("e0=%u\n", pt_mod[0].flags) //?check("e0", 0)
+    printf("e1=%u,%d\n", pt_mod[1].flags, int(pt_mod[1].var_ptr)) //?check("e1", "256,12")
+    printf("e2=%u,%u\n", pt_mod[2].flags, uint(pt_mod[2].var_ptr)) //?check("e2", "512,250")
+    printf("e3=%u,%d,%d\n", pt_mod[3].flags, ^int32(pt_mod[3].var_ptr)^, pt_mod[3].handler(5)) //?check("e3", "768,55,205")
+    printf("e4=%u,%d\n", pt_mod[4].flags, pt_mod[4].handler(6)) //?check("e4", "256,406")
+    printf("e5=%d\n", int(pt_mod[5].var_ptr)) //?check("e5", 123)
+    printf("e6=%d\n", int(pt_mod[6].var_ptr)) //?check("e6", 77)
+
+    printf("r0=%u,%u,%d\n", uint(range_mod[0].firstindex), uint(range_mod[0].lastindex),
+           int(range_mod[0].partable[5]^.var_ptr)) //?check("r0", "8192,8198,123")
+    printf("r1=%u,%u,%d\n", uint(range_mod[1].firstindex), uint(range_mod[1].lastindex),
+           range_mod[1].handler(10)) //?check("r1", "12288,12294,210")
+
+    // Runtime call to imported constexprs
+    var k : int = 44
+    var rt_def : SParamDef = PTENTRY_WRAPPED(k)
+    var rt_iif : int32 = CALC_WITH_IIF(-15)
+    printf("rt=%d,%d\n", int(rt_def.var_ptr), rt_iif) //?check("rt", "144,15")
+endfunc

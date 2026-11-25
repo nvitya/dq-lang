@@ -39,6 +39,7 @@ int SymbolKind(const ODecl & declaration)
       case VSK_FUNCTION: return 12; // Function
       case VSK_VARIABLE: return 13; // Variable
       case VSK_CONST:    return 14; // Constant
+      case VSK_CONSTEXPR:return 14; // Constant
       case VSK_PROPERTY: return 7;  // Property
       case VSK_PARAMETER:return 13; // Variable
     }
@@ -62,6 +63,7 @@ int ValSymKind(int kind)
     case VSK_FUNCTION: return 12;
     case VSK_VARIABLE: return 13;
     case VSK_CONST:    return 14;
+    case VSK_CONSTEXPR:return 14;
     case VSK_PROPERTY: return 7;
     case VSK_PARAMETER:return 13;
   }

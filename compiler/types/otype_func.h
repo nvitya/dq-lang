@@ -327,25 +327,6 @@ public:
   bool WriteDqmIfMethods(ODqmIfWriter & writer);
 };
 
-class OValSymConstExpr : public OValSym
-{
-private:
-  using super = OValSym;
-
-public:
-  vector<OValSym *>  param_syms;
-  OExpr *            body_expr = nullptr;
-
-  OValSymConstExpr(OScPosition & apos, const string & aname, OTypeFunc * asigtype);
-  ~OValSymConstExpr() override;
-
-  inline OTypeFunc * GetTypeFunc() const { return static_cast<OTypeFunc *>(ptype); }
-  void BuildParamSyms();
-  int FindParamIndex(const OValSym * avsym) const;
-  OExpr * Expand(vector<OExpr *> & args, const OScPosition & callpos) const;
-  bool WriteDqmIfDecl(ODqmIfWriter & writer) override;
-};
-
 class OValueFuncRef : public OValue
 {
 public:

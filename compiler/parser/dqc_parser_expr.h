@@ -14,6 +14,7 @@
 #pragma once
 
 #include "dqc_ast.h"
+#include "otype_constexpr.h"
 #include "otype_enum.h"
 
 struct SEmbeddedObjectBinding

@@ -1543,6 +1543,37 @@ LlConst * OValueStruct::CreateLlConst()
   return result;
 }
 
+bool OValueStruct::CopyFrom(const OValue * src)
+{
+  auto * src_struct = dynamic_cast<const OValueStruct *>(src);
+  if (!src_struct || src_struct->fields.size() != fields.size())
+  {
+    return false;
+  }
+  for (size_t i = 0; i < fields.size(); ++i)
+  {
+    if (!fields[i].value || !src_struct->fields[i].value
+        || !fields[i].value->CopyFrom(src_struct->fields[i].value))
+    {
+      return false;
+    }
+  }
+  ll_const = nullptr;
+  return true;
+}
+
+bool OValueStruct::CanWriteDqmIfInline() const
+{
+  for (const OStructConstField & field : fields)
+  {
+    if (!field.value || !field.value->CanWriteDqmIfInline())
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool OValueStruct::CalculateConstant(OExpr * expr, bool emit_errors)
 {
   if (!expr)
@@ -1552,6 +1583,21 @@ bool OValueStruct::CalculateConstant(OExpr * expr, bool emit_errors)
   if (!expr->ptype
       && !g_compiler->ConvertExprToType(ptype, &expr, emit_errors ? EXPCF_GENERATE_ERRORS : 0))
   {
+    return false;
+  }
+  if (auto * varref = dynamic_cast<OLValueVar *>(expr))
+  {
+    auto * vsconst = dynamic_cast<OValSymConst *>(varref->pvalsym);
+    auto * src_struct = (vsconst ? dynamic_cast<OValueStruct *>(vsconst->pvalue) : nullptr);
+    if (src_struct && src_struct->ResolvedType() == ptype->ResolveAlias())
+    {
+      return CopyFrom(src_struct);
+    }
+    if (emit_errors)
+    {
+      if (!vsconst) g_compiler->Error(DQERR_CONSTEXPR_NONCONST_SYM, varref->pvalsym->name, ptype->name);
+      else          g_compiler->Error(DQERR_CONSTEXPR_INVALID_FOR, ptype->name);
+    }
     return false;
   }
   auto * literal = dynamic_cast<OStructLit *>(expr);
@@ -1577,12 +1623,22 @@ bool OValueStruct::CalculateConstant(OExpr * expr, bool emit_errors)
       return false;
     }
   }
+  ll_const = nullptr;
   return true;
 }
 
 bool OValueStruct::WriteDqmIfValue(ODqmIfWriter & writer)
 {
-  return writer.AddRecEmpty(DQMIF_VALUE_LINKED);
+  if (!CanWriteDqmIfInline())
+  {
+    return writer.AddRecEmpty(DQMIF_VALUE_LINKED);
+  }
+  if (!writer.AddRecEmpty(DQMIF_VALUE_STRUCT_BEGIN)) return false;
+  for (OStructConstField & field : fields)
+  {
+    if (!field.value->WriteDqmIfValue(writer)) return false;
+  }
+  return writer.AddRecEmpty(DQMIF_VALUE_STRUCT_END);
 }
 
 OValue * OCompoundType::CreateValue()
@@ -1817,6 +1873,13 @@ public:
   LlConst * CreateLlConst() override
   {
     return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+  }
+
+  bool CopyFrom(const OValue * src) override
+  {
+    if (!dynamic_cast<const OValueObjectTypeRef *>(src)) return false;
+    ll_const = nullptr;
+    return true;
   }
 };
 

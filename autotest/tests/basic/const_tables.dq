@@ -1,0 +1,174 @@
+// const table initializers: named const aggregates, global addresses, bound fixed-object methods
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+struct SChannel:
+    tag  : uint16
+    data : uint32
+endstruct
+
+object OSub:
+public
+    gain : int32 = 5
+
+    func HandleSub(delta : int32) -> int32:
+        gain += delta
+        return gain
+    endfunc
+endobject
+
+object OBaseDev:
+public
+    base_val : int32 = 100
+
+    func HandleBaseVirtual(x : int32) -> int32 [[virtual]]:
+        return base_val + x
+    endfunc
+
+    func HandleVirtual(x : int32) -> int32 [[virtual]]:
+        return x
+    endfunc
+endobject
+
+object ODevice(OBaseDev):
+public
+    counter  : int32 = 7
+    channels : [4]SChannel
+    sub      <- OSub()
+
+    func HandlePlain(x : int32) -> int32:
+        counter += x
+        return counter
+    endfunc
+
+    func HandleVirtual(x : int32) -> int32 [[override]]:
+        return base_val + counter + x
+    endfunc
+
+    func HandleOverload(x : int32) -> int32 [[overload]]:
+        return x * 3
+    endfunc
+
+    func HandleOverload(x : int32, y : int32) -> int32 [[overload]]:
+        return x + y
+    endfunc
+endobject
+
+struct SCalc:
+    bias : int32
+
+    func Apply(x : int32) -> int32:
+        return bias + x
+    endfunc
+endstruct
+
+type FIntHandler = func(x : int32) -> int32 of object
+
+struct SParamDef:
+    flags   : uint32
+    var_ptr : pointer
+    handler : FIntHandler
+endstruct
+
+struct SParamRangeDef:
+    firstindex : uint16
+    lastindex  : uint16
+    partable   : ^SParamDef
+    handler    : FIntHandler
+endstruct
+
+struct SNestedConst:
+    entry : SParamDef
+    row   : [2]int32
+endstruct
+
+var g_scalar : int32 = 55
+var g_arr    : [4]int32 = [11, 22, 33, 44]
+var g_device <- ODevice()
+var g_calc   : SCalc = { 200 }
+
+const PTENTRY_EMPTY : SParamDef = {}
+const PTENTRY_CONST42 : SParamDef = { 0x300, pointer(42), nil }
+const PTENTRY_COPY : SParamDef = PTENTRY_CONST42
+
+const ROW_CONST : [2]int32 = [10, 20]
+const GRID_CONST : [2][2]int32 = [ROW_CONST, [30, 40]]
+const NESTED_CONST : SNestedConst = { PTENTRY_CONST42, ROW_CONST }
+
+const HANDLER_ALIAS : FIntHandler = g_device.HandlePlain
+const HANDLER_COPY  : FIntHandler = HANDLER_ALIAS
+
+const P_SCALAR : ^int32 = %g_scalar
+const P_ARR2   : ^int32 = %g_arr[2]
+const P_ARR3   : ^int32 = %g_arr[0] + 3
+const P_ARR1   : ^int32 = (%g_arr[0])[1]
+const P_DEV    : pointer = pointer(g_device)
+const P_BYTE   : ^byte = ^byte(%g_scalar)
+
+const pt_app : [?]SParamDef = [
+    PTENTRY_EMPTY,
+    PTENTRY_CONST42,
+    { 1, %g_scalar,                 nil },
+    { 2, %g_device.base_val,        g_device.HandleBaseVirtual },
+    { 3, %g_device.counter,         g_device.HandlePlain },
+    { 4, %g_device.channels[2].data, g_device.HandleVirtual },
+    { 5, %g_device.sub.gain,        g_device.sub.HandleSub },
+    { 6, %g_calc.bias,              g_device.HandleOverload },
+    { 7, nil,                       g_calc.Apply },
+    { 8, nil,                       HANDLER_COPY }
+]
+
+const param_ranges : [?]SParamRangeDef = [
+    { 0x2000, 0x2000 + pt_app.length - 1, %pt_app[0], nil },
+    { 0x2100, 0x2100,                     %pt_app[1], g_device.HandleVirtual },
+    {}
+]
+
+var g_var_entry : SParamDef = PTENTRY_CONST42
+var g_var_ptr   : ^int32 = %g_device.counter
+var g_var_cb    : FIntHandler = g_device.sub.HandleSub
+
+func *Main():
+    const LOCAL_EMPTY : SParamDef = PTENTRY_EMPTY
+    const LOCAL_TABLE : [2]SParamDef = [
+        LOCAL_EMPTY,
+        { 9, %g_device.counter, g_device.HandlePlain }
+    ]
+
+    // Verify named const struct / array copying
+    printf("empty=%u\n", pt_app[0].flags) //?check("empty", 0)
+    printf("const42=%d\n", int(pt_app[1].var_ptr)) //?check("const42", 42)
+    printf("copy=%d\n", int(PTENTRY_COPY.var_ptr)) //?check("copy", 42)
+    printf("grid=%d\n", GRID_CONST[0][0] + GRID_CONST[0][1] + GRID_CONST[1][1]) //?check("grid", 70)
+    printf("nested=%d\n", int(NESTED_CONST.entry.var_ptr) + NESTED_CONST.row[1]) //?check("nested", 62)
+
+    // Verify global / member / array-element addresses and pointer arithmetic
+    g_device.channels[2].data = 777
+    printf("scalar_ptr=%d\n", ^int32(pt_app[2].var_ptr)^) //?check("scalar_ptr", 55)
+    printf("arr_ptrs=%d\n", P_ARR1^ + P_ARR2^ + P_ARR3^) //?check("arr_ptrs", 99)
+    printf("chan_ptr=%u\n", ^uint32(pt_app[5].var_ptr)^) //?check("chan_ptr", 777)
+    printf("sub_ptr=%d\n", ^int32(pt_app[6].var_ptr)^) //?check("sub_ptr", 5)
+    printf("dev_ptr_match=%d\n", iif(P_DEV == pointer(%g_device), 1, 0)) //?check("dev_ptr_match", 1)
+    printf("byte_ptr_val=%d\n", int(P_BYTE^)) //?check("byte_ptr_val", 55)
+
+    // Mutate via const table pointer and confirm global updated
+    ^int32(pt_app[2].var_ptr)^ = 88
+    printf("mutated_scalar=%d\n", g_scalar) //?check("mutated_scalar", 88)
+
+    // Verify bound object / struct method handlers in const table
+    printf("h_base_virt=%d\n", pt_app[3].handler(5)) //?check("h_base_virt", 105)
+    printf("h_plain=%d\n", pt_app[4].handler(3)) //?check("h_plain", 10)
+    printf("h_virt=%d\n", pt_app[5].handler(2)) //?check("h_virt", 112)
+    printf("h_sub=%d\n", pt_app[6].handler(4)) //?check("h_sub", 9)
+    printf("h_overload=%d\n", pt_app[7].handler(6)) //?check("h_overload", 18)
+    printf("h_struct=%d\n", pt_app[8].handler(15)) //?check("h_struct", 215)
+    printf("h_copy=%d\n", pt_app[9].handler(2)) //?check("h_copy", 12)
+
+    // Verify range table pointing to const pt_app elements and global var inits
+    printf("range_len=%d\n", int(param_ranges[0].lastindex - param_ranges[0].firstindex + 1)) //?check("range_len", 10)
+    printf("range_el1=%d\n", int(param_ranges[0].partable[1]^.var_ptr)) //?check("range_el1", 42)
+    printf("range_p1=%d\n", int(param_ranges[1].partable^.var_ptr)) //?check("range_p1", 42)
+    printf("range_cb=%d\n", param_ranges[1].handler(1)) //?check("range_cb", 113)
+    printf("gvar=%d\n", int(g_var_entry.var_ptr) + g_var_ptr^ + g_var_cb(1)) //?check("gvar", 64)
+    printf("local_tbl=%d\n", int(LOCAL_TABLE[0].flags) + LOCAL_TABLE[1].handler(5)) //?check("local_tbl", 17)
+endfunc

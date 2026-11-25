@@ -275,6 +275,17 @@ LlValue * OLValueVar::GenerateAddress(OScope * scope)
   return pvalsym->ll_value;
 }
 
+bool OLValueVar::TryCalculateConstantAddress(SConstAddress & raddress) const
+{
+  if (!pvalsym || !pvalsym->HasGlobalStorage())
+  {
+    return false;
+  }
+  raddress.Reset();
+  raddress.symbol = pvalsym;
+  return true;
+}
+
 LlValue * OLValueVar::Generate(OScope * scope)
 {
   if (auto * fn = scope->GetFunction())
@@ -413,14 +424,14 @@ LlValue * OLValueDeref::GenerateAddress(OScope * scope)
   return ptrexpr->Generate(scope);  // the pointer value IS the address
 }
 
-bool OLValueDeref::TryCalculateConstantAddress(uint64_t & raddress) const
+bool OLValueDeref::TryCalculateConstantAddress(SConstAddress & raddress) const
 {
   OValuePointer ptrvalue(ptrexpr->ptype, 0);
-  if (!ptrvalue.CalculateConstant(ptrexpr, false))
+  if (!ptrvalue.CalculateConstant(ptrexpr, false) || ptrvalue.GetStringLiteral())
   {
     return false;
   }
-  raddress = ptrvalue.address;
+  raddress = ptrvalue.const_addr;
   return true;
 }
 
@@ -487,14 +498,19 @@ LlValue * OLValueMember::GenerateAddress(OScope * scope)
   return ll_builder.CreateStructGEP(structtype->GetLlType(), baseaddr, ll_index, "member.addr");
 }
 
-bool OLValueMember::TryCalculateConstantAddress(uint64_t & raddress) const
+bool OLValueMember::TryCalculateConstantAddress(SConstAddress & raddress) const
 {
   auto * ctype = dynamic_cast<OCompoundType *>(structtype ? structtype->ResolveAlias() : nullptr);
-  if (!ctype || memberindex >= ctype->member_order.size() || !base->TryCalculateConstantAddress(raddress))
+  if (!ctype || memberindex >= ctype->member_order.size() || !base || base->IsObjectReferenceExpr())
   {
     return false;
   }
-  raddress += ctype->member_order[memberindex]->field_offset;
+  if (!base->TryCalculateConstantAddress(raddress))
+  {
+    return false;
+  }
+  ctype->EnsureLayout();
+  raddress.AddByteOffset(int64_t(ctype->member_order[memberindex]->field_offset));
   return true;
 }
 
@@ -666,6 +682,24 @@ LlValue * OLValueIndex::GenerateAddress(OScope * scope)
   }
 
   throw logic_error("OLValueIndex::GenerateAddress: unsupported container type");
+}
+
+bool OLValueIndex::TryCalculateConstantAddress(SConstAddress & raddress) const
+{
+  OType * ctype = containertype ? containertype->ResolveAlias() : nullptr;
+  if (!ctype || (TK_ARRAY != ctype->kind) || !base || !indexexpr)
+  {
+    return false;
+  }
+  int64_t idx = 0;
+  if (!g_compiler->TryCalculateIntConstant(indexexpr, idx) || !base->TryCalculateConstantAddress(raddress))
+  {
+    return false;
+  }
+  auto * arrtype = static_cast<OTypeArray *>(ctype);
+  arrtype->elemtype->EnsureLayout();
+  raddress.AddByteOffset(idx * int64_t(arrtype->elemtype->bytesize));
+  return true;
 }
 
 LlValue * OLValueIndex::Generate(OScope * scope)

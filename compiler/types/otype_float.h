@@ -32,6 +32,15 @@ public:
 
   LlConst *  CreateLlConst() override;
   bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool       CopyFrom(const OValue * src) override
+  {
+    auto * v = dynamic_cast<const OValueFloat *>(src);
+    if (!v) return false;
+    value = v->value;
+    ll_const = nullptr;
+    return true;
+  }
+  bool       CanWriteDqmIfInline() const override { return true; }
   bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
 };
 

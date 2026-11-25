@@ -77,7 +77,7 @@ class OLValueExpr : public OExpr
 public:
   virtual LlValue * GenerateAddress(OScope * scope) = 0;
   virtual bool IsReadOnlyTextElement() const { return false; }
-  virtual bool TryCalculateConstantAddress(uint64_t & raddress) const { return false; }
+  virtual bool TryCalculateConstantAddress(SConstAddress & raddress) const { return false; }
   LlValue * Generate(OScope * scope) override;  // default: load from GenerateAddress()
   LlValue * GenerateMemoryLoad(LlType * type, LlValue * address, const string & name);
   virtual bool IsObjectReferenceExpr() const { return false; }
@@ -97,6 +97,7 @@ public:
   OValSym *  pvalsym;
   /* ctor */ OLValueVar(OValSym * avalsym);
   LlValue *  GenerateAddress(OScope * scope) override;
+  bool       TryCalculateConstantAddress(SConstAddress & raddress) const override;
   LlValue *  Generate(OScope * scope) override;
   bool       IsObjectReferenceExpr() const override;
   bool       IsFixedObjectStorageExpr() const override;
@@ -114,7 +115,7 @@ public:
   /* ctor */ OLValueDeref(OExpr * aptr);
   ~OLValueDeref() override;
   LlValue *  GenerateAddress(OScope * scope) override;
-  bool       TryCalculateConstantAddress(uint64_t & raddress) const override;
+  bool       TryCalculateConstantAddress(SConstAddress & raddress) const override;
   LlValue *  Generate(OScope * scope) override;
   bool       IsObjectReferenceExpr() const override;
   bool       RequiresVolatileMemoryAccess() const override { return true; }
@@ -133,7 +134,7 @@ public:
   ~OLValueMember() override;
   OValSym *  MemberSymbol() const;
   LlValue *  GenerateAddress(OScope * scope) override;
-  bool       TryCalculateConstantAddress(uint64_t & raddress) const override;
+  bool       TryCalculateConstantAddress(SConstAddress & raddress) const override;
   LlValue *  Generate(OScope * scope) override;
   bool       IsObjectReferenceExpr() const override;
   bool       IsFixedObjectStorageExpr() const override;
@@ -159,6 +160,7 @@ public:
     return type && (TK_ROSTR == type->kind || TK_STRSLICE == type->kind);
   }
   LlValue *  GenerateAddress(OScope * scope) override;
+  bool       TryCalculateConstantAddress(SConstAddress & raddress) const override;
   LlValue *  Generate(OScope * scope) override;
   bool       IsObjectReferenceExpr() const override;
   bool       RequiresVolatileMemoryAccess() const override;

@@ -15,6 +15,8 @@
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.98.8:
+  - Supporting constant tables with linker-time resolved address references
 v0.98.7:
   - SizeOf() argument handling fix
 v0.98.6:

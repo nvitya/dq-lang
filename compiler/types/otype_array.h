@@ -28,6 +28,8 @@ public:
 
   LlConst *  CreateLlConst() override;
   bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool       CopyFrom(const OValue * src) override;
+  bool       CanWriteDqmIfInline() const override;
   bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
 };
 

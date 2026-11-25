@@ -333,6 +333,7 @@ public:
   bool          is_null = true;
   OValSymFunc * target_func = nullptr;
   OValSym *     target_symbol = nullptr;
+  SConstAddress receiver_address;
 
   OValueFuncRef(OType * atype, bool ais_null = true)
   :
@@ -343,6 +344,8 @@ public:
 
   LlConst *  CreateLlConst() override;
   bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool       CopyFrom(const OValue * src) override;
+  bool       CanWriteDqmIfInline() const override { return is_null; }
   bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
   OExpr *    UnwrapConstExpr(OExpr * expr) const;
 };

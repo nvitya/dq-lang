@@ -607,6 +607,19 @@ inline OTypeAutoFree * AsAutoFreeType(OType * type)
 
 class OExpr;
 
+struct SConstAddress
+{
+  OValSym *  symbol = nullptr;  // non-null: global storage symbol; null: absolute address
+  uint64_t   address = 0;       // absolute address when symbol == nullptr
+  int64_t    offset = 0;        // signed byte offset when symbol != nullptr
+
+  bool IsNull() const { return !symbol && (0 == address); }
+  void Reset() { symbol = nullptr; address = 0; offset = 0; }
+  void MaskAbsoluteAddress();
+  void AddByteOffset(int64_t abyte_offset);
+  LlConst * CreateLlConst(LlType * ll_ptr_type) const;
+};
+
 class OValue
 {
 public:
@@ -632,6 +645,8 @@ public:
   }
 
   virtual bool CalculateConstant(OExpr * expr, bool emit_errors = true) { return false; }
+  virtual bool CopyFrom(const OValue * src) { (void)src; return false; }
+  virtual bool CanWriteDqmIfInline() const { return false; }
   virtual bool WriteDqmIfValue(ODqmIfWriter & writer);
 
   inline OType * ResolvedType() const
@@ -646,20 +661,22 @@ private:
   using        super = OValue;
 
 public:
-  uint64_t     address = 0;
+  SConstAddress const_addr;
   bool         has_string_literal = false;
   string       string_literal;
   OValuePointer * string_literal_source = nullptr;
 
   OValuePointer(OType * atype, uint64_t aaddress)
   :
-    super(atype),
-    address(aaddress)
+    super(atype)
   {
+    const_addr.address = aaddress;
   }
 
   LlConst *  CreateLlConst() override;
   bool       CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool       CopyFrom(const OValue * src) override;
+  bool       CanWriteDqmIfInline() const override { return !const_addr.symbol; }
   bool       WriteDqmIfValue(ODqmIfWriter & writer) override;
 
   const string * GetStringLiteral() const;
@@ -799,6 +816,7 @@ public:
   }
 
   bool IsObjectType() const;
+  bool HasGlobalStorage() const;
 
   inline bool IsRefNullable() const
   {

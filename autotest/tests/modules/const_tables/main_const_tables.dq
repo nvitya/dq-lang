@@ -1,0 +1,36 @@
+use ./mod_defs
+use ./mod_device
+
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+const LOCAL_LUT_COPY : [3]uint16 = SMALL_LUT
+
+const pt_local : [?]SParamDef = [
+    PTENTRY_EMPTY,
+    PTENTRY_VER,
+    { 1, %g_device.counter,      g_device.Handle },
+    { 2, %g_device.items[1].val, g_device.sub.HandleSub },
+    { 3, nil,                    g_device.HandleVirt }
+]
+
+const param_range_table : [?]SParamRangeDef = [
+    { 0x2000, 0x2000 + pt_local.length - 1,     %pt_local[0],     nil },
+    { 0x3000, 0x3000 + REMOTE_TABLE.length - 1, %REMOTE_TABLE[0], g_device.HandleVirt },
+    {}
+]
+
+func *Main():
+    g_device.items[1].val = 99
+
+    printf("lut=%d\n", int(LOCAL_LUT_COPY[0]) + int(LOCAL_LUT_COPY[2])) //?check("lut", 44)
+    printf("empty=%u\n", pt_local[0].flags) //?check("empty", 0)
+    printf("ver=%d\n", int(pt_local[1].var_ptr)) //?check("ver", 7)
+    printf("counter_ptr=%d\n", ^int32(pt_local[2].var_ptr)^) //?check("counter_ptr", 50)
+    printf("item_ptr=%d\n", ^int32(pt_local[3].var_ptr)^) //?check("item_ptr", 99)
+    printf("h_handle=%d\n", pt_local[2].handler(5)) //?check("h_handle", 55)
+    printf("h_sub=%d\n", pt_local[3].handler(4)) //?check("h_sub", 34)
+    printf("h_virt=%d\n", pt_local[4].handler(2)) //?check("h_virt", 57)
+    printf("remote_flag=%u\n", param_range_table[1].partable[1]^.flags) //?check("remote_flag", 10)
+    printf("remote_cb=%d\n", param_range_table[1].partable[1]^.handler(3)) //?check("remote_cb", 58)
+    printf("range_cb=%d\n", param_range_table[1].handler(1)) //?check("range_cb", 59)
+endfunc

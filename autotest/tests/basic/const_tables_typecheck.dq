@@ -1,0 +1,52 @@
+// diagnostics for invalid const table initializers
+
+object ODev:
+public
+    val : int32 = 1
+
+    func Handle(x : int32) -> int32:
+        return val + x
+    endfunc
+
+    func WrongSig(x : int32, y : int32) -> int32:
+        return x + y
+    endfunc
+endobject
+
+type FHandler = func(x : int32) -> int32 of object
+
+struct SEntry:
+    flags   : uint32
+    var_ptr : pointer
+    handler : FHandler
+endstruct
+
+struct SOther:
+    a : uint32
+endstruct
+
+var g_i32 : int32 = 0
+var g_arr : [4]int32 = [1, 2, 3, 4]
+var g_dev_fixed <- ODev()
+var g_dev_ref   : ODev = nil
+var g_runtime_entry : SEntry = {}
+
+const OTHER_CONST : SOther = { 1 }
+
+const BAD_VAR_STRUCT    : SEntry   = g_runtime_entry //?error(ConstExprNonConstVs), error(ConstExprInvalid)
+const BAD_WRONG_STRUCT  : SEntry   = OTHER_CONST //?error(ConstExprInvalid)
+const BAD_PTR_TYPE      : ^byte    = %g_i32 //?error(TypeMismatchPtr), error(ConstExprInvalid)
+const BAD_OBJREF_FIELD  : pointer  = %g_dev_ref.val //?error(ConstExprInvalid)
+const BAD_OBJREF_METHOD : FHandler = g_dev_ref.Handle //?error(ConstExprInvalid)
+const BAD_METHOD_SIG    : FHandler = g_dev_fixed.WrongSig //?error(FuncSigType), error(ConstExprInvalid)
+const BAD_DYN_IDX       : ^int32   = %g_arr[g_i32] //?error(ConstExprInvalid)
+
+func *Main():
+    var local_i32 : int32 = 5
+    var local_obj <- ODev()
+    const LOCAL_ARR : [2]int32 = [1, 2]
+
+    const BAD_LOCAL_ADDR   : pointer  = %local_i32 //?error(ConstExprInvalid)
+    const BAD_LOCAL_CARR   : ^int32   = %LOCAL_ARR[0] //?error(ConstExprInvalid)
+    const BAD_LOCAL_METHOD : FHandler = local_obj.Handle //?error(ConstExprInvalid)
+endfunc

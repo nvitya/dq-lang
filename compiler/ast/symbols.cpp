@@ -536,6 +536,61 @@ bool OTypeAlias::WriteDqmIfDecl(ODqmIfWriter & writer)
   return writer.AddRecEmpty(DQMIF_TYPE_END);
 }
 
+void SConstAddress::MaskAbsoluteAddress()
+{
+  uint32_t ptrbits = TARGET_PTRSIZE * 8;
+  if (ptrbits < 64)
+  {
+    address &= (uint64_t(1) << ptrbits) - 1;
+  }
+}
+
+void SConstAddress::AddByteOffset(int64_t abyte_offset)
+{
+  if (symbol)
+  {
+    offset += abyte_offset;
+  }
+  else
+  {
+    address = uint64_t(int64_t(address) + abyte_offset);
+    MaskAbsoluteAddress();
+  }
+}
+
+LlConst * SConstAddress::CreateLlConst(LlType * ll_ptr_type) const
+{
+  if (symbol)
+  {
+    auto * ll_target = llvm::dyn_cast_or_null<LlConst>(symbol->ll_value);
+    if (!ll_target)
+    {
+      throw logic_error("Constant address target symbol is not prepared in LLVM: " + symbol->name);
+    }
+    LlConst * ll_result = ll_target;
+    if (0 != offset)
+    {
+      LlType * ll_intptr = LlType::getIntNTy(ll_ctx, TARGET_PTRSIZE * 8);
+      LlConst * ll_offset = llvm::ConstantInt::get(ll_intptr, uint64_t(offset));
+      ll_result = llvm::ConstantExpr::getGetElementPtr(LlType::getInt8Ty(ll_ctx), ll_target, ll_offset);
+    }
+    if (ll_ptr_type && ll_result->getType() != ll_ptr_type)
+    {
+      return llvm::ConstantExpr::getBitCast(ll_result, ll_ptr_type);
+    }
+    return ll_result;
+  }
+
+  if (0 == address)
+  {
+    return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
+  }
+
+  LlType * ll_intptr = LlType::getIntNTy(ll_ctx, TARGET_PTRSIZE * 8);
+  LlConst * ll_address = llvm::ConstantInt::get(ll_intptr, address);
+  return llvm::ConstantExpr::getIntToPtr(ll_address, ll_ptr_type ? ll_ptr_type : llvm::PointerType::get(ll_ctx, 0));
+}
+
 OValue * OTypePointer::CreateValue()
 {
   return new OValuePointer(this, 0);
@@ -567,22 +622,80 @@ LlConst * OValuePointer::CreateLlConst()
     return llvm::ConstantExpr::getBitCast(global, ptype->GetLlType());
   }
 
-  if (0 == address)
-  {
-    return llvm::ConstantPointerNull::get(llvm::PointerType::get(ll_ctx, 0));
-  }
+  return const_addr.CreateLlConst(ptype->GetLlType());
+}
 
-  LlType * ll_intptr = LlType::getIntNTy(ll_ctx, TARGET_PTRSIZE * 8);
-  LlConst * ll_address = llvm::ConstantInt::get(ll_intptr, address);
-  return llvm::ConstantExpr::getIntToPtr(ll_address, ptype->GetLlType());
+bool OValuePointer::CopyFrom(const OValue * src)
+{
+  auto * srcptr = dynamic_cast<const OValuePointer *>(src);
+  if (!srcptr)
+  {
+    return false;
+  }
+  const_addr = srcptr->const_addr;
+  has_string_literal = srcptr->has_string_literal;
+  string_literal = srcptr->string_literal;
+  if (srcptr->GetStringLiteral())
+  {
+    string_literal_source = srcptr->string_literal_source
+        ? srcptr->string_literal_source
+        : const_cast<OValuePointer *>(srcptr);
+  }
+  else
+  {
+    string_literal_source = nullptr;
+  }
+  ll_const = nullptr;
+  return true;
 }
 
 bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
 {
-  address = 0;
+  const_addr.Reset();
   has_string_literal = false;
   string_literal.clear();
   string_literal_source = nullptr;
+  ll_const = nullptr;
+
+  auto * dst_ptr = dynamic_cast<OTypePointer *>(ResolvedType());
+  auto check_ptr_assignable = [&](OType * srctype) -> bool
+  {
+    auto * src_ptr = dynamic_cast<OTypePointer *>(srctype);
+    if (dst_ptr && src_ptr && !g_compiler->CanAssignPointerImplicitly(dst_ptr, src_ptr))
+    {
+      if (emit_errors) g_compiler->Error(DQERR_PTR_TYPEMISM, dst_ptr->name, src_ptr->name);
+      return false;
+    }
+    return true;
+  };
+
+  auto calc_indexed = [&](OExpr * base_expr, OExpr * idx_expr, bool subtract) -> bool
+  {
+    auto * base_ptr = dynamic_cast<OTypePointer *>(base_expr ? base_expr->ResolvedType() : nullptr);
+    if (!base_ptr || !base_ptr->IsTypedPointer() || !base_ptr->basetype)
+    {
+      if (emit_errors) g_compiler->Error(DQERR_CONSTEXPR_INVALID_FOR, ptype->name);
+      return false;
+    }
+    if (!check_ptr_assignable(base_ptr)) return false;
+
+    OValuePointer base_val(base_ptr, 0);
+    if (!base_val.CalculateConstant(base_expr, emit_errors) || base_val.GetStringLiteral())
+    {
+      if (emit_errors && base_val.GetStringLiteral()) g_compiler->Error(DQERR_CONSTEXPR_INVALID_FOR, ptype->name);
+      return false;
+    }
+    int64_t idx = 0;
+    if (!g_compiler->TryCalculateIntConstant(idx_expr, idx))
+    {
+      if (emit_errors) g_compiler->Error(DQERR_CONSTEXPR_INVALID_FOR, ptype->name);
+      return false;
+    }
+    base_ptr->basetype->EnsureLayout();
+    CopyFrom(&base_val);
+    const_addr.AddByteOffset((subtract ? -idx : idx) * int64_t(base_ptr->basetype->bytesize));
+    return true;
+  };
 
   if (auto * strlit = dynamic_cast<OEmbStrLit *>(expr))
   {
@@ -602,14 +715,8 @@ bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
     auto * ptrvalue = (vsconst ? dynamic_cast<OValuePointer *>(vsconst->pvalue) : nullptr);
     if (ptrvalue)
     {
-      address = ptrvalue->address;
-      if (ptrvalue->GetStringLiteral())
-      {
-        has_string_literal = ptrvalue->has_string_literal;
-        string_literal = ptrvalue->string_literal;
-        string_literal_source = ptrvalue->string_literal_source ? ptrvalue->string_literal_source : ptrvalue;
-      }
-      return true;
+      if (!check_ptr_assignable(varref->ResolvedType())) return false;
+      return CopyFrom(ptrvalue);
     }
     if (emit_errors && !vsconst)
     {
@@ -620,7 +727,8 @@ bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
 
   if (auto * addrof = dynamic_cast<OAddrOfExpr *>(expr))
   {
-    if (!addrof->target->TryCalculateConstantAddress(address))
+    if (!check_ptr_assignable(addrof->ResolvedType())) return false;
+    if (!addrof->target->TryCalculateConstantAddress(const_addr))
     {
       if (emit_errors)
       {
@@ -629,12 +737,22 @@ bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
       return false;
     }
 
-    uint32_t ptrbits = TARGET_PTRSIZE * 8;
-    if (ptrbits < 64)
+    if (!const_addr.symbol)
     {
-      address &= (uint64_t(1) << ptrbits) - 1;
+      const_addr.MaskAbsoluteAddress();
     }
     return true;
+  }
+
+  if (auto * ptridx = dynamic_cast<OPointerIndexExpr *>(expr))
+  {
+    return calc_indexed(ptridx->ptrexpr, ptridx->indexexpr, false);
+  }
+
+  if (auto * bin = dynamic_cast<OBinExpr *>(expr);
+      bin && ((BINOP_ADD == bin->op) || (BINOP_SUB == bin->op)))
+  {
+    return calc_indexed(bin->left, bin->right, BINOP_SUB == bin->op);
   }
 
   if (auto * conv = dynamic_cast<OExprTypeConv *>(expr))
@@ -648,12 +766,8 @@ bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
         return false;
       }
 
-      address = uint64_t(intvalue.value);
-      uint32_t ptrbits = TARGET_PTRSIZE * 8;
-      if (ptrbits < 64)
-      {
-        address &= (uint64_t(1) << ptrbits) - 1;
-      }
+      const_addr.address = uint64_t(intvalue.value);
+      const_addr.MaskAbsoluteAddress();
       return true;
     }
 
@@ -664,11 +778,17 @@ bool OValuePointer::CalculateConstant(OExpr * expr, bool emit_errors)
       {
         return false;
       }
-      address = ptrvalue.address;
-      has_string_literal = ptrvalue.has_string_literal;
-      string_literal = ptrvalue.string_literal;
-      string_literal_source = ptrvalue.string_literal_source;
-      return true;
+      return CopyFrom(&ptrvalue);
+    }
+
+    if (srctype && (TK_OBJECT == srctype->kind))
+    {
+      auto * lval = dynamic_cast<OLValueExpr *>(conv->src);
+      if (lval && lval->IsFixedObjectStorageExpr() && lval->TryCalculateConstantAddress(const_addr))
+      {
+        if (!const_addr.symbol) const_addr.MaskAbsoluteAddress();
+        return true;
+      }
     }
   }
 
@@ -687,11 +807,15 @@ bool OValue::WriteDqmIfValue(ODqmIfWriter & writer)
 
 bool OValuePointer::WriteDqmIfValue(ODqmIfWriter & writer)
 {
+  if (const_addr.symbol)
+  {
+    return writer.AddRecEmpty(DQMIF_VALUE_LINKED);
+  }
   if (const string * value = GetStringLiteral())
   {
     return writer.AddRecStr(DQMIF_VALUE_EMBSTR_POINTER, *value);
   }
-  return writer.AddRecU64(DQMIF_VALUE_INLINE, address);
+  return writer.AddRecU64(DQMIF_VALUE_INLINE, const_addr.address);
 }
 
 const string * OValuePointer::GetStringLiteral() const
@@ -879,7 +1003,10 @@ void OValSym::GenGlobalDecl(bool apublic, OValue * ainitval)
   {
     OValSymConst * vsconst = static_cast<OValSymConst *>(this);
     OType * resolved_type = ResolvedType();
-    if (resolved_type && (TK_ARRAY == resolved_type->kind || TK_STRUCT == resolved_type->kind))
+    bool needs_global = resolved_type
+        && (TK_ARRAY == resolved_type->kind || TK_STRUCT == resolved_type->kind
+            || (vsconst->pvalue && !vsconst->pvalue->CanWriteDqmIfInline()));
+    if (needs_global)
     {
       LlLinkType  linktype =
         ((apublic || attr_has_linkage_name) ? LlLinkType::ExternalLinkage
@@ -950,8 +1077,10 @@ void OValSym::GenGlobalImportDecl()
   }
   else if (VSK_CONST == kind)
   {
+    auto * vsconst = static_cast<OValSymConst *>(this);
     OType * resolved_type = ResolvedType();
-    if (!resolved_type || (TK_ARRAY != resolved_type->kind && TK_STRUCT != resolved_type->kind))
+    bool linked_const = vsconst->pvalue && (typeid(*vsconst->pvalue) == typeid(OValue));
+    if (!resolved_type || (!linked_const && TK_ARRAY != resolved_type->kind && TK_STRUCT != resolved_type->kind))
     {
       return;
     }
@@ -1000,6 +1129,24 @@ OValSym::~OValSym()
 bool OValSym::IsObjectType() const
 {
   return dynamic_cast<OTypeObject *>(ptype ? ptype->ResolveAlias() : nullptr);
+}
+
+bool OValSym::HasGlobalStorage() const
+{
+  if (owner_function || IsRefLike())
+  {
+    return false;
+  }
+  if (VSK_VARIABLE == kind)
+  {
+    return true;
+  }
+  if (VSK_CONST == kind)
+  {
+    OType * resolved = ResolvedType();
+    return resolved && (TK_ARRAY == resolved->kind || TK_STRUCT == resolved->kind);
+  }
+  return false;
 }
 
 bool OValSym::GenerateFieldInitStore(OScope * scope, LlValue * ll_field_addr)

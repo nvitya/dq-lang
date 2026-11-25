@@ -169,13 +169,55 @@ static string ConstValueText(OValue * avalue)
   {
     return EscapeStringLiteral(v->value);
   }
+  if (auto * v = dynamic_cast<OValueEnum *>(avalue))
+  {
+    return to_string(v->value);
+  }
+  if (auto * v = dynamic_cast<OValueTextLiteral *>(avalue))
+  {
+    if (const string * value = v->literal.GetStringLiteral())
+    {
+      return EscapeStringLiteral(*value);
+    }
+    return "\"\"";
+  }
   if (auto * v = dynamic_cast<OValuePointer *>(avalue))
   {
     if (const string * value = v->GetStringLiteral())
     {
       return EscapeStringLiteral(*value);
     }
-    return (0 == v->address ? "nil" : format("0x{:X}", v->address));
+    if (v->const_addr.symbol)
+    {
+      return format("%{}+{}", v->const_addr.symbol->name, v->const_addr.offset);
+    }
+    return (0 == v->const_addr.address ? "nil" : format("0x{:X}", v->const_addr.address));
+  }
+  if (auto * v = dynamic_cast<OValueFuncRef *>(avalue))
+  {
+    return (v->is_null ? "nil" : (v->target_func ? v->target_func->name : "<funcref>"));
+  }
+  if (auto * v = dynamic_cast<OValueStruct *>(avalue))
+  {
+    string result = "{";
+    for (size_t i = 0; i < v->fields.size(); ++i)
+    {
+      if (i > 0) result += ", ";
+      result += ConstValueText(v->fields[i].value);
+    }
+    result += "}";
+    return result;
+  }
+  if (auto * v = dynamic_cast<OValueArray *>(avalue))
+  {
+    string result = "[";
+    for (size_t i = 0; i < v->elements.size(); ++i)
+    {
+      if (i > 0) result += ", ";
+      result += ConstValueText(v->elements[i]);
+    }
+    result += "]";
+    return result;
   }
   if (typeid(*avalue) == typeid(OValue))
   {
@@ -2424,6 +2466,15 @@ bool OModuleIntf::ApplyDqmIfAttributes(OValSym * avalsym, const SDqmIfAttributes
   return true;
 }
 
+static bool IsDqmIfValueStartRec(uint16_t arecid)
+{
+  return (DQMIF_VALUE_INLINE == arecid)
+      || (DQMIF_VALUE_LINKED == arecid)
+      || (DQMIF_VALUE_EMBSTR_POINTER == arecid)
+      || (DQMIF_VALUE_STRUCT_BEGIN == arecid)
+      || (DQMIF_VALUE_ARRAY_BEGIN == arecid);
+}
+
 bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *& rvalue)
 {
   rvalue = nullptr;
@@ -2442,15 +2493,77 @@ bool OModuleIntf::ReadInlineValue(ODqmIfReader & reader, OType * atype, OValue *
     return true;
   }
 
-  if ((DQMIF_VALUE_INLINE != reader.recid) && (DQMIF_VALUE_EMBSTR_POINTER != reader.recid))
-  {
-    return reader.Fail(format("Expected DQM interface value record, got 0x{:04X}", reader.recid));
-  }
-
   OType * rtype = atype->ResolveAlias();
   if (!rtype)
   {
     return reader.Fail("DQM interface value type can not be resolved");
+  }
+
+  if (DQMIF_VALUE_STRUCT_BEGIN == reader.recid)
+  {
+    if (!reader.ExpectEmpty(DQMIF_VALUE_STRUCT_BEGIN)) return false;
+    auto * ctype = dynamic_cast<OCompoundType *>(rtype);
+    if (!ctype || (TK_STRUCT != ctype->kind))
+    {
+      return reader.Fail(format("DQM interface struct value does not match type {}", atype->name));
+    }
+    auto * sv = new OValueStruct(ctype);
+    sv->ptype = atype;
+    for (OStructConstField & field : sv->fields)
+    {
+      OValue * field_val = nullptr;
+      if (!reader.NextRec() || !ReadInlineValue(reader, field.field->ptype, field_val))
+      {
+        delete field_val;
+        delete sv;
+        return false;
+      }
+      delete field.value;
+      field.value = field_val;
+    }
+    if (!reader.NextRec() || !reader.ExpectEmpty(DQMIF_VALUE_STRUCT_END))
+    {
+      delete sv;
+      return false;
+    }
+    rvalue = sv;
+    return true;
+  }
+
+  if (DQMIF_VALUE_ARRAY_BEGIN == reader.recid)
+  {
+    if (!reader.ExpectEmpty(DQMIF_VALUE_ARRAY_BEGIN)) return false;
+    auto * arrtype = dynamic_cast<OTypeArray *>(rtype);
+    if (!arrtype)
+    {
+      return reader.Fail(format("DQM interface array value does not match type {}", atype->name));
+    }
+    auto * av = new OValueArray(arrtype);
+    av->ptype = atype;
+    for (OValue *& elem : av->elements)
+    {
+      OValue * elem_val = nullptr;
+      if (!reader.NextRec() || !ReadInlineValue(reader, arrtype->elemtype, elem_val))
+      {
+        delete elem_val;
+        delete av;
+        return false;
+      }
+      delete elem;
+      elem = elem_val;
+    }
+    if (!reader.NextRec() || !reader.ExpectEmpty(DQMIF_VALUE_ARRAY_END))
+    {
+      delete av;
+      return false;
+    }
+    rvalue = av;
+    return true;
+  }
+
+  if ((DQMIF_VALUE_INLINE != reader.recid) && (DQMIF_VALUE_EMBSTR_POINTER != reader.recid))
+  {
+    return reader.Fail(format("Expected DQM interface value record, got 0x{:04X}", reader.recid));
   }
 
   if (DQMIF_VALUE_EMBSTR_POINTER == reader.recid)
@@ -2766,8 +2879,7 @@ bool OModuleIntf::ReadFunctionParam(ODqmIfReader & reader, OTypeFunc * asigtype)
         return false;
       }
     }
-    else if ((DQMIF_VALUE_INLINE == reader.recid) || (DQMIF_VALUE_LINKED == reader.recid)
-             || (DQMIF_VALUE_EMBSTR_POINTER == reader.recid))
+    else if (IsDqmIfValueStartRec(reader.recid))
     {
       if (!ptype)
       {
@@ -3102,8 +3214,7 @@ bool OModuleIntf::ReadFieldDecl(ODqmIfReader & reader, OCompoundType * aowner_ty
     return false;
   }
 
-  if ((DQMIF_VALUE_INLINE == reader.recid) || (DQMIF_VALUE_LINKED == reader.recid)
-      || (DQMIF_VALUE_EMBSTR_POINTER == reader.recid))
+  if (IsDqmIfValueStartRec(reader.recid))
   {
     OValue * ignored_value = nullptr;
     if (!ReadInlineValue(reader, ptype, ignored_value) || !reader.NextRec())

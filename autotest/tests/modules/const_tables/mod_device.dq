@@ -1,0 +1,48 @@
+//?notest
+
+use ./mod_defs
+
+struct SItem:
+    code : uint16
+    val  : int32
+endstruct
+
+object OSubDev:
+public
+    offset : int32 = 30
+
+    func HandleSub(x : int32) -> int32:
+        return offset + x
+    endfunc
+endobject
+
+object ODeviceBase:
+public
+    func HandleVirt(x : int32) -> int32 [[virtual]]:
+        return x
+    endfunc
+endobject
+
+object ODevice(ODeviceBase):
+public
+    counter : int32 = 50
+    items   : [2]SItem
+    sub     <- OSubDev()
+
+    func Handle(x : int32) -> int32:
+        counter += x
+        return counter
+    endfunc
+
+    func HandleVirt(x : int32) -> int32 [[override]]:
+        return counter + x
+    endfunc
+endobject
+
+var g_device <- ODevice()
+
+// Public const array containing relocatable pointers and bound methods must fall back to DQMIF_VALUE_LINKED.
+const REMOTE_TABLE : [2]SParamDef = [
+    PTENTRY_EMPTY,
+    { 10, %g_device.counter, g_device.Handle }
+]

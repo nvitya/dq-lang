@@ -1,0 +1,20 @@
+//?notest
+
+type FParamHandler = func(x : int32) -> int32 of object
+
+struct SParamDef:
+    flags   : uint32
+    var_ptr : pointer
+    handler : FParamHandler
+endstruct
+
+struct SParamRangeDef:
+    firstindex : uint16
+    lastindex  : uint16
+    partable   : ^SParamDef
+    handler    : FParamHandler
+endstruct
+
+const PTENTRY_EMPTY : SParamDef = {}
+const PTENTRY_VER   : SParamDef = { 0x300, pointer(7), nil }
+const SMALL_LUT     : [3]uint16 = [11, 22, 33]

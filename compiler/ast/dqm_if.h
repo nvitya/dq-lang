@@ -21,8 +21,8 @@
 using namespace std;
 
 //                                    MAJOR          MINOR
-const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    34 );  // generated version
-const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    34 );  // minimal required version
+const uint32_t  DQMIF_VERSION      ( (    1 << 16) |    35 );  // generated version
+const uint32_t  DQMIF_MIN_VERSION  ( (    1 << 16) |    35 );  // minimal required version
 
 struct TDqmIfHeader // compact global header (32 bytes)
 {
@@ -133,6 +133,10 @@ TDqmIfRecId  DQMIF_TYPE_SPEC_END          = 0x80FF;  // 0: complex type spec end
 TDqmIfRecId  DQMIF_VALUE_INLINE           = 0x8100;  // blob, variable length
 TDqmIfRecId  DQMIF_VALUE_LINKED           = 0x8101;  // 0: value is stored in linked object data (aggregates)
 TDqmIfRecId  DQMIF_VALUE_EMBSTR_POINTER  = 0x8102;  // str: relocatable ^char string literal
+TDqmIfRecId  DQMIF_VALUE_STRUCT_BEGIN     = 0x8110;  // 0: inline struct constant fields in layout init order
+TDqmIfRecId  DQMIF_VALUE_STRUCT_END       = 0x811F;  // 0
+TDqmIfRecId  DQMIF_VALUE_ARRAY_BEGIN      = 0x8120;  // 0: inline fixed-array constant elements in index order
+TDqmIfRecId  DQMIF_VALUE_ARRAY_END        = 0x812F;  // 0
 
 TDqmIfRecId  DQMIF_ATTR_FLAGS             = 0x8200;  // uint64
 TDqmIfRecId  DQMIF_ATTR_ALIGN_VALUE       = 0x8201;  // int32

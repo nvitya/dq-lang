@@ -1950,11 +1950,18 @@ LlConst * OValueFuncRef::CreateLlConst()
   auto * fref_type = dynamic_cast<OTypeFuncRef *>(ptype ? ptype->ResolveAlias() : nullptr);
   if (fref_type && fref_type->object_ref)
   {
-    if (!is_null)
+    if (is_null)
     {
-      throw logic_error("Object FuncRef constants only support nil values");
+      return llvm::ConstantAggregateZero::get(fref_type->GetLlType());
     }
-    return llvm::ConstantAggregateZero::get(fref_type->GetLlType());
+    if (!target_func || !target_func->ll_func)
+    {
+      throw logic_error("Object FuncRef constant method target is not prepared in LLVM");
+    }
+    LlType * ll_ptr = llvm::PointerType::get(ll_ctx, 0);
+    LlConst * ll_receiver = receiver_address.CreateLlConst(ll_ptr);
+    auto * ll_struct = static_cast<llvm::StructType *>(fref_type->GetLlType());
+    return llvm::ConstantStruct::get(ll_struct, {target_func->ll_func, ll_receiver});
   }
 
   if (is_null)
@@ -1984,11 +1991,26 @@ LlConst * OValueFuncRef::CreateLlConst()
   throw logic_error("FuncRef constant has no target");
 }
 
+bool OValueFuncRef::CopyFrom(const OValue * src)
+{
+  auto * srcfn = dynamic_cast<const OValueFuncRef *>(src);
+  if (!srcfn)
+  {
+    return false;
+  }
+  is_null = srcfn->is_null;
+  target_func = srcfn->target_func;
+  target_symbol = srcfn->target_symbol;
+  receiver_address = srcfn->receiver_address;
+  ll_const = nullptr;
+  return true;
+}
+
 bool OValueFuncRef::WriteDqmIfValue(ODqmIfWriter & writer)
 {
   if (!is_null)
   {
-    return writer.Fail("Only nil function reference constants are supported in DQM interface generation");
+    return writer.AddRecEmpty(DQMIF_VALUE_LINKED);
   }
   return writer.AddRecU64(DQMIF_VALUE_INLINE, 0);
 }
@@ -1998,9 +2020,12 @@ bool OValueFuncRef::CalculateConstant(OExpr * expr, bool emit_errors)
   is_null = true;
   target_func = nullptr;
   target_symbol = nullptr;
+  receiver_address.Reset();
+  ll_const = nullptr;
 
+  auto * fref_type = dynamic_cast<OTypeFuncRef *>(ResolvedType());
   OExpr * plain = UnwrapConstExpr(expr);
-  if (!plain)
+  if (!plain || !fref_type)
   {
     if (emit_errors)
     {
@@ -2016,25 +2041,105 @@ bool OValueFuncRef::CalculateConstant(OExpr * expr, bool emit_errors)
 
   if (auto * varref = dynamic_cast<OLValueVar *>(plain))
   {
-    target_func = dynamic_cast<OValSymFunc *>(varref->pvalsym);
-    if (target_func)
+    if (auto * vsconst = dynamic_cast<OValSymConst *>(varref->pvalsym))
     {
-      if (target_func->parent_function)
+      auto * src_fref = dynamic_cast<OValueFuncRef *>(vsconst->pvalue);
+      if (src_fref && fref_type->CanAccept(varref->ResolvedType()))
       {
-        if (emit_errors) g_compiler->Error(DQERR_SUBFN_ESCAPE, target_func->name);
-        target_func = nullptr;
-        return false;
+        return CopyFrom(src_fref);
       }
-      is_null = false;
-      return true;
+      if (emit_errors) g_compiler->Error(DQERR_CONSTEXPR_INVALID_FOR, ptype->name);
+      return false;
+    }
+
+    if (!fref_type->object_ref)
+    {
+      OValSymFunc * func = dynamic_cast<OValSymFunc *>(varref->pvalsym);
+      if (!func)
+      {
+        if (auto * ovset = dynamic_cast<OValSymOverloadSet *>(varref->pvalsym))
+        {
+          if (OFRM_UNIQUE_MATCH != ovset->FindMatchingSignature(fref_type->functype, func))
+          {
+            func = nullptr;
+          }
+        }
+      }
+      if (func)
+      {
+        if (func->parent_function)
+        {
+          if (emit_errors) g_compiler->Error(DQERR_SUBFN_ESCAPE, func->name);
+          return false;
+        }
+        if (func->IsInlineAsm())
+        {
+          if (emit_errors) g_compiler->Error(DQERR_ASM_FUNC_REF, func->name);
+          return false;
+        }
+        if (!fref_type->CanAccept(func->ptype))
+        {
+          if (emit_errors) g_compiler->Error(DQERR_FUNCSIG_TYPEMISM, fref_type->name, func->ptype->name);
+          return false;
+        }
+        target_func = func;
+        is_null = false;
+        return true;
+      }
     }
   }
 
-  if (auto * addrof = dynamic_cast<OAddrOfExpr *>(plain))
+  if (fref_type->object_ref)
+  {
+    OValSymFunc * method = nullptr;
+    OLValueExpr * receiver = nullptr;
+    if (auto * bound = dynamic_cast<OBoundMethodExpr *>(plain))
+    {
+      method = bound->vsfunc;
+      receiver = bound->receiver;
+    }
+    else if (auto * bound_ov = dynamic_cast<OBoundMethodOverloadExpr *>(plain))
+    {
+      method = bound_ov->matched_func;
+      if (!method)
+      {
+        OValSymFunc * matched = nullptr;
+        if (OFRM_UNIQUE_MATCH == fref_type->FindAcceptingOverload(bound_ov, matched))
+        {
+          method = matched;
+        }
+      }
+      receiver = bound_ov->receiver;
+    }
+
+    if (method && receiver)
+    {
+      if (method->IsInlineAsm())
+      {
+        if (emit_errors) g_compiler->Error(DQERR_ASM_FUNC_REF, method->name);
+        return false;
+      }
+      if (!fref_type->CanAcceptMethod(method))
+      {
+        if (emit_errors) g_compiler->Error(DQERR_FUNCSIG_TYPEMISM, fref_type->name, method->ptype->name);
+        return false;
+      }
+      OType * recv_type = receiver->ResolvedType();
+      bool static_receiver = recv_type && !receiver->IsObjectReferenceExpr()
+          && ((TK_STRUCT == recv_type->kind) || receiver->IsFixedObjectStorageExpr());
+      if (!method->attr_is_abstract && static_receiver
+          && receiver->TryCalculateConstantAddress(receiver_address))
+      {
+        target_func = method;
+        is_null = false;
+        return true;
+      }
+    }
+  }
+  else if (auto * addrof = dynamic_cast<OAddrOfExpr *>(plain))
   {
     auto * varref = dynamic_cast<OLValueVar *>(addrof->target);
-    if (varref && varref->pvalsym
-        && ((VSK_VARIABLE == varref->pvalsym->kind) || (VSK_CONST == varref->pvalsym->kind)))
+    if (varref && varref->pvalsym && varref->pvalsym->HasGlobalStorage())
     {
       target_symbol = varref->pvalsym;
       is_null = false;

@@ -1039,7 +1039,7 @@ bool OValueTextLiteral::CalculateConstant(OExpr * expr, bool emit_errors)
   if (!literal.CalculateConstant(expr, emit_errors)) return false;
   if (!literal.GetStringLiteral())
   {
-    if (literal.address != 0)
+    if (!literal.const_addr.IsNull())
     {
       if (emit_errors) g_compiler->Error(DQERR_CONSTEXPR_INVALID_FOR, ptype->name);
       return false;

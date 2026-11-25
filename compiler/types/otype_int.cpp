@@ -20,6 +20,7 @@
 #include "dqc.h"
 #include "otype_enum.h"
 #include "otype_char.h"
+#include "otype_array.h"
 #include "scope_builtins.h"
 #include <cmath>
 
@@ -222,6 +223,15 @@ bool OValueInt::CalculateConstant(OExpr * expr, bool emit_errors)
         return true;
       }
     }
+  }
+
+  if (auto * meta = dynamic_cast<OArrayMetaFieldExpr *>(expr);
+      meta && (AMF_LENGTH == meta->field) && meta->containertype
+      && (TK_ARRAY == meta->containertype->ResolveAlias()->kind))
+  {
+    auto * arrtype = static_cast<OTypeArray *>(meta->containertype->ResolveAlias());
+    value = static_cast<OTypeInt *>(ResolvedType())->ConvertConstant(int64_t(arrtype->arraylength));
+    return true;
   }
 
   {

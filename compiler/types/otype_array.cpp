@@ -499,14 +499,74 @@ LlConst * OValueArray::CreateLlConst()
   return llvm::ConstantArray::get(ll_arrtype, ll_elems);
 }
 
+bool OValueArray::CopyFrom(const OValue * src)
+{
+  auto * src_arr = dynamic_cast<const OValueArray *>(src);
+  if (!src_arr || src_arr->elements.size() != elements.size())
+  {
+    return false;
+  }
+  for (size_t i = 0; i < elements.size(); ++i)
+  {
+    if (!elements[i] || !src_arr->elements[i] || !elements[i]->CopyFrom(src_arr->elements[i]))
+    {
+      return false;
+    }
+  }
+  ll_const = nullptr;
+  return true;
+}
+
+bool OValueArray::CanWriteDqmIfInline() const
+{
+  // Avoid bloating .dqm_if with huge lookup tables; large arrays stay linked.
+  if (elements.size() > 64)
+  {
+    return false;
+  }
+  for (OValue * elem : elements)
+  {
+    if (!elem || !elem->CanWriteDqmIfInline())
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool OValueArray::WriteDqmIfValue(ODqmIfWriter & writer)
 {
-  return writer.AddRecEmpty(DQMIF_VALUE_LINKED);
+  if (!CanWriteDqmIfInline())
+  {
+    return writer.AddRecEmpty(DQMIF_VALUE_LINKED);
+  }
+  if (!writer.AddRecEmpty(DQMIF_VALUE_ARRAY_BEGIN)) return false;
+  for (OValue * elem : elements)
+  {
+    if (!elem->WriteDqmIfValue(writer)) return false;
+  }
+  return writer.AddRecEmpty(DQMIF_VALUE_ARRAY_END);
 }
 
 bool OValueArray::CalculateConstant(OExpr * expr, bool emit_errors)
 {
-  auto * arrtype = static_cast<OTypeArray *>(ptype);
+  auto * arrtype = static_cast<OTypeArray *>(ptype->ResolveAlias());
+
+  if (auto * varref = dynamic_cast<OLValueVar *>(expr))
+  {
+    auto * vsconst = dynamic_cast<OValSymConst *>(varref->pvalsym);
+    auto * src_arr = (vsconst ? dynamic_cast<OValueArray *>(vsconst->pvalue) : nullptr);
+    if (src_arr && src_arr->ResolvedType() == arrtype)
+    {
+      return CopyFrom(src_arr);
+    }
+    if (emit_errors)
+    {
+      if (!vsconst) g_compiler->Error(DQERR_CONSTEXPR_NONCONST_SYM, varref->pvalsym->name, ptype->name);
+      else          g_compiler->Error(DQERR_ARRAY_CONSTEXPR);
+    }
+    return false;
+  }
 
   if (auto * aggregate = dynamic_cast<OStructLit *>(expr);
       aggregate && aggregate->entries.empty() && !aggregate->fill_missing)
@@ -516,6 +576,7 @@ bool OValueArray::CalculateConstant(OExpr * expr, bool emit_errors)
     {
       return false;
     }
+    ll_const = nullptr;
     return true;
   }
 
@@ -535,6 +596,7 @@ bool OValueArray::CalculateConstant(OExpr * expr, bool emit_errors)
       }
     }
 
+    ll_const = nullptr;
     return true;
   }
 

@@ -152,6 +152,14 @@ public:
   OValueTextLiteral(OType * atype);
   LlConst * CreateLlConst() override;
   bool CalculateConstant(OExpr * expr, bool emit_errors = true) override;
+  bool CopyFrom(const OValue * src) override
+  {
+    auto * v = dynamic_cast<const OValueTextLiteral *>(src);
+    if (!v || !literal.CopyFrom(&v->literal)) return false;
+    ll_const = nullptr;
+    return true;
+  }
+  bool CanWriteDqmIfInline() const override { return true; }
   bool WriteDqmIfValue(ODqmIfWriter & writer) override;
 };
 

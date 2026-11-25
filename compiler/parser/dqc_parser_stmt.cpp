@@ -1760,6 +1760,24 @@ void ODqCompParserStmt::ParseStmtInherited()
   curblock->AddStatement(stmt);
 }
 
+OExpr * ODqCompParserStmt::ParseCondition(const char * statement)
+{
+  OExpr * cond = ParseExpression();
+  if (!cond)
+  {
+    StatementError(DQERR_CONDEXPR_MISSING_FOR, statement);
+    return nullptr;
+  }
+
+  const OType * cond_type = cond->ResolvedType();
+  if (!cond_type || TK_BOOL != cond_type->kind)
+  {
+    Error(DQERR_BOOL_EXPR_EXPECTED, cond_type ? cond_type->name : "void");
+    // Keep parsing the body so errors in later statements can be reported.
+  }
+  return cond;
+}
+
 void ODqCompParserStmt::ParseStmtWhile()
 {
   // note: "while" is already consumed
@@ -1767,10 +1785,9 @@ void ODqCompParserStmt::ParseStmtWhile()
 
   scf->SkipWhite();
 
-  OExpr * cond = ParseExpression();
+  OExpr * cond = ParseCondition("while");
   if (!cond)
   {
-    StatementError(DQERR_CONDEXPR_MISSING_FOR, "while");
     return;
   }
 
@@ -2191,17 +2208,11 @@ void ODqCompParserStmt::ParseStmtFor()
 
   if (EForKind::WHILE == kind)
   {
-    limit_expr = ParseExpression();
+    limit_expr = ParseCondition("for");
     if (!limit_expr)
     {
-      StatementError(DQERR_CONDEXPR_MISSING_FOR, "for");
       abort_for();
       return;
-    }
-
-    if (TK_BOOL != limit_expr->ResolvedType()->kind)
-    {
-      Error(DQERR_BOOL_EXPR_EXPECTED, limit_expr->ResolvedType()->name);
     }
 
     st->condition = limit_expr;
@@ -2286,17 +2297,10 @@ void ODqCompParserStmt::ParseStmtIf()
   // syntax form: "if <condition>: <stblock> elif <condition>: <stblock> else: <stblock> endif"
   scf->SkipWhite();
 
-  OExpr * cond = ParseExpression();
+  OExpr * cond = ParseCondition("if");
   if (!cond)
   {
-    StatementError(DQERR_CONDEXPR_MISSING_FOR, "if");
     return;
-  }
-
-  if (TK_BOOL != cond->ResolvedType()->kind)
-  {
-    Error(DQERR_BOOL_EXPR_EXPECTED, cond->ResolvedType()->name);
-    // continue parsing the if branch for better error recovery
   }
 
   OStmtIf * st = new OStmtIf(scpos_statement_start, curscope);
@@ -2334,16 +2338,10 @@ void ODqCompParserStmt::ParseStmtIf()
 
     if ("elif" == endstr)
     {
-      cond = ParseExpression();
+      cond = ParseCondition("elif");
       if (!cond)
       {
-        StatementError(DQERR_CONDEXPR_MISSING_FOR, "elif");
         break;
-      }
-      if (!cond->ResolvedType() || TK_BOOL != cond->ResolvedType()->kind)
-      {
-        Error(DQERR_BOOL_EXPR_EXPECTED, cond->ResolvedType() ? cond->ResolvedType()->name : "<void>");
-        // continue for better error recovery
       }
 
       branch = st->AddBranch(cond);

@@ -11,10 +11,14 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.99.1"
+#define DQ_COMPILER_VERSION  "0.99.3"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.99.3:
+  - Missing type check fix at while loop conditionals
+v0.99.2:
+  - Parsing object members read full identifier first to handle variables like 'func_i32_1'
 v0.99.1:
   - compiler refactoring: otype_constexpr.h/cpp created for constexpr handling
 v0.99.0:

@@ -1,4 +1,4 @@
-// Logical operators require bool operands; bool comparisons support only == and <>.
+// Control-flow conditions and logical operands require bool. Bool comparisons support only == and <>.
 
 const BAD_NOT : bool = not 0 //?error(BoolExprExpected)
 const BAD_AND : bool = 1 and 2 //?error(TypeMismatchOp)
@@ -13,6 +13,18 @@ func *Main():
     var number : int = 1
     var ptr : ^int = %number
     var value : bool
+
+    while number: //?error(BoolExprExpected)
+    endwhile
+    while NoValue(): //?error(BoolExprExpected)
+    endwhile
+
+    if NoValue(): //?error(BoolExprExpected)
+    elif NoValue(): //?error(BoolExprExpected)
+    endif
+
+    for i : int = 0 while NoValue(): //?error(BoolExprExpected)
+    endfor
 
     value = not 0 //?error(BoolExprExpected)
     value = not number //?error(BoolExprExpected)

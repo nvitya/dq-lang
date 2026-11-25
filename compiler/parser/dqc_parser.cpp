@@ -1238,7 +1238,11 @@ ODqCompParser::ECompoundDeclStart ODqCompParser::ParseCompoundDeclStart(bool is_
 
 bool ODqCompParser::CheckCompoundBlockEnd(const string & block_closer)
 {
-  return !block_closer.empty() && scf->CheckSymbol(block_closer.c_str());
+  if (block_closer == "}")
+  {
+    return scf->CheckSymbol("}");
+  }
+  return !block_closer.empty() && scf->CheckKeyword(block_closer.c_str());
 }
 
 void ODqCompParser::SCompoundDeclHeader::Discard()
@@ -1439,13 +1443,19 @@ void ODqCompParser::ParseStructDecl()
     scf->SaveCurPos(mempos);
     scpos_statement_start = mempos;
 
-    if (scf->CheckSymbol("func"))
+    if (not scf->ReadIdentifier(membername))
+    {
+      StatementError(DQERR_STRUCT_MBID_EXPECTED);
+      break;
+    }
+
+    if ("func" == membername)
     {
       ReadCompoundMethod(ctype, MV_PUBLIC);
       continue;
     }
 
-    if (scf->CheckSymbol("union"))
+    if ("union" == membername)
     {
       OAttr field_attr = *attr;
       if (!ParseNestedUnionField(ctype, MV_PUBLIC, field_attr))
@@ -1453,12 +1463,6 @@ void ODqCompParser::ParseStructDecl()
         break;
       }
       continue;
-    }
-
-    if (not scf->ReadIdentifier(membername))
-    {
-      StatementError(DQERR_STRUCT_MBID_EXPECTED);
-      break;
     }
 
     scf->SkipWhite();
@@ -2518,13 +2522,19 @@ void ODqCompParser::ParseObjectDecl()
     scf->SaveCurPos(mempos);
     scpos_statement_start = mempos;
 
-    if (scf->CheckSymbol("func"))
+    if (not scf->ReadIdentifier(membername))
+    {
+      StatementError(DQERR_STRUCT_MBID_EXPECTED);
+      break;
+    }
+
+    if ("func" == membername)
     {
       ReadCompoundMethod(object_type, current_visibility);
       continue;
     }
 
-    if (scf->CheckSymbol("union"))
+    if ("union" == membername)
     {
       OAttr field_attr = *attr;
       if (!ParseNestedUnionField(object_type, current_visibility, field_attr))
@@ -2532,12 +2542,6 @@ void ODqCompParser::ParseObjectDecl()
         break;
       }
       continue;
-    }
-
-    if (not scf->ReadIdentifier(membername))
-    {
-      StatementError(DQERR_STRUCT_MBID_EXPECTED);
-      break;
     }
 
     if ("private" == membername)

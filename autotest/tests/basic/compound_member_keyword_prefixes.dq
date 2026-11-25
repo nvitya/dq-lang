@@ -1,0 +1,28 @@
+func printf(fmt : ^char, ...) -> int [[external]] ..
+
+object OKeywordPrefixes:
+    func_i32_1 : int32 = 1
+    union_value : int32 = 2
+    endobject_value : int32 = 3
+endobject
+
+struct SKeywordPrefixes:
+    func_value : int32
+    union_value : int32
+    endstruct_value : int32
+    union:
+        endunion_value : int32
+    endunion
+endstruct
+
+func *Main():
+    var obj <- OKeywordPrefixes()
+    printf("object fields=%d %d %d\n", obj.func_i32_1, obj.union_value, obj.endobject_value) //?check("object fields", "1 2 3")
+
+    var data : SKeywordPrefixes = {}
+    data.func_value = 4
+    data.union_value = 5
+    data.endstruct_value = 6
+    data.endunion_value = 7
+    printf("struct fields=%d %d %d %d\n", data.func_value, data.union_value, data.endstruct_value, data.endunion_value) //?check("struct fields", "4 5 6 7")
+endfunc

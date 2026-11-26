@@ -18,7 +18,8 @@
 
 #linklib('m')
 
-const M_PI : float64 = 3.141592653589793
+const M_PI   : float64 = 3.141592653589793
+const M_PI32 : float32 = 3.1415927
 
 // float64 variants
 

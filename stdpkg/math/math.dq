@@ -18,6 +18,8 @@
 
 #linklib('m')
 
+const M_PI : float64 = 3.141592653589793
+
 // float64 variants
 
 // trigonometric functions - float64

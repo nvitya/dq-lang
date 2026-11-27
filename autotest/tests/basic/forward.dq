@@ -29,6 +29,23 @@ func ov_mismatch(a : ref int) -> int [[overload]]:
     return a
 endfunc
 
+object OVirtualForward:
+    func MissingVirtual() [[virtual]] ..
+    func ExtraVirtual() ..
+endobject
+
+func OVirtualForward.MissingVirtual():  //?error(FuncSigType)
+endfunc
+
+func OVirtualForward.MissingVirtual() [[virtual]]:
+endfunc
+
+func OVirtualForward.ExtraVirtual() [[virtual]]:  //?error(FuncSigType)
+endfunc
+
+func OVirtualForward.ExtraVirtual():
+endfunc
+
 #else
 
 func printf(fmt : ^char, ...) -> int [[external]] ..

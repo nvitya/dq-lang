@@ -69,7 +69,7 @@ endfunc
 func Exception.*Destroy():
 endfunc
 
-func Exception.GetMessage() -> embstr:
+func Exception.GetMessage() -> embstr [[virtual]]:
     return message
 endfunc
 

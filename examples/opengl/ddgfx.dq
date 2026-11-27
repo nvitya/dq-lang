@@ -488,7 +488,7 @@ func ODrawable.Matrix() -> SDdMatrix:
     result.values[5] = y
 endfunc
 
-func ODrawable.Draw(parent_matrix : SDdMatrix, parent_alpha : float32):
+func ODrawable.Draw(parent_matrix : SDdMatrix, parent_alpha : float32) [[virtual]]:
 endfunc
 
 //-----------------------------------------------------------------------------

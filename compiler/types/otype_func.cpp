@@ -994,13 +994,21 @@ bool OValSymFunc::CheckForwardDeclMatch(OValSymFunc * other) const
     return false;
   }
 
-  if (this_type->MatchesSignature(other_type))
+  if (!this_type->MatchesSignature(other_type))
   {
-    return true;
+    g_compiler->Error(DQERR_FUNCSIG_TYPEMISM, FuncTypeName(this_type), FuncTypeName(other_type));
+    return false;
   }
 
-  g_compiler->Error(DQERR_FUNCSIG_TYPEMISM, FuncTypeName(this_type), FuncTypeName(other_type));
-  return false;
+  if (attr_is_virtual != other->attr_is_virtual)
+  {
+    g_compiler->ErrorTxt(DQERR_FUNCSIG_TYPEMISM,
+                         format("Function declaration and definition of \"{}\" must agree on [[virtual]]", name),
+                         &other->scpos);
+    return false;
+  }
+
+  return true;
 }
 
 void OValSymFunc::MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_names)
@@ -1026,7 +1034,6 @@ void OValSymFunc::MergeForwardDeclFrom(OValSymFunc * other, bool copy_param_name
     attr_section_name = other->attr_section_name;
   }
   attr_is_override = attr_is_override || other->attr_is_override;
-  attr_is_virtual  = attr_is_virtual || other->attr_is_virtual;
   attr_is_abstract = attr_is_abstract || other->attr_is_abstract;
   attr_is_final    = attr_is_final || other->attr_is_final;
   attr_is_inline   = attr_is_inline || other->attr_is_inline;

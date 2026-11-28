@@ -25,32 +25,12 @@ func EmbStrStorageSize(desc : ref SDqTextInfo) -> uint:
     return EmbStrMaxLen(desc) + 1
 endfunc
 
-func EmbStrScanLen(desc : ref SDqTextInfo) -> uint:
-    var maxlen : uint = desc.info & DQTI_MAXCHLEN_MASK
-    if desc.dataptr == nil:
-        return 0
-    endif
-
-    // register-optimised version
-    var pstart : ^char = desc.dataptr
-    var p      : ^char = pstart
-    var pend   : ^char = p[maxlen]
-    while p < pend:
-        if p^ == char(0):
-            return p - pstart
-        endif
-        ++p
-    endwhile
-
-    return maxlen
-endfunc
-
 func EmbStrLen(desc : ref SDqTextInfo) -> uint:
     if desc.charlen >= 0:
         return desc.charlen
     endif
 
-    result = EmbStrScanLen(desc)
+    result = PcharLen(desc.dataptr, EmbStrMaxLen(desc))
     desc.charlen = result
 endfunc
 
@@ -68,30 +48,12 @@ func EmbStrSetLenAndTerm(desc : ref SDqTextInfo, newlen : uint):
 endfunc
 
 
-func EmbStrBoundedPtrLen(src : ^char, maxcopy : uint) -> uint:
-    if src == nil:
-        return 0
-    endif
-
-    // register optimized version
-    var srcp   : ^char = src
-    var srcend : ^char = src[maxcopy]
-    while srcp < srcend:
-        if srcp^ == char(0):
-            return srcp - src
-        endif
-        ++srcp
-    endwhile
-
-    return maxcopy
-endfunc
-
 func EmbStrCopyFromPtr(desc : ref SDqTextInfo, dstpos : uint, src : ^char, maxcopy : uint) -> uint:
     if desc.dataptr == nil  or src == nil  or maxcopy == 0:
         return 0
     endif
 
-    var count : uint = EmbStrBoundedPtrLen(src, maxcopy)
+    var count : uint = PcharLen(src, maxcopy)
     if count > 0:
         MemCopy(desc.dataptr[dstpos], src, count)
     endif
@@ -206,7 +168,7 @@ func EmbStrInsertPtr(desc : ref SDqTextInfo, index : int, src : ^char):
     var oldlen : uint = EmbStrLen(desc)
     var pos : uint = EmbStrClampIndex(index, oldlen)
     var maxlen : uint = EmbStrMaxLen(desc)
-    var addlen : uint = EmbStrBoundedPtrLen(src, maxlen - pos)
+    var addlen : uint = PcharLen(src, maxlen - pos)
     addlen = EmbStrOpenGap(desc, pos, addlen, oldlen)
     if addlen > 0:
         MemCopy(desc.dataptr[pos], src, addlen)

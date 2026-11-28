@@ -25,4 +25,14 @@ func *Main():
     var slice : strslice = text[0:2]
     var slice_upper : str = StrUpper(slice)
     printf("slice = %s\n", slice_upper.pchar) //?check("slice", "AZ")
+
+    var raw : ^char = "éxy"
+    var maxlen : uint = -1
+    printf("pchar_len = %li %li %li %li\n", PcharLen(raw), PcharLen(raw, 2), PcharLen(raw, 5), PcharLen(raw, maxlen))
+        //?check("pchar_len", "4 2 4 4")
+    var bytes : [2]char = ['a', 'b']
+    printf("pchar_bounded = %li %li\n", PcharLen(%bytes[0], bytes.length), PcharLen(%bytes[0], 0))
+        //?check("pchar_bounded", "2 0")
+    printf("pchar_empty = %li %li %li\n", PcharLen(""), PcharLen(nil), PcharLen(nil, 3))
+        //?check("pchar_empty", "0 0 0")
 endfunc

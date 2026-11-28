@@ -83,6 +83,7 @@ dynamic-string support.
 | Function | Result | Purpose |
 | --- | --- | --- |
 | [`Format(fmt : strslice, args : varargs)`](#format) | `str` | Create formatted text |
+| [`PcharLen(pc : ^char)`](#pcharlen)<br>[`PcharLen(pc : ^char, maxlen : uint)`](#pcharlen) | `int` | Count bytes in a raw C string, optionally up to a limit |
 | [`StrFromUtf16(chars : []char16)`](#strfromutf16-and-strfromutf16ptr) | `str` | Convert a UTF-16 array to UTF-8 |
 | [`StrFromUtf16Fallback(chars : []char16, fallback_wchar : wchar)`](#utf16-fallback-conversion) | `str` | Convert UTF-16, replacing malformed sequences |
 | [`StrFromUtf16Ptr(chars : ^char16, count : int)`](#strfromutf16-and-strfromutf16ptr) | `str` | Convert an explicit number of UTF-16 code units |
@@ -264,6 +265,18 @@ zero bytes.
 var replaced : str = StrReplace("one::two::", "::", "/") // "one/two/"
 var removed : str = StrReplace("a--b--", "--", "")       // "ab"
 ```
+
+### PcharLen
+
+```text
+PcharLen(pc : ^char) -> int
+PcharLen(pc : ^char, maxlen : uint) -> int
+```
+
+`PcharLen(pc)` counts bytes up to the first zero byte, excluding that byte.
+The bounded overload reads at most `maxlen` bytes and returns `maxlen` if no
+zero byte occurs in that range. Both overloads return zero for `nil`, and a
+zero limit reads no bytes. The byte count must fit in `int`.
 
 ### StrSlice
 

@@ -11,10 +11,12 @@
  * brief:   DQ Compiler Version Description
  */
 
-#define DQ_COMPILER_VERSION  "0.99.4"
+#define DQ_COMPILER_VERSION  "0.99.5"
 
 /* CHANGE LOG
 ------------------------------------------------------------------------------------
+v0.99.5:
+  - Introduced PcharLen(pc : ^char), PcharLen(pc : ^char, maxlen : uint) global functions
 v0.99.4:
   - Compiler error when function [[virtual] attributes mismatch between function forward declarations and implementations
 v0.99.3:

@@ -35,6 +35,8 @@ func IntToChar(value : int) -> char [[overload]] ..
 func IntToChar(value : int, defvalue : char) -> char [[overload]] ..
 func IntToWchar(value : int) -> wchar [[overload]] ..
 func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]] ..
+func PcharLen(pc : ^char) -> int [[overload]] ..
+func PcharLen(pc : ^char, maxlen : uint) -> int [[overload]] ..
 func StrSlice(data : ^char, length : int) -> strslice ..
 func StrSliceCmp(a : strslice, b : strslice) -> int ..
 func StrfEncodeUtf8(wc : wchar, dst : refout [4]char) -> int ..
@@ -372,6 +374,32 @@ func IntToWchar(value : int, defvalue : wchar) -> wchar [[overload]]:
     if not IsValidWchar(result):
         return defvalue
     endif
+endfunc
+
+func PcharLen(pc : ^char) -> int [[overload]]:
+    if pc == nil:
+        return 0
+    endif
+
+    var p : ^char = pc
+    while p^ <> char(0):
+        ++p
+    endwhile
+    return p - pc
+endfunc
+
+func PcharLen(pc : ^char, maxlen : uint) -> int [[overload]]:
+    if pc == nil:
+        return 0
+    endif
+
+    // Compare addresses for equality because a large maxlen can wrap the end address.
+    var p     : ^char = pc
+    var pcend : ^char = pc + maxlen & 0x00FFFFFF   // limit the maxlength to 16 MBytes
+    while p < pcend and p^ <> char(0):
+        ++p
+    endwhile
+    return p - pc
 endfunc
 
 func StrSlice(data : ^char, length : int) -> strslice:

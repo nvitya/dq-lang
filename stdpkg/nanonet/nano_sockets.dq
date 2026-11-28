@@ -416,7 +416,7 @@ endfunc
 
 //-----------------------------------------------------------------------------
 
-#ifdef WINDOWS
+#ifdef WINDOWS  // use WSAPoll
 
 func OSocketWatcher.*Create(amaxfds : int):
     maxfds = amaxfds
@@ -552,7 +552,7 @@ func OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
     endfor
 endfunc
 
-#else
+#else // Linux, use epoll
 
 func OSocketWatcher.*Create(amaxfds : int):
     maxfds = amaxfds
@@ -627,19 +627,6 @@ func OSocketWatcher.RemoveSocket(asock : ONanoSocket):
     endif
 endfunc
 
-#endif
-
-func OSocketWatcher.SetOutHandler(asock : ONanoSocket, aoutev : FOutEventHandler):
-    asock.out_event_handler = aoutev
-    ModifySocket(asock)
-endfunc
-
-func OSocketWatcher.SetInHandler(asock : ONanoSocket, ainev : FInEventHandler):
-    asock.in_event_handler = ainev
-    ModifySocket(asock)
-endfunc
-
-#ifndef WINDOWS
 func OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
     use socket
     result = false
@@ -669,7 +656,18 @@ func OSocketWatcher.WaitForEvents(atimeout_ms : int) -> bool:
         endif
     endfor
 endfunc
-#endif
+
+#endif  // Linux
+
+func OSocketWatcher.SetOutHandler(asock : ONanoSocket, aoutev : FOutEventHandler):
+    asock.out_event_handler = aoutev
+    ModifySocket(asock)
+endfunc
+
+func OSocketWatcher.SetInHandler(asock : ONanoSocket, ainev : FInEventHandler):
+    asock.in_event_handler = ainev
+    ModifySocket(asock)
+endfunc
 
 //-----------------------------------------------------------------------------
 
